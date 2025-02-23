@@ -1,0 +1,74 @@
+/* styles/NFTCard.css */
+
+.nft-card {
+    background: #1a1a1a;
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+    color: white;
+    width: 250px;
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* Hiệu ứng hover */
+  .nft-card:hover {
+    transform: translateY(-8px); /* Nổi lên */
+    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.2); /* Tăng độ sáng */
+  }
+  
+  /* Hình ảnh NFT */
+  .nft-image {
+    width: 100%;
+    border-radius: 10px;
+    transition: transform 0.3s ease;
+  }
+  
+  /* Khi hover, ảnh phóng to nhẹ */
+  .nft-card:hover .nft-image {
+    transform: scale(1.05);
+  }
+  
+  /* Tiêu đề */
+  .nft-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 10px 0;
+  }
+  
+  /* Mô tả */
+  .nft-description {
+    font-size: 14px;
+    opacity: 0.7;
+    margin-bottom: 10px;
+  }
+  
+  /* Giá */
+  .nft-price {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 10px 0;
+  }
+  
+  /* Nút "Buy NFT" */
+  .buy-button {
+    background: linear-gradient(90deg, #4caf50, #3e8e41);
+    color: white;
+    border: none;
+    padding: 10px;
+    width: 100%;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s ease, transform 0.2s ease;
+  }
+  
+  /* Hover vào nút */
+  .buy-button:hover {
+    background: linear-gradient(90deg, #3e8e41, #2e6e31);
+    transform: scale(1.05);
+  }
+  

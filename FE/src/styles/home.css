@@ -1,0 +1,91 @@
+.container {
+    display: flex;
+    justify-content: space-between;
+    color: white;
+    padding: 20px;
+  }
+  .left-panel {
+    width: 65%;
+    padding-right: 20px;
+  }
+  .right-panel {
+    width: 30%;
+    background: #222;
+    padding: 20px;
+    border-radius: 10px;
+    border: 2px solid #444;
+  }
+  .post {
+    background: #1a1a1a;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border: 2px solid #555;
+  }
+  .user-info {
+    display: flex;
+    align-items: center;
+   
+    margin-bottom: 10px;
+  }
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+    border: 2px solid #777;
+  }
+  .post-image {
+    width: 100%;
+    border-radius: 10px;
+    margin: 10px 0;
+    border: 2px solid #888;
+  }
+  .actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 2px solid #666;
+    padding-top: 10px;
+  }
+  .buy-nft {
+    background: green;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 2px solid #0a0;
+  }
+  .balance {
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #666;
+  }
+  .claim {
+    background:rgb(14, 130, 14);
+    border: none;
+    padding: 10px;
+    margin-top: 10px;
+    cursor: pointer;
+    width: 100%;
+    border-radius: 5px;
+    border: 2px solid rgb(14, 130, 14);
+  }
+  .claim:hover{
+    background-color: #0a0;
+    border: #0f0;
+  }
+
+  .invite {
+    background: blue;
+    color: white;
+    border: none;
+    padding: 10px;
+    margin-top: 10px;
+    cursor: pointer;
+    width: 100%;
+    border-radius: 5px;
+    border: 2px solid #00f;
+  }
+  
