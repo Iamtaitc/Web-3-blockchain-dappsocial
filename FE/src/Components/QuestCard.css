@@ -1,0 +1,60 @@
+/* styles/QuestCard.css */
+.quest-card {
+  display: flex;
+  align-items: center;
+  background: #2a2a2a;
+  padding: 12px;
+  padding-left: 24px;
+  padding-right: 24px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+  width: 90%; /* Các card quest nhỏ hơn */
+  margin: 0 auto; /* Căn giữa trong ô quest */
+  margin-top: 10px;
+}
+
+.quest-icon {
+  width: 100px; /* Icon nhỏ hơn */
+  height: 100px;
+  margin-right: 10px;
+}
+
+.quest-info {
+  flex: 1;
+  text-align: left;
+}
+
+.quest-title {
+  font-size: 16px; /* Tiêu đề nhỏ lại */
+  font-weight: bold;
+  margin: 0;
+}
+
+.quest-reward {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.quest-button {
+  padding: 6px 12px; /* Nút nhỏ gọn */
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+  font-size: 14px;
+}
+
+.quest-button.start {
+  background: white;
+  color: black;
+}
+
+.quest-button.claim {
+  background: #4caf50;
+  color: white;
+}
+
+.quest-button:hover {
+  transform: scale(1.05);
+}

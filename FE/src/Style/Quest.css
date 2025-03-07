@@ -1,0 +1,23 @@
+/* styles/QuestPage.css */
+.quest-container {
+  width: 900px; /* Ô quest to hơn */
+  background: #1a1a1a;
+  border-radius: 16px;
+  padding: 30px;
+  text-align: center;
+  color: white;
+  box-shadow: 0 6px 12px rgba(255, 255, 255, 0.1);
+  margin: 50px auto; /* Đưa ra giữa màn hình */
+}
+
+.quest-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
