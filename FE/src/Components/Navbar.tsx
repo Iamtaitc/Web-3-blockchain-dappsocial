@@ -11,7 +11,7 @@ const Navbar: React.FC = () => {
       </div>
       <ul className="nav-links">
         <li><Link to="/"><FaHome /><span>Home</span></Link></li>
-        <li><Link to="/find-nft"><FaSearch /><span>Find NFT</span></Link></li>
+        <li><Link to="/dashboard"><FaSearch /><span>Dashboard</span></Link></li>
         <li><Link to="/farm"><FaLeaf /><span>Farm</span></Link></li>
         <li><Link to="/add-nft"><FaPlus /><span>Add NFT</span></Link></li>
         <li><Link to="/premium"><FaCrown /><span>Premium</span></Link></li>
