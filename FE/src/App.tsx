@@ -11,9 +11,8 @@ function App() {
       <Navbar />
       <main style={{ marginLeft: "200px", padding: "20px" }}>
         <AppRoutes /> {/* Gọi toàn bộ routes từ file routes.tsx */}
-      </main>
+      </main> 
     </Router>
-
   );
 }
 

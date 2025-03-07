@@ -8,24 +8,66 @@
     width: 65%;
     padding-right: 20px;
   }
+  .discover {
+    display: inline-flex;
+    gap: 25px;
+    font-size: 15px;
+    font-weight: bold;
+    color: white;
+    padding-bottom: 15px;
+    white-space: nowrap;
+    text-align: center; 
+    margin-left: 270px;
+  }
+    .Status{
+        display: flex;
+        gap: 490px;
+        padding: 17px 15px 16px;
+        background: #1c1c1c;
+        /* margin-bottom: 15px; */
+        width: 100%;
+        border: 2px solid  #555;
+        border-top-left-radius: 25px;
+        border-top-right-radius: 25px;
+        border-bottom: none;
+  }
+  
+   .Status .tl{
+    display: inline-flex;
+     gap: 10px;
+   }
+   .Status .tl p{
+    padding-top:10px;
+    color: #A19999;
+   }
+   .bt button{
+    background: black;
+    color: white;
+    border: 1px solid;
+   }
+   .bt button:hover{
+    background: white;
+    color: black;
+   }
   .right-panel {
-    width: 30%;
-    background: #222;
+    width: 40%;
     padding: 20px;
-    border-radius: 10px;
-    border: 2px solid #444;
+    padding-top: 40px;
   }
   .post {
     background: #1a1a1a;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 20px;
+    padding: 15px 0px 15px 0px ;
     border: 2px solid #555;
+    margin-bottom: 0; /* Loại bỏ khoảng cách giữa các post */
+    border-bottom: none; 
+  }
+  .post-title{
+    padding: 0px 15px;
   }
   .user-info {
     display: flex;
     align-items: center;
-   
+    padding: 0px 15px;
     margin-bottom: 10px;
   }
   .avatar {
@@ -37,55 +79,213 @@
   }
   .post-image {
     width: 100%;
-    border-radius: 10px;
-    margin: 10px 0;
-    border: 2px solid #888;
+    border-radius: 15px;
+    border: 1px solid black;
+    margin-bottom: 10px;
+  }
+  .image{
+    padding: 10px 15px;
   }
   .actions {
     display: flex;
-    justify-content: space-between;
+    gap: 515px;
     align-items: center;
-    border-top: 2px solid #666;
-    padding-top: 10px;
+  }
+  .actions .icon-page{
+   padding-left: 15px;
+   display: flex;
+   gap: 20px;
   }
   .buy-nft {
-    background: green;
+    background: linear-gradient(45deg, #00c853, #64dd17);
     color: white;
     border: none;
-    padding: 5px 10px;
-    border-radius: 5px;
+    padding: 8px 15px;
+    border-radius: 8px;
     cursor: pointer;
-    border: 2px solid #0a0;
-  }
-  .balance {
-    text-align: center;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #666;
-  }
-  .claim {
-    background:rgb(14, 130, 14);
-    border: none;
-    padding: 10px;
-    margin-top: 10px;
-    cursor: pointer;
-    width: 100%;
-    border-radius: 5px;
-    border: 2px solid rgb(14, 130, 14);
-  }
-  .claim:hover{
-    background-color: #0a0;
-    border: #0f0;
-  }
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: 0.3s ease-in-out;
+    box-shadow: 0 4px 10px rgba(0, 255, 0, 0.3);
+    border: 1px solid #0a0;
+    position: relative;
+    overflow: hidden;
+}
 
-  .invite {
-    background: blue;
-    color: white;
-    border: none;
-    padding: 10px;
+.buy-nft:hover {
+    background: linear-gradient(45deg, #64dd17, #00c853);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.6), 0 0 25px rgba(0, 255, 0, 0.4);
+    transform: scale(1.05);
+}
+.buy-nft:active {
+    transform: scale(0.95);
+    box-shadow: 0 0 5px rgba(0, 255, 0, 0.8);
+}
+
+.buy-nft::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 70%);
+    transition: opacity 0.4s ease-in-out;
+    opacity: 0;
+}
+
+.buy-nft:hover::before {
+    opacity: 1;
+}
+
+  .balance {
+    padding: 30px;
+    border-bottom: 2px solid #666;
+    border: 2px solid #555;
+    font-family: 'Press Start 2P', cursive;
+    border-radius: 15px;
+    background: #1a1a1a;
+  }
+  .balance-amount{
+    text-align: center;
+    font-size: 42px;
+  }
+  .balance-checkin {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-top: 10px;
-    cursor: pointer;
-    width: 100%;
+    padding: 10px;
     border-radius: 5px;
-    border: 2px solid #00f;
+  }
+  .checkin {
+    font-size: 25px;
+    color: white;
   }
   
+  .day14 {
+    font-size: 20px;
+    color: #aaaaaa;
+  }
+  
+  .claim-checkin {
+    background-color: #33ff66;
+    color: black;
+    font-size: 15px;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .farming {
+    font-size: 20px;
+    color: #aaaaaa;
+    margin-top: 10px;
+  }
+  
+  .claim-farming {
+    background-color: #33ff66;
+    color: black;
+    font-size: 16px;
+    padding: 10px;
+    width: 100%;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  
+  .claim-checkin:hover,
+  .claim-farming:hover {
+    background-color: #2ecc71;
+  }
+
+  .referrals {
+    background-color: #1c1c1c;
+    padding: 16px;
+    border-radius: 8px;
+    margin-top: 30px;
+    text-align: left;
+    color: white;
+    font-family: 'Press Start 2P', cursive;
+    border: 2px solid #555;
+  }
+  
+  .referrals p {
+    font-size: 14px;
+    color: #dcdcdc;
+    margin: 15px 0
+  }
+  
+  .referrals p:first-child {
+    font-weight: bold;
+    font-size: 14px;
+    color: white;
+  }
+  
+  .invite {
+    background-color: #33ff66;
+    color: black;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 10px;
+    width: 100%;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 10px;
+    text-transform: uppercase;
+  }
+  
+  .invite:hover {
+    background-color: #2ecc71;
+  }
+  
+  .image-container {
+    display: grid;
+    gap: 5px;
+    padding: 10px 15px;
+}
+
+/* Khi có 1 ảnh => full chiều rộng */
+.image-container img {
+    width: 100%;
+    max-height: 500px;
+    object-fit: cover;
+    border-radius: 15px;
+    border: 1px solid black;
+}
+
+/* Khi có 2 ảnh => chia đôi hàng */
+.image-container.two {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+/* Khi có 3 ảnh => ảnh đầu tiên lớn hơn */
+.image-container.three {
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: auto;
+}
+
+.image-container.three img:first-child {
+    grid-row: span 2;
+}
+
+/* Khi có 4 ảnh => lưới 2x2 */
+.image-container.four {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+}
+.like-icon {
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+}
+
+.like-icon:hover {
+  transform: scale(1.2);
+}
+
+.like-icon svg {
+  transition: color 0.2s ease-in-out;
+}
