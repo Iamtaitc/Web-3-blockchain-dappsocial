@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const ethers = require('ethers');
 const User = require('../models/User');
 const crypto = require('crypto');
-const config = require('../config');
+const config = require('../configs/config.env');
 
 // Verify JWT token middleware
 const verifyToken = (req, res, next) => {

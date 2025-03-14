@@ -1,8 +1,8 @@
-const Task = require("../models/Task");
-const CompletedTask = require("../models/CompletedTask");
-const CheckIn = require("../models/CheckIn");
-const User = require("../models/User");
-const blockchainService = require("../services/blockchainService");
+const Task = require("../models/Task.mongoose");
+const CompletedTask = require("../models/CompletedTask.mongoose");
+const CheckIn = require("../models/CheckIn.mongoose");
+const User = require("../models/User.mongoose");
+const blockchainService = require("../services/blockchain.services");
 
 // Lấy tất cả nhiệm vụ
 exports.getAllTasks = async (req, res) => {

@@ -1,9 +1,9 @@
-const Post = require("../models/Post");
-const User = require("../models/User");
-const Like = require("../models/Like");
-const SavedPost = require("../models/SavedPost");
-const Follow = require("../models/Follow");
-const ipfsService = require("../services/ipfsService");
+const Post = require("../models/Post.mongoose");
+const User = require("../models/User.mongoose");
+const Like = require("../models/Like.mongoose");
+const SavedPost = require("../models/SavedPost.mongoose");
+const Follow = require("../models/Follow.mongoose");
+const ipfsService = require("../services/ipfs.services");
 const { validationResult } = require("express-validator");
 
 // Tạo bài đăng mới

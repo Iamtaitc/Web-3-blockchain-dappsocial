@@ -14,7 +14,7 @@ contract DXToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    uint256 public constant MAX_SUPPLY = 1_000_000_000 * 10**18; // 1 billion tokens
+    uint256 public constant MAX_SUPPLY = 5_000_000_000 * 10**18; // 5 billion tokens
 
     uint256 public constant PLATFORM_ALLOCATION = 300_000_000 * 10**18; // 30%
     uint256 public constant TEAM_ALLOCATION = 150_000_000 * 10**18;     // 15%

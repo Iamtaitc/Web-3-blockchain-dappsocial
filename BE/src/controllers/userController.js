@@ -1,7 +1,7 @@
-const User = require("../models/User");
-const Follow = require("../models/Follow");
-const ipfsService = require("../services/ipfsService");
-const blockchainService = require("../services/blockchainService");
+const User = require("../models/User.mongoose");
+const Follow = require("../models/Follow.mongoose");
+const ipfsService = require("../services/ipfs.services");
+const blockchainService = require("../services/blockchain.services");
 const { validationResult } = require("express-validator");
 
 // Lấy profile người dùng

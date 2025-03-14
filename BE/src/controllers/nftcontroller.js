@@ -1,7 +1,7 @@
-const NFTCache = require("../models/NFTCache");
-const User = require("../models/User");
-const ipfsService = require("../services/ipfsService");
-const blockchainService = require("../services/blockchainService");
+const NFTCache = require("../models/NFTCache.mongoose");
+const User = require("../models/User.mongoose");
+const ipfsService = require("../services/ipfs.services");
+const blockchainService = require("../services/blockchain.services");
 const { validationResult } = require("express-validator");
 
 // Mint NFT
