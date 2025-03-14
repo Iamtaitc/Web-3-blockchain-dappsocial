@@ -12,6 +12,9 @@
   "dependencies": {
     "@ceramicnetwork/http-client": "^6.4.0",
     "@graphprotocol/graph-cli": "^0.93.1",
+    "@helia/unixfs": "^4.0.3",
+    "@openzeppelin/contracts": "^5.2.0",
+    "bl": "^6.0.20",
     "body-parser": "^1.20.3",
     "compression": "^1.8.0",
     "cookie-parser": "^1.4.7",
@@ -22,6 +25,8 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "mysql2": "^3.12.0",
+    "node-cron": "^3.0.3",
+    "uuid": "^11.1.0",
     "web3": "^4.16.0"
   },
   "devDependencies": {
