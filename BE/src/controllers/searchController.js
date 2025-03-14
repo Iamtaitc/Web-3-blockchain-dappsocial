@@ -1,7 +1,7 @@
-const User = require("../models/User");
-const Post = require("../models/Post");
-const NFTCache = require("../models/NFTCache");
-const ipfsService = require("../services/ipfsService");
+const User = require("../models/User.mongoose");
+const Post = require("../models/Post.mongoose");
+const NFTCache = require("../models/NFTCache.mongoose");
+const ipfsService = require("../services/ipfs.services");
 
 // Search everything
 exports.search = async (req, res) => {
