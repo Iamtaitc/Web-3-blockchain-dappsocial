@@ -39,7 +39,7 @@ const CreateNFT = () => {
   };
 
   return (
-    <div className="bg-white min-w-full min-h-screen p-4 rounded-lg">
+    <div className="bg-white min-w-full min-h-screen  p-4 rounded-lg">
       <div className="max-w-5xl mx-auto rounded-lg">
         {/* Header */}
         <div className="flex items-center p-4">
