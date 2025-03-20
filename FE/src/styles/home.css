@@ -88,7 +88,7 @@
   }
   .actions {
     display: flex;
-    gap: 515px;
+    gap: 480px;
     align-items: center;
   }
   .actions .icon-page{
@@ -288,4 +288,15 @@
 
 .like-icon svg {
   transition: color 0.2s ease-in-out;
+}
+
+
+.comment {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.like{
+  display: flex;
+  align-items: center;
 }
