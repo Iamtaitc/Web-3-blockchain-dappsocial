@@ -3,7 +3,6 @@ const ethers = require("ethers");
 const User = require("../models/User.mongoose");
 const crypto = require("crypto");
 const config = require("../configs/config.env");
-const response = require("../utils/ApiResponse.utils");
 
 // Verify JWT token middleware
 const verifyToken = (req, res, next) => {

@@ -1,141 +1,231 @@
-"use strict";
+// controllers/authController.js
+const jwt = require("jsonwebtoken");
+const ethers = require("ethers");
 const User = require("../models/User.mongoose");
-const {
-  generateNonce,
-  getSignMessage,
-  verifySignature,
-  generateTokens,
-  refreshToken,
-} = require("../middleware/auth.middleware");
+const config = require("../config");
 
-const response = require("../utils/ApiResponse.utils");
+/**
+ * Tạo nonce để xác thực ví
+ * @param {object} req - Request object
+ * @param {object} res - Response object
+ */
+exports.connectWallet = async (req, res) => {
+  try {
+    const { walletAddress } = req.body;
 
-class WalletAuthController {
-  async connectWallet(req, res) {
-    try {
-      const { walletAddress } = req.body;
-
-      if (!walletAddress) {
-        return response.badRequest(res, "Wallet address is required");
-      }
-
-      // Generate nonce
-      const nonce = await generateNonce(walletAddress);
-
-      // Generate message for signing
-      const message = getSignMessage(walletAddress, nonce);
-
-      res.status(200).json({
-        message,
-        nonce,
-      });
-    } catch (error) {
-      console.error("Error connecting wallet:", error);
-      return response.serverError(res, "Server error");
+    if (!walletAddress || !ethers.utils.isAddress(walletAddress)) {
+      return res.status(400).json({ error: "Địa chỉ ví không hợp lệ" });
     }
-  }
 
-  async verifyWalletSignature(req, res) {
-    try {
-      const { walletAddress, signature } = req.body;
+    // Tạo nonce ngẫu nhiên
+    const nonce = Math.floor(Math.random() * 1000000).toString();
+    const nonceExpiry = new Date(Date.now() + 15 * 60 * 1000); // Hết hạn sau 15 phút
 
-      if (!walletAddress || !signature) {
-        return response.badRequest(
-          res,
-          "Wallet address and signature are required"
-        );
-      }
-
-      const normalizedAddress = walletAddress.toLowerCase();
-      // Get user nonce
-      const user = await User.findOne({
-        walletAddress: normalizedAddress,
-      });
-
-      if (!user || !user.nonce || !user.nonceExpiry) {
-        return response.notFound(res, "User not found");
-      }
-
-      // Check if nonce is expired
-      if (user.nonceExpiry < new Date()) {
-        return response.badRequest(
-          res,
-          "Nonce expired, please get a new nonce"
-        );
-      }
-
-      // Regenerate the message that was signed
-      const message = getSignMessage(walletAddress, user.nonce);
-
-      // Verify signature
-      const isValid = verifySignature(walletAddress, signature, message);
-
-      if (!isValid) {
-        return response.unauthorized(res, "Invalid signature");
-      }
-
-      // Generate JWT tokens
-      const { accessToken, refreshToken } = await generateTokens(walletAddress);
-
-      // Clear nonce after successful verification
-      user.nonce = null;
-      user.nonceExpiry = null;
-      await user.save();
-
-      res.status(200).json({
-        accessToken,
-        refreshToken,
-        user: {
-          walletAddress: user.walletAddress,
-          username: user.username,
-          avatarURI: user.avatarURI,
+    // Lưu hoặc cập nhật user với nonce mới
+    await User.findOneAndUpdate(
+      { walletAddress: walletAddress.toLowerCase() },
+      {
+        $set: {
+          walletAddress: walletAddress.toLowerCase(),
+          nonce,
+          nonceExpiry,
         },
-      });
-    } catch (error) {
-      console.error("Error verifying signature:", error);
-      response.error(res, "Error verifying signature");
-    }
-  }
+      },
+      { upsert: true }
+    );
 
-  async refreshAccessToken(req, res) {
+    // Tạo message để ký
+    const message = `Chào mừng đến với DeSo Social!\n\nVui lòng ký thông điệp này để xác thực.\n\nThao tác này không tạo transaction và không tiêu tốn gas fee.\n\nĐịa chỉ ví: ${walletAddress}\nNonce: ${nonce}\nThời gian: ${new Date().toISOString()}`;
+
+    res.status(200).json({
+      message,
+      nonce,
+    });
+  } catch (error) {
+    console.error("Lỗi khi kết nối ví:", error);
+    res.status(500).json({ error: "Lỗi server" });
+  }
+};
+
+/**
+ * Xác thực chữ ký và đăng nhập
+ * @param {object} req - Request object
+ * @param {object} res - Response object
+ */
+exports.login = async (req, res) => {
+  try {
+    const { walletAddress, signature } = req.body;
+
+    if (!walletAddress || !signature) {
+      return res
+        .status(400)
+        .json({ error: "Địa chỉ ví và chữ ký là bắt buộc" });
+    }
+
+    // Tìm user và nonce
+    const user = await User.findOne({
+      walletAddress: walletAddress.toLowerCase(),
+    });
+
+    if (!user || !user.nonce || !user.nonceExpiry) {
+      return res
+        .status(400)
+        .json({ error: "Vui lòng lấy nonce mới trước khi đăng nhập" });
+    }
+
+    // Kiểm tra nonce có hết hạn không
+    if (user.nonceExpiry < new Date()) {
+      return res
+        .status(400)
+        .json({ error: "Nonce đã hết hạn, vui lòng lấy nonce mới" });
+    }
+
+    // Tái tạo message đã ký
+    const message = `Chào mừng đến với DeSo Social!\n\nVui lòng ký thông điệp này để xác thực.\n\nThao tác này không tạo transaction và không tiêu tốn gas fee.\n\nĐịa chỉ ví: ${walletAddress}\nNonce: ${user.nonce}\nThời gian: ${new Date().toISOString()}`;
+
+    // Xác thực chữ ký
     try {
-      const { refreshToken: token } = req.body;
+      const recoveredAddress = ethers.utils.verifyMessage(message, signature);
 
-      if (!token) {
-        return response.badRequest(res, "Refresh token is required");
+      if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+        return res.status(401).json({ error: "Chữ ký không hợp lệ" });
       }
-
-      // Refresh token
-      const { accessToken, refreshToken: newRefreshToken } =
-        await refreshToken(token);
-
-      res.status(200).json({
-        accessToken,
-        refreshToken: newRefreshToken,
-      });
     } catch (error) {
-      console.error("Error refreshing token:", error);
-      response.error(res, "Error refreshing token");
+      return res.status(401).json({ error: "Xác thực chữ ký thất bại" });
     }
-  }
 
-  async logout(req, res) {
+    // Tạo JWT token
+    const token = jwt.sign(
+      {
+        address: walletAddress.toLowerCase(),
+        userId: user._id,
+      },
+      config.JWT_SECRET,
+      { expiresIn: config.JWT_EXPIRES_IN || "24h" }
+    );
+
+    // Tạo refresh token
+    const refreshToken = jwt.sign(
+      {
+        address: walletAddress.toLowerCase(),
+        userId: user._id,
+      },
+      config.JWT_REFRESH_SECRET,
+      { expiresIn: config.JWT_REFRESH_EXPIRES_IN || "7d" }
+    );
+
+    // Xóa nonce sau khi xác thực thành công
+    user.nonce = null;
+    user.nonceExpiry = null;
+    user.refreshToken = refreshToken;
+    user.lastLogin = new Date();
+    await user.save();
+
+    // Trả về user info và token
+    res.status(200).json({
+      message: "Đăng nhập thành công",
+      token,
+      refreshToken,
+      user: {
+        id: user._id,
+        walletAddress: user.walletAddress,
+        username: user.username || `user_${user.walletAddress.substring(2, 8)}`,
+        avatarURI: user.avatarURI,
+        isVerified: user.isVerified,
+      },
+    });
+  } catch (error) {
+    console.error("Lỗi đăng nhập:", error);
+    res.status(500).json({ error: "Lỗi server" });
+  }
+};
+
+/**
+ * Refresh token
+ * @param {object} req - Request object
+ * @param {object} res - Response object
+ */
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: "Refresh token là bắt buộc" });
+    }
+
+    // Xác thực refresh token
+    let decoded;
     try {
-      const { refreshToken } = req.body;
-
-      if (!refreshToken) {
-        return response.badRequest(res, "Refresh token is required");
-      }
-
-      // Remove refresh token from database
-      await User.updateOne({ refreshToken }, { $set: { refreshToken: null } });
-
-      response.success(res, "Logout successfully");
+      decoded = jwt.verify(refreshToken, config.JWT_REFRESH_SECRET);
     } catch (error) {
-      console.error("Error logging out:", error);
-      response.error(res, "Error logging out");
+      return res
+        .status(401)
+        .json({ error: "Refresh token không hợp lệ hoặc đã hết hạn" });
     }
-  }
-}
 
-module.exports = new WalletAuthController();
+    // Tìm user với refresh token
+    const user = await User.findOne({
+      walletAddress: decoded.address.toLowerCase(),
+      refreshToken,
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: "Refresh token không hợp lệ" });
+    }
+
+    // Tạo token mới
+    const newToken = jwt.sign(
+      {
+        address: user.walletAddress,
+        userId: user._id,
+      },
+      config.JWT_SECRET,
+      { expiresIn: config.JWT_EXPIRES_IN || "24h" }
+    );
+
+    // Tạo refresh token mới
+    const newRefreshToken = jwt.sign(
+      {
+        address: user.walletAddress,
+        userId: user._id,
+      },
+      config.JWT_REFRESH_SECRET,
+      { expiresIn: config.JWT_REFRESH_EXPIRES_IN || "7d" }
+    );
+
+    // Cập nhật refresh token mới
+    user.refreshToken = newRefreshToken;
+    await user.save();
+
+    res.status(200).json({
+      token: newToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    console.error("Lỗi refresh token:", error);
+    res.status(500).json({ error: "Lỗi server" });
+  }
+};
+
+/**
+ * Đăng xuất
+ * @param {object} req - Request object
+ * @param {object} res - Response object
+ */
+exports.logout = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: "Refresh token là bắt buộc" });
+    }
+
+    // Xóa refresh token trong database
+    await User.updateOne({ refreshToken }, { $set: { refreshToken: null } });
+
+    res.status(200).json({ message: "Đăng xuất thành công" });
+  } catch (error) {
+    console.error("Lỗi đăng xuất:", error);
+    res.status(500).json({ error: "Lỗi server" });
+  }
+};

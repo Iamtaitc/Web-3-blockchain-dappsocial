@@ -76,82 +76,40 @@ exports.getUserTasks = async (req, res) => {
 };
 
 // Hoàn thành nhiệm vụ
-exports.completeTask = async (req, res) => {
-  try {
-    const { taskId } = req.params;
-    const address = req.user.address;
-
-    // Kiểm tra nhiệm vụ có tồn tại không
-    const task = await Task.findById(taskId);
-
-    if (!task || !task.isActive) {
-      return res.status(404).json({ error: "Task not found or inactive" });
-    }
-
-    // Get current date (at start of day)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Kiểm tra đã hoàn thành chưa
-    const alreadyCompleted = await CompletedTask.findOne({
-      user: address.toLowerCase(),
-      taskId,
-      completedForDate: {
-        $gte: today,
-      },
-    });
-
-    if (alreadyCompleted) {
-      return res.status(400).json({ error: "Task already completed today" });
-    }
-
-    // Lấy subscription multiplier
-    let multiplier = 1;
-    try {
-      const subscriptionInfo =
-        await blockchainService.getSubscriptionInfo(address);
-      multiplier = subscriptionInfo.level;
-    } catch (error) {
-      console.error("Error getting subscription info:", error);
-      // Continue with default multiplier (1)
-    }
-
-    // Calculate rewards with multiplier
-    const pointsEarned = task.rewardPoints * multiplier;
-    const tokensEarned = task.rewardTokens * multiplier;
-
-    // Tạo completed task
-    await CompletedTask.create({
-      user: address.toLowerCase(),
-      taskId,
-      completedForDate: today,
-      pointsEarned,
-      tokensEarned,
-      createdAt: new Date(),
-    });
-
-    // Cập nhật points cho user
-    await User.updateOne(
-      { walletAddress: address.toLowerCase() },
-      { $inc: { points: pointsEarned } }
-    );
-
-    // Send tokens if reward has tokens
-    if (tokensEarned > 0) {
-      // In a real implementation, you would award tokens on-chain
-      console.log(`Awarding ${tokensEarned} tokens to ${address}`);
-    }
-
-    res.status(200).json({
-      message: "Task completed successfully",
-      pointsEarned,
-      tokensEarned,
-    });
-  } catch (error) {
-    console.error("Error completing task:", error);
-    res.status(500).json({ error: "Server error" });
-  }
-};
+async function completeTask(user, taskId) {
+  // Tìm task trong database
+  const task = await Task.findById(taskId);
+  
+  // Lấy multiplier từ subscription
+  const multiplier = await getSubscriptionMultiplier(user);
+  
+  // Tính toán điểm và token
+  const pointsEarned = task.rewardPoints;
+  const tokensEarned = task.rewardTokens * multiplier;
+  
+  // Cập nhật UserRewards
+  await UserRewards.findOneAndUpdate(
+    { user: user.toLowerCase() },
+    { 
+      $inc: { 
+        totalPoints: pointsEarned,
+        pendingTokens: tokensEarned
+      }
+    },
+    { upsert: true }
+  );
+  
+  // Ghi nhận nhiệm vụ đã hoàn thành
+  await CompletedTask.create({
+    user: user.toLowerCase(),
+    taskId,
+    pointsEarned,
+    tokensEarned,
+    completedForDate: new Date()
+  });
+  
+  return { pointsEarned, tokensEarned };
+}
 
 // Check-in hàng ngày
 exports.checkIn = async (req, res) => {
@@ -351,5 +309,69 @@ exports.getUserPoints = async (req, res) => {
   } catch (error) {
     console.error("Error getting user points:", error);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+// controllers/rewardController.js
+
+exports.claimTokens = async (req, res) => {
+  try {
+    const walletAddress = req.user.address;
+    
+    // Lấy thông tin rewards của user
+    const userRewards = await UserRewards.findOne({ 
+      user: walletAddress.toLowerCase() 
+    });
+    
+    if (!userRewards || userRewards.pendingTokens <= 0) {
+      return res.status(400).json({ error: 'Không có token nào để claim' });
+    }
+    
+    // Kiểm tra thời gian claim (giới hạn 8h claim 1 lần)
+    if (userRewards.lastClaimTime) {
+      const hoursSinceLastClaim = 
+        (new Date() - userRewards.lastClaimTime) / (1000 * 60 * 60);
+        
+      if (hoursSinceLastClaim < 8) {
+        const nextClaimTime = new Date(userRewards.lastClaimTime);
+        nextClaimTime.setHours(nextClaimTime.getHours() + 8);
+        
+        return res.status(400).json({ 
+          error: 'Bạn chỉ có thể claim 8h một lần',
+          nextClaimTime
+        });
+      }
+    }
+    
+    // Mint token on-chain
+    const tokenAmount = userRewards.pendingTokens;
+    const privateKey = process.env.PRIVATE_KEY; // Chỉ dùng cho server
+    
+    const result = await blockchainService.mintReward(
+      privateKey,
+      walletAddress,
+      tokenAmount.toString()
+    );
+    
+    // Cập nhật database
+    userRewards.pendingTokens = 0;
+    userRewards.claimedTokens += tokenAmount;
+    userRewards.lastClaimTime = new Date();
+    userRewards.claimHistory.push({
+      amount: tokenAmount,
+      timestamp: new Date(),
+      transactionHash: result.transactionHash
+    });
+    
+    await userRewards.save();
+    
+    res.status(200).json({
+      message: 'Claim token thành công',
+      amount: tokenAmount,
+      transactionHash: result.transactionHash
+    });
+  } catch (error) {
+    console.error('Error claiming tokens:', error);
+    res.status(500).json({ error: 'Lỗi khi claim token' });
   }
 };
