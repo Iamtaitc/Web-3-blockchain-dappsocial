@@ -10,7 +10,7 @@ router.get("/", NftController.getAllNFTs);
 router.get("/:tokenId", NftController.getNFTById);
 
 // Mint NFT mới (yêu cầu xác thực)
-router.post("/mint", validateMintNFT, NftController.mintNFT);
+router.post("/mint", NftController.mintNFT);
 
 // Đăng bán NFT (yêu cầu xác thực)
 router.post("/:tokenId/list", NftController.listNFTForSale);

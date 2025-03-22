@@ -1,14 +1,8 @@
 // src/controllers/adminController.js
-const User = require('../models/User');
-const Post = require('../models/Post');
-const Comment = require('../models/Comment');
-const NFTCache = require('../models/NFTCache');
-const Task = require('../models/Task');
-const CompletedTask = require('../models/CompletedTask');
-const Notification = require('../models/Notification');
+const {User, Post, Comment, NFTCache, Task, CompletedTask,Notification} = require('../models/index');
 const { validationResult } = require('express-validator');
 const blockchainService = require('../services/blockchainService');
-const ipfsService = require('../services/ipfsService');
+const ipfsService = require('../services/ipfs.services');
 const analyticsService = require('../services/analyticsService');
 const config = require('../config');
 

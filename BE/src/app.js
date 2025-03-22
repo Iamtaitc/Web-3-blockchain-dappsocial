@@ -5,12 +5,13 @@ const { default: helmet } = require("helmet");
 const compression = require("compression");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const listEndpoints = require("express-list-endpoints");
 const bodyParser = require("body-parser");
 const { notFoundHandler, errorHandler } = require("./middleware/errors.middleware");
 require('dotenv').config();
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocs = require('./docs/swagger');
-
+const connectDB = require("./configs/configs.mongoose");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
@@ -27,9 +28,11 @@ app.use(
 );
 // Doc API
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+connectDB();
 // Routes
 app.use("", require("./routers"));
-// client check kết nối với server
+
+console.log(listEndpoints(app));
 
 // error handler
 app.use(notFoundHandler);

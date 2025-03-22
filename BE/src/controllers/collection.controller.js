@@ -1,8 +1,6 @@
 // src/controllers/collectionController.js
-const Collection = require('../models/Collection');
-const NFTCache = require('../models/NFTCache');
-const User = require('../models/User');
-const ipfsService = require('../services/ipfsService');
+const {Collection, NFTCache, User} = require('../models/index');
+const ipfsService = require('../services/ipfs.services');
 const { validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 

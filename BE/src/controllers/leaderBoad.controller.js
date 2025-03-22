@@ -1,9 +1,7 @@
 // src/controllers/leaderboardController.js
 
-const User = require('../models/User');
-const Post = require('../models/Post');
-const NFTCache = require('../models/NFTCache');
-const ipfsService = require('../services/ipfsService');
+const {User, Post, NFTCache} = require('../models/index');
+const ipfsService = require('../services/ipfs.services');
 const { validationResult } = require('express-validator');
 
 /**

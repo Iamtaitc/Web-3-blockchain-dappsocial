@@ -1,7 +1,7 @@
 // utils/postHelpers.js
 
 const { User, Like, SavedPost } = require("../models/index");
-const ipfsService = require("../services/ipfsService");
+const ipfsService = require("../services/ipfs.services");
 
 /**
  * Lấy thông tin chi tiết của danh sách bài đăng kèm thông tin tác giả

@@ -1,9 +1,5 @@
 // src/controllers/reportController.js
-const Report = require('../models/Report');
-const Post = require('../models/Post');
-const Comment = require('../models/Comment');
-const User = require('../models/User');
-const NFTCache = require('../models/NFTCache');
+const {Report, Post, Comment, User, NFTCache } = require('../models/Report');
 const { validationResult } = require('express-validator');
 
 /**

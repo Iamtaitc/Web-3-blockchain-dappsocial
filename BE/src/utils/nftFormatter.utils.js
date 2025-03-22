@@ -1,5 +1,5 @@
 // utils/nftFormatter.js
-const ipfsService = require("../services/ipfsService");
+const ipfsService = require("../services/ipfs.services");
 
 /**
  * Formats NFT data for consistent API responses
