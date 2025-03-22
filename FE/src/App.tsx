@@ -1,19 +1,19 @@
-import React from "react";
-import { BrowserRouter as Router } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import AppRoutes from "./routers/routes"; // Import file routes.tsx
-import "./index.css"
+  import { BrowserRouter } from "react-router-dom";
+  import Navbar from "./components/Navbar";
+  import AppRoutes from "./routers/routes"
 
-function App() {
-  return (
-    <Router>
-      <div className="bg-black"></div>
-      <Navbar />
-      <main style={{ marginLeft: "200px", padding: "20px" }}>
-        <AppRoutes /> {/* Gọi toàn bộ routes từ file routes.tsx */}
-      </main> 
-    </Router>
-  );
-}
-
-export default App;
+  const App = () => {
+    return (
+      <BrowserRouter>
+        <div className="flex min-h-screen bg-black">
+          <Navbar />
+          <div className="ml-[200px] flex-1 p-4 bg-black">
+            <AppRoutes />
+          </div>
+        </div>
+      </BrowserRouter>
+    );
+  };
+  
+  export default App;
+  

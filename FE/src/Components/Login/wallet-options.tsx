@@ -13,7 +13,7 @@
 
   export function WalletOptions({ walletOptions, onConnectWallet, isConnecting }: WalletOptionsProps) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-2" >
         {walletOptions.map((wallet) => (
           <Button
             key={wallet.id}

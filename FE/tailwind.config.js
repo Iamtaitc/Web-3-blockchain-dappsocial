@@ -1,15 +1,31 @@
 /** @type {import('tailwindcss').Config} */
-export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+module.exports = {
+  darkMode: ["class"],
+  content: ["./src/**/*.{js,jsx,ts,tsx}", "./public/index.html", "*.{js,ts,jsx,tsx,mdx}"],
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
+      textColor: {
+        DEFAULT: "#ffffff", // Mặc định là màu trắng
+      },
+      backgroundColor: {
+        black: "#000000",
+      },
       colors: {
         customGray: "#7B7B7B",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        foreground: {
+          DEFAULT: "#ffffff", // Màu trắng
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -39,21 +55,18 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
       },
-      animation: {
-        pop: "pop 0.3s ease",}
-    },
-    borderRadius: {
-      lg: "var(--radius)",
-      md: "calc(var(--radius) - 2px)",
-      sm: "calc(var(--radius) - 4px)",
-    },
-    keyframes: {
-      pop: {
-        "0%": { transform: "scale(1)" },
-        "50%": { transform: "scale(1.3)" },
-        "100%": { transform: "scale(1)" },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
-      "accordion-down": {
+      keyframes: {
+        pop: {
+          "0%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.3)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "accordion-down": {
           from: { height: 0 },
           to: { height: "var(--radix-accordion-content-height)" },
         },
@@ -61,11 +74,17 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: 0 },
         },
-    },
-    animation: {
-      "accordion-down": "accordion-down 0.2s ease-out",
-      "accordion-up": "accordion-up 0.2s ease-out",
+        spin: {
+          to: { transform: "rotate(360deg)" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        spin: "spin 1s linear infinite",
+        pop: "pop 0.3s ease",
+      },
     },
   },
   plugins: [],
-};
+}

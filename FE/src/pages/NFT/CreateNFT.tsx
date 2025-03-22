@@ -1,9 +1,14 @@
+"use client"
+
 import type React from "react"
+
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { FiX, FiTwitter, FiShare2 } from "react-icons/fi"
 import { FaFacebookF, FaTelegramPlane } from "react-icons/fa"
 
 const CreateNFT = () => {
+  const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [title, setTitle] = useState("")
@@ -13,6 +18,7 @@ const CreateNFT = () => {
   const [copyrightStatus, setCopyrightStatus] = useState("")
   const [visibility, setVisibility] = useState("public")
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [createdNFTId, setCreatedNFTId] = useState("")
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -24,7 +30,41 @@ const CreateNFT = () => {
 
   const handleCreateNFT = () => {
     setCurrentStep(3)
-    setShowSuccessModal(true)
+    // Generate a random ID for the NFT
+    const nftId = `nft-${Math.random().toString(36).substring(2, 10)}`
+    setCreatedNFTId(nftId)
+
+    // Simulate NFT creation process
+    setTimeout(() => {
+      // Store NFT data in localStorage so it can be accessed by the view page
+      const nftData = {
+        id: nftId,
+        title: title || "Untitled NFT",
+        description: description || "No description provided",
+        image: selectedImage,
+        creator: {
+          name: "Your Name",
+          avatar: "/placeholder.svg?height=40&width=40",
+          verified: true,
+        },
+        owner: {
+          name: "Your Name",
+          avatar: "/placeholder.svg?height=40&width=40",
+        },
+        price: 0.5,
+        currency: "ETH",
+        highestBid: 0.5,
+        endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        views: 0,
+        likes: 0,
+        history: [{ event: "Minted", by: "Your Name", date: "Just now", price: 0.5 }],
+        tags: category ? [category] : ["Digital Art"],
+        collection: collection || "My Collection",
+      }
+
+      localStorage.setItem(`nft_${nftId}`, JSON.stringify(nftData))
+      setShowSuccessModal(true)
+    }, 3000) // Simulate 3 seconds of minting time
   }
 
   const resetToUpload = () => {
@@ -38,12 +78,19 @@ const CreateNFT = () => {
     setShowSuccessModal(false)
   }
 
+  const handleViewNFT = () => {
+    setShowSuccessModal(false)
+    // Store the current NFT ID in sessionStorage for the NFTDetail page to use
+    sessionStorage.setItem("currentNFTId", createdNFTId)
+    navigate("/nft")
+  }
+
   return (
-    <div className="min-h-screen ml-[62px] rounded-[10px] bg-white">
+    <div className="min-h-screen rounded-[10px] w-[1282px] bg-zinc-900 text-gray-200">
       {/* Header */}
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center py-6">
-          <button onClick={() => window.history.back()} className="mr-4 text-black hover:opacity-75 transition-opacity">
+          <button onClick={() => navigate(-1)} className="mr-4 text-gray-200 hover:opacity-75 transition-opacity">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -55,7 +102,7 @@ const CreateNFT = () => {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <h1 className="text-xl font-semibold text-black">Tạo NFT</h1>
+          <h1 className="text-xl font-semibold text-gray-200">Tạo NFT</h1>
         </div>
 
         {/* Main Content */}
@@ -66,29 +113,29 @@ const CreateNFT = () => {
               <div className="flex items-center">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 
-                  ${currentStep >= 1 ? "bg-black text-white" : "bg-gray-200 text-gray-400"}`}
+                  ${currentStep >= 1 ? "bg-blue-500 text-gray-200" : "bg-zinc-700 text-gray-400"}`}
                 >
                   1
                 </div>
-                <span className={currentStep >= 1 ? "text-black" : "text-gray-400"}>Tải tệp lên</span>
+                <span className={currentStep >= 1 ? "text-gray-200" : "text-gray-500"}>Tải tệp lên</span>
               </div>
               <div className="flex items-center">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 
-                  ${currentStep >= 2 ? "bg-black text-white" : "bg-gray-200 text-gray-400"}`}
+                  ${currentStep >= 2 ? "bg-blue-500 text-gray-200" : "bg-zinc-700 text-gray-400"}`}
                 >
                   2
                 </div>
-                <span className={currentStep >= 2 ? "text-black" : "text-gray-400"}>Thêm chi tiết NFT</span>
+                <span className={currentStep >= 2 ? "text-gray-200" : "text-gray-500"}>Thêm chi tiết NFT</span>
               </div>
               <div className="flex items-center">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 
-                  ${currentStep >= 3 ? "bg-black text-white" : "bg-gray-200 text-gray-400"}`}
+                  ${currentStep >= 3 ? "bg-blue-500 text-gray-200" : "bg-zinc-700 text-gray-400"}`}
                 >
                   3
                 </div>
-                <span className={currentStep >= 3 ? "text-black" : "text-gray-400"}>Đúc NFT</span>
+                <span className={currentStep >= 3 ? "text-gray-200" : "text-gray-500"}>Đúc NFT</span>
               </div>
             </div>
           </div>
@@ -96,12 +143,12 @@ const CreateNFT = () => {
           {/* Right Content */}
           <div className="col-span-3">
             {currentStep === 1 && !selectedImage && (
-              <div className="border-2 border-dashed border-gray-200 rounded-lg p-8">
+              <div className="border-2 border-dashed border-zinc-700 rounded-lg p-8">
                 <div className="flex flex-col items-center justify-center min-h-[400px]">
                   <input
                     type="file"
                     id="imageUpload"
-                    className="hidden text-black"
+                    className="hidden"
                     accept="image/*"
                     onChange={handleImageUpload}
                   />
@@ -138,8 +185,8 @@ const CreateNFT = () => {
                     </svg>
                   </div>
                   <label htmlFor="imageUpload" className="cursor-pointer text-center">
-                    <p className="text-gray-500 mb-2">Kéo & thả để tải ảnh lên</p>
-                    <p className="text-blue-500 underline">Chọn từ máy tính</p>
+                    <p className="text-gray-400 mb-2">Kéo & thả để tải ảnh lên</p>
+                    <p className="text-blue-400 underline">Chọn từ máy tính</p>
                   </label>
                 </div>
               </div>
@@ -148,8 +195,8 @@ const CreateNFT = () => {
             {currentStep === 2 && selectedImage && (
               <div className="grid grid-cols-2 gap-8">
                 {/* Preview Section */}
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+                <div className="bg-zinc-800 rounded-lg p-6">
+                  <div className="bg-zinc-900 rounded-lg shadow-sm p-4 mb-4">
                     <img
                       src={selectedImage || "/placeholder.svg"}
                       alt="NFT Preview"
@@ -157,41 +204,41 @@ const CreateNFT = () => {
                     />
                   </div>
                   <div className="space-y-4">
-                    <div className="h-24 bg-gray-100 rounded-lg"></div>
-                    <div className="h-12 bg-gray-100 rounded-lg"></div>
-                    <div className="h-12 bg-gray-100 rounded-lg"></div>
+                    <div className="h-24 bg-zinc-700 rounded-lg"></div>
+                    <div className="h-12 bg-zinc-700 rounded-lg"></div>
+                    <div className="h-12 bg-zinc-700 rounded-lg"></div>
                   </div>
                 </div>
 
                 {/* Form Section */}
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tiêu đề</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Tiêu đề</label>
                     <input
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                      className="w-full px-4 py-2 border border-zinc-700 bg-zinc-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-200"
                       placeholder="Nhập tiêu đề"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Mô tả</label>
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="w-full px-4 py-2 text-black border border-gray-200 rounded-lg h-32 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-zinc-700 bg-zinc-800 rounded-lg h-32 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-200"
                       placeholder="Nhập mô tả"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Bộ sưu tập</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Bộ sưu tập</label>
                     <select
                       value={collection}
                       onChange={(e) => setCollection(e.target.value)}
-                      className="w-full px-4 py-2 border text-black border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-zinc-700 bg-zinc-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-200"
                     >
                       <option value="">Chọn bộ sưu tập</option>
                       <option value="collection1">Bộ sưu tập 1</option>
@@ -200,11 +247,11 @@ const CreateNFT = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Thể loại</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Thể loại</label>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="w-full px-4 py-2 border text-black border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-zinc-700 bg-zinc-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-200"
                     >
                       <option value="">Chọn thể loại</option>
                       <option value="painting">Tranh vẽ</option>
@@ -214,11 +261,11 @@ const CreateNFT = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Bản quyền và Giấy phép</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Bản quyền và Giấy phép</label>
                     <select
                       value={copyrightStatus}
                       onChange={(e) => setCopyrightStatus(e.target.value)}
-                      className="w-full px-4 py-2 border text-black border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-zinc-700 bg-zinc-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-200"
                     >
                       <option value="">Đã Đăng ký Bản quyền</option>
                       <option value="registered">Đã đăng ký</option>
@@ -228,25 +275,25 @@ const CreateNFT = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Hiển thị với</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Hiển thị với</label>
                     <div className="flex space-x-6">
                       <label className="flex items-center">
                         <input
                           type="radio"
                           checked={visibility === "public"}
                           onChange={() => setVisibility("public")}
-                          className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500"
+                          className="w-4 h-4 text-blue-500 border-zinc-600 focus:ring-blue-500 bg-zinc-800"
                         />
-                        <span className="ml-2 text-gray-700">Mọi người</span>
+                        <span className="ml-2 text-gray-300">Mọi người</span>
                       </label>
                       <label className="flex items-center">
                         <input
                           type="radio"
                           checked={visibility === "private"}
                           onChange={() => setVisibility("private")}
-                          className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500"
+                          className="w-4 h-4 text-blue-500 border-zinc-600 focus:ring-blue-500 bg-zinc-800"
                         />
-                        <span className="ml-2 text-gray-700">Chỉ mình tôi</span>
+                        <span className="ml-2 text-gray-300">Chỉ mình tôi</span>
                       </label>
                     </div>
                   </div>
@@ -254,13 +301,13 @@ const CreateNFT = () => {
                   <div className="flex gap-4 pt-4">
                     <button
                       onClick={resetToUpload}
-                      className="flex-1 px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                      className="flex-1 px-6 py-2 bg-zinc-700 text-gray-200 rounded-lg hover:bg-zinc-600 transition-colors"
                     >
                       Tải tệp lên lại
                     </button>
                     <button
                       onClick={handleCreateNFT}
-                      className="flex-1 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       Tạo
                     </button>
@@ -269,12 +316,12 @@ const CreateNFT = () => {
               </div>
             )}
 
-            {currentStep === 3 && (
-              <div className="flex flex-col items-center justify-center min-h-[500px] bg-gray-50 rounded-lg p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Quá trình đúc NFT đang diễn ra</h2>
-                <p className="text-gray-500 mb-8">NFT của bạn đang được đúc, vui lòng đợi trong giây lát...</p>
+            {currentStep === 3 && !showSuccessModal && (
+              <div className="flex flex-col items-center justify-center min-h-[500px] bg-zinc-800 rounded-lg p-8">
+                <h2 className="text-2xl font-bold text-gray-200 mb-4">Quá trình đúc NFT đang diễn ra</h2>
+                <p className="text-gray-400 mb-8">NFT của bạn đang được đúc, vui lòng đợi trong giây lát...</p>
                 <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-8"></div>
-                <p className="text-gray-500">Quá trình này có thể mất vài phút.</p>
+                <p className="text-gray-400">Quá trình này có thể mất vài phút.</p>
               </div>
             )}
           </div>
@@ -283,11 +330,11 @@ const CreateNFT = () => {
 
       {/* Success Modal */}
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full relative">
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-zinc-900 rounded-lg p-8 max-w-md w-full relative border border-zinc-700">
             <button
               onClick={() => setShowSuccessModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-200"
             >
               <FiX className="w-6 h-6" />
             </button>
@@ -299,31 +346,34 @@ const CreateNFT = () => {
                 )}
               </div>
 
-              <p className="text-gray-500 text-sm mb-2">{title}</p>
-              <h3 className="text-xl text-gray-900  font-bold text-center mb-6">Bạn đã tạo NFT thành công!</h3>
+              <p className="text-gray-400 text-sm mb-2">{title || "Untitled NFT"}</p>
+              <h3 className="text-xl text-gray-200 font-bold text-center mb-6">Bạn đã tạo NFT thành công!</h3>
 
               <div className="flex gap-4 mb-8">
-                <button className="px-6 py-2 border border-black rounded-full text-black hover:bg-black hover:text-white transition-colors">
-                  Xem NFT
-                </button>
-                <button className="px-6 py-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors">
+              <button
+      onClick={() => navigate("/add-nft/nft-view")}
+      className="px-6 py-2 border border-gray-400 rounded-full text-gray-200 hover:bg-gray-200 hover:text-zinc-900 transition-colors"
+    >
+      Xem NFT
+    </button>
+                <button className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
                   Niêm yết NFT
                 </button>
               </div>
 
               <div className="w-full text-center">
-                <p className="text-gray-500 text-sm mb-4">Chia sẻ trên mạng xã hội</p>
+                <p className="text-gray-400 text-sm mb-4">Chia sẻ trên mạng xã hội</p>
                 <div className="flex justify-center space-x-4">
-                  <button className="p-2 rounded-full bg-black text-white hover:bg-white hover:text-black border border-transparent hover:border-black transition-all">
+                  <button className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all">
                     <FiTwitter className="w-5 h-5" />
                   </button>
-                  <button className="p-2 rounded-full bg-black text-white hover:bg-white hover:text-black border border-transparent hover:border-black transition-all">
+                  <button className="p-2 rounded-full bg-blue-800 text-white hover:bg-blue-900 transition-all">
                     <FaFacebookF className="w-5 h-5" />
                   </button>
-                  <button className="p-2 rounded-full bg-black text-white hover:bg-white hover:text-black border border-transparent hover:border-black transition-all">
+                  <button className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-all">
                     <FaTelegramPlane className="w-5 h-5" />
                   </button>
-                  <button className="p-2 rounded-full bg-black text-white hover:bg-white hover:text-black border border-transparent hover:border-black transition-all">
+                  <button className="p-2 rounded-full bg-zinc-700 text-white hover:bg-zinc-600 transition-all">
                     <FiShare2 className="w-5 h-5" />
                   </button>
                 </div>
