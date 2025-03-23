@@ -1,6 +1,6 @@
 const { validationResult } = require("express-validator");
 const postService = require("../services/post.services");
-const ApiResponse = require("../utils/ApiResponse.utils");
+const ApiResponse = require("../utils/apiResponse.utils");
 const { processMediaFiles } = require("../utils/mediaHelper.utils");
 const { SavedPost, Like } = require("../models/index");
 const notificationService = require("../services/notification.services");

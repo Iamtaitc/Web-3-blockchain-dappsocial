@@ -4,10 +4,10 @@ const router = express.Router();
 const { verifyToken } = require('../../middleware/auth.middleware');
 const userController = require("../../controllers/userController");
 
-router.use(verifyToken);
+// router.use(verifyToken);
 
 router.get("/user/:id", userController.getUserProfile);
-router.patch("/user/update", userController.updateUser);
+router.patch("/user/update", userController.updateProfile);
 router.post("/user/follower/:id", userController.followUser);
 router.post("/user/unfollower/:id", userController.unfollowUser);
 router.get("/user/following", userController.getUserFollowing);

@@ -1,6 +1,6 @@
 // controllers/authController.js
 const ApiResponse = require('../utils/ApiResponse');
-const AuthService = require('../services/AuthService');
+const AuthService = require('../services/auth.services');
 
 class AuthController {
   /**

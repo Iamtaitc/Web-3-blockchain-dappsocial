@@ -1,6 +1,6 @@
 const { Comment, Post, User, Like } = require("../models/index");
-const ipfsService = require("./ipfs.service");
-const notificationService = require("./notificationService");
+const ipfsService = require("./ipfs.services");
+const notificationService = require("./notification.services");
 
 /**
  * Service xử lý logic nghiệp vụ liên quan đến comments

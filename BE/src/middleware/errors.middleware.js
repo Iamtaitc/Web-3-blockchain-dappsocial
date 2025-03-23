@@ -1,4 +1,4 @@
-const ApiResponse = require("../utils/ApiResponse.utils");
+const ApiResponse = require("../utils/apiResponse.utils");
 
 /**
  * Middleware xử lý lỗi 404 - Tài nguyên không tồn tại

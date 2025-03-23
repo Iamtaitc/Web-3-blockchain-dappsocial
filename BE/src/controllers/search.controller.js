@@ -1,10 +1,7 @@
 // TODO: cần tách code controller và services
-const User = require('../models/User');
-const Post = require('../models/Post');
-const NFTCache = require('../models/NFTCache');
-const Comment = require('../models/Comment');
-const ipfsService = require('../services/ipfsService');
-const addressUtils = require('../utils/addressUtils');
+const {User,Post,NFTCache, Comment } = require('../models/index');
+const ipfsService = require('../services/ipfs.services');
+const addressUtils = require('../utils/address.utils');
 
 /**
  * Tìm kiếm tổng hợp (users, posts, NFTs, tags)

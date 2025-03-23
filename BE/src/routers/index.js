@@ -9,4 +9,4 @@ router.use("/v1", require("./posts"));
 router.use("/v1", require("./comments"));
 router.use("/v1", require("./nft"));
 
-module.exports = router;
+module.exports = router;"use strict";

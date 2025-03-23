@@ -1,6 +1,6 @@
 const { User, Post, SavedPost, Like } = require("../models/index");
 const ipfsService = require("./ipfs.services");
-const ApiResponse = require("../utils/ApiResponse.utils");
+const ApiResponse = require("../utils/apiResponse.utils");
 const getPostsWithDetails = require("../utils/getPostDetails.utils");
 const addres = require("../utils/address.utils");
 
