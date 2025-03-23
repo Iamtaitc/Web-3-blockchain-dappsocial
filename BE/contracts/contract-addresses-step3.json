@@ -1,0 +1,9 @@
+{
+  "network": "arbitrum_sepolia",
+  "DXToken": "0x8510dEF6724E579bB9754960D7b932f46FaA686A",
+  "deployedBy": "0xfEDAa286fA1E15b3b0F746128825D9a84B2aBEcb",
+  "deployedAt": "2025-03-22T12:39:31.859Z",
+  "NFTMedia": "0x220FeCA583C78db6879AAc70252d1578A987Fabc",
+  "updatedAt": "2025-03-22T12:43:05.791Z",
+  "Marketplace": "0x236810cda7987941CE10019Cec059ACe1Be471F0"
+}

@@ -10,7 +10,7 @@ const { validationResult } = require('express-validator');
 const blockchainService = require('../services/blockchainService');
 const ipfsService = require('../services/ipfsService');
 const analyticsService = require('../services/analyticsService');
-const config = require('../config');
+const config = require("../configs/config.env");
 
 /**
  * Kiểm tra quyền admin
