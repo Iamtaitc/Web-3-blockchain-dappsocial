@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { FaCheckCircle, FaGamepad, FaCoins, FaFire, FaGem, FaBolt, FaTrophy, FaChartLine } from "react-icons/fa"
+import { Link } from "react-router-dom"
 
 const Farm = () => {
   const [claimed, setClaimed] = useState(false)
@@ -111,21 +112,19 @@ const Farm = () => {
           <div className="flex mb-6 bg-gray-800 rounded-lg p-1 max-w-md">
             <button
               onClick={() => setActiveTab("farming")}
-              className={`flex-1 py-2 rounded-md transition-all duration-300 ${
-                activeTab === "farming"
+              className={`flex-1 py-2 rounded-md transition-all duration-300 ${activeTab === "farming"
                   ? "bg-gradient-to-r from-green-500 to-green-600 text-black font-bold"
                   : "text-gray-400 hover:text-white"
-              }`}
+                }`}
             >
               Farming
             </button>
             <button
               onClick={() => setActiveTab("games")}
-              className={`flex-1 py-2 rounded-md transition-all duration-300 ${
-                activeTab === "games"
+              className={`flex-1 py-2 rounded-md transition-all duration-300 ${activeTab === "games"
                   ? "bg-gradient-to-r from-green-500 to-green-600 text-black font-bold"
                   : "text-gray-400 hover:text-white"
-              }`}
+                }`}
             >
               Games
             </button>
@@ -240,9 +239,12 @@ const Farm = () => {
                       <p className="text-sm text-gray-400">Current Score</p>
                       <p className="font-bold">41 pezz</p>
                     </div>
-                    <button className="px-6 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-green-500 to-green-400 text-black hover:from-green-400 hover:to-green-500 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg">
+                    <Link
+                      to="/DropGame"
+                      className="px-6 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-green-500 to-green-400 text-black hover:from-green-400 hover:to-green-500 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg flex justify-center items-center"
+                    >
                       Play Now
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -323,11 +325,10 @@ const Farm = () => {
 
             <button
               onClick={handleClaim}
-              className={`w-full py-3 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-95 ${
-                claimed
+              className={`w-full py-3 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-95 ${claimed
                   ? "bg-gray-600"
                   : "bg-gradient-to-r from-green-500 to-green-400 hover:from-green-400 hover:to-green-500 text-black shadow-lg shadow-green-500/20"
-              }`}
+                }`}
               disabled={claimed}
             >
               {claimed ? "Claimed Today" : "Claim Daily Reward"}
@@ -352,9 +353,8 @@ const Farm = () => {
               {[1, 2, 3, 4, 5, 6, 7].map((day) => (
                 <div
                   key={day}
-                  className={`aspect-square rounded-md flex flex-col items-center justify-center transition-all duration-300 ${
-                    day < 5 ? "bg-green-500 text-black" : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-                  }`}
+                  className={`aspect-square rounded-md flex flex-col items-center justify-center transition-all duration-300 ${day < 5 ? "bg-green-500 text-black" : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                    }`}
                 >
                   <span className="font-bold">{day}</span>
                   <span className="text-xs">{day < 5 ? "✓" : ""}</span>

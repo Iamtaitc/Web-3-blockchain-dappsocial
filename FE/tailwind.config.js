@@ -14,19 +14,21 @@ module.exports = {
       textColor: {
         DEFAULT: "#ffffff", // Mặc định là màu trắng
       },
-           
+      backgroundColor: {
+        black: "#000000",
+      },
       colors: {
+        customGray: "#7B7B7B",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        foreground: {
+          DEFAULT: "#ffffff", // Màu trắng
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-        },
-        foreground: {
-          DEFAULT: "#ffffff", // Màu trắng
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -59,6 +61,11 @@ module.exports = {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
+        pop: {
+          "0%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.3)" },
+          "100%": { transform: "scale(1)" },
+        },
         "accordion-down": {
           from: { height: 0 },
           to: { height: "var(--radix-accordion-content-height)" },
@@ -67,16 +74,17 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: 0 },
         },
+        spin: {
+          to: { transform: "rotate(360deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-      },
-      backgroundColor: {
-        black: "#000000",
+        spin: "spin 1s linear infinite",
+        pop: "pop 0.3s ease",
       },
     },
   },
   plugins: [],
 }
-

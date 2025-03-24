@@ -1,7 +1,7 @@
 "use client"
 import { FaCrown, FaRocket, FaShieldAlt, FaChartLine, FaCheck } from "react-icons/fa"
 import { motion } from "framer-motion"
-
+ 
 // Feature Card Component
 const FeatureCard = ({ icon, title, description, delay }) => {
   return (

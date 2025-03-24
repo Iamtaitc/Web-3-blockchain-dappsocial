@@ -1,21 +1,20 @@
-import { BrowserRouter as Router } from "react-router-dom"
-import Navbar from "./Components/Navbar"
-import AppRoutes from "./routers/routes"
+import { BrowserRouter } from "react-router-dom";
+  import Navbar from "./components/Navbar";
+  import AppRoutes from "./routers/routes"
 
-function App() {
-  return (
-    <Router>
-      <div className="min-h-screen bg-black">
-        <div className="flex">
-          <Navbar />
-          <main className="flex-1 ml-[200px]">
+  const App = () => {
+    return (
+      <BrowserRouter>
+        <div className="flex w-screen min-h-screen bg-black">
+          <div className="w-[200px] h-screen fixed">
+            <Navbar />
+          </div>
+          <div className="flex-1 p-4 bg-black ml-[200px]">
             <AppRoutes />
-          </main>
+          </div>
         </div>
-      </div>
-    </Router>
-  )
-}
-
-export default App
-
+      </BrowserRouter>
+    );
+  };
+  
+  export default App;

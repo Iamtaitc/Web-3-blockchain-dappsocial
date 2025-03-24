@@ -8,23 +8,18 @@ import mountainImage from "../../assets/Mountain.jpg";
 import cafeImage from "../../assets/cafe.webp";
 import foodImage from "../../assets/food.jpg";
 import dogImage from "../../assets/dog.jpg";
-import { FaRegHeart, FaRegComment, FaHeart } from "react-icons/fa";
+import { FaRegComment } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
-import NFTModal from "../../components/ModalNFT";
+import NFTModal from "../../components/NFT/ModalNFT";
+import HeartButton from "../../components/UI/HeartButton";
 
 const Home = () => {
   const [isNFTModalOpen, setIsNFTModalOpen] = useState(false);
   const [selectedNFT, setSelectedNFT] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
-  const [likedPosts, setLikedPosts] = useState<number[]>([]);
-  const toggleLike = (postId: number) => {
-    setLikedPosts((prev: number[]) =>
-      prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]
-    );
-  };
    // Xử lý scroll khi modal mở/đóng
    useEffect(() => {
     if (isNFTModalOpen) {
@@ -306,7 +301,7 @@ const Home = () => {
                 alt="background"
                 className="post-image"
                 onClick={() => {
-                  setSelectedNFT({
+                  setSelectedNFT({ 
                     title: img.title,
                     price: Math.random().toFixed(5),
                     image: img.src,
@@ -323,16 +318,12 @@ const Home = () => {
          
           <div className="actions">
             <div className="icon-page">
-            <span onClick={() => toggleLike(post.id)} style={{ cursor: "pointer" }}>
-               {likedPosts.includes(post.id) ? (
-                 <FaHeart style={{ color: "red", fontSize: "15px", transition: "color 0.3s ease-in-out" }} />
-               ) : (
-                 <FaRegHeart style={{ color: "gray", fontSize: "15px", transition: "color 0.3s ease-in-out" }} />
-               )}{" "}
+            <span className="like">
+            <HeartButton />
                {post.likes}
                </span>
-            <span>
-              <FaRegComment style={{ color: "gray", fontSize: "15px" }} /> {post.comments}
+            <span className="comment">
+              <FaRegComment style={{ color: "gray", fontSize: "20px" }} /> {post.comments}
             </span>
             </div>
             <div className="nft-bt">
