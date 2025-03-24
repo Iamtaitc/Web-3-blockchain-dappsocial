@@ -237,6 +237,18 @@ const SimpleSnakeGame = () => {
 
   // Khởi tạo game
   useEffect(() => {
+    // Add Poppins font
+    const link = document.createElement("link")
+    link.href = "https://fonts.googleapis.com/css2?family=Poppins:wght@500;800&display=swap"
+    link.rel = "stylesheet"
+    document.head.appendChild(link)
+
+    // Add Font Awesome for the play icon
+    const fontAwesome = document.createElement("link")
+    fontAwesome.href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    fontAwesome.rel = "stylesheet"
+    document.head.appendChild(fontAwesome)
+
     const canvas = canvasRef.current
     if (canvas) {
       canvas.width = CANVAS_SIZE
@@ -257,6 +269,8 @@ const SimpleSnakeGame = () => {
       if (gameLoopRef.current) {
         clearInterval(gameLoopRef.current)
       }
+      document.head.removeChild(link)
+      document.head.removeChild(fontAwesome)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
