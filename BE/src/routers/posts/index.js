@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 
-const postController = require("../../controllers/postController");
+const postController = require("../../controllers/post.controller");
 
 router.get("/post/user/:address", postController.getPostUser);
 router.get("/post/:postId", postController.getIdPost);

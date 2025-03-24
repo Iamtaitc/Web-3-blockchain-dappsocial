@@ -1,5 +1,5 @@
 const { User, Post, SavedPost, Like } = require("../models/index");
-const ipfsService = require("./ipfs.services");
+const IPFSService = require("./ipfs.services");
 const ApiResponse = require("../utils/apiResponse.utils");
 const getPostsWithDetails = require("../utils/getPostDetails.utils");
 const addres = require("../utils/address.utils");
@@ -74,13 +74,13 @@ class PostServices {
       const mediaCIDs = mediaObjects.map((media) =>
         media.uri.replace("ipfs://", "")
       );
-      const postMetadata = ipfsService.createPostMetadata(
+      const postMetadata = IPFSService.createPostMetadata(
         content,
         mediaCIDs,
         tags || [],
         mentions || []
       );
-      const metadataCID = await ipfsService.uploadJSON(postMetadata);
+      const metadataCID = await IPFSService.uploadJSON(postMetadata);
 
       // Tạo post
       const newPost = new Post({
@@ -408,7 +408,7 @@ class PostServices {
               ? {
                   username: author.username,
                   avatarURI: author.avatarURI
-                    ? ipfsService.formatIPFSUrl(author.avatarURI)
+                    ? IPFSService.formatIPFSUrl(author.avatarURI)
                     : null,
                   isVerified: author.isVerified,
                 }
@@ -417,7 +417,7 @@ class PostServices {
             contentURI: post.contentURI,
             media: post.media.map((media) => ({
               ...media,
-              uri: ipfsService.formatIPFSUrl(media.uri),
+              uri: IPFSService.formatIPFSUrl(media.uri),
             })),
             tags: post.tags,
             likeCount: post.likeCount,
