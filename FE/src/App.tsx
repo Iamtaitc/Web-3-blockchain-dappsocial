@@ -5,9 +5,11 @@
   const App = () => {
     return (
       <BrowserRouter>
-        <div className="flex min-h-screen bg-black">
-          <Navbar />
-          <div className="ml-[200px] flex-1 p-4 bg-black">
+        <div className="flex w-screen min-h-screen bg-black">
+          <div className="w-[200px] h-screen fixed">
+            <Navbar />
+          </div>
+          <div className="flex-1 p-4 bg-black ml-[200px]">
             <AppRoutes />
           </div>
         </div>

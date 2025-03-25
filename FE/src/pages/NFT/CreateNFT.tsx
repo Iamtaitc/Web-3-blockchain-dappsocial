@@ -77,20 +77,12 @@ const CreateNFT = () => {
     setCopyrightStatus("")
     setShowSuccessModal(false)
   }
-
-  const handleViewNFT = () => {
-    setShowSuccessModal(false)
-    // Store the current NFT ID in sessionStorage for the NFTDetail page to use
-    sessionStorage.setItem("currentNFTId", createdNFTId)
-    navigate("/nft")
-  }
-
   return (
-    <div className="min-h-screen rounded-[10px] w-[1282px] bg-zinc-900 text-gray-200">
+    <div className="min-h-screen rounded-[10px] w-[1282px] bg-black text-gray-200">
       {/* Header */}
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center py-6">
-          <button onClick={() => navigate(-1)} className="mr-4 text-gray-200 hover:opacity-75 transition-opacity">
+          <button onClick={() => navigate(-1)} className="mr-4 text-white bg-black hover:text-gray-500 ">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -334,7 +326,7 @@ const CreateNFT = () => {
           <div className="bg-zinc-900 rounded-lg p-8 max-w-md w-full relative border border-zinc-700">
             <button
               onClick={() => setShowSuccessModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-200"
+              className="absolute top-4 right-4 text-white bg-zinc-900 hover:text-gray-500 "
             >
               <FiX className="w-6 h-6" />
             </button>
@@ -352,11 +344,11 @@ const CreateNFT = () => {
               <div className="flex gap-4 mb-8">
               <button
       onClick={() => navigate("/add-nft/nft-view")}
-      className="px-6 py-2 border border-gray-400 rounded-full text-gray-200 hover:bg-gray-200 hover:text-zinc-900 transition-colors"
+      className="px-6 py-2 border border-gray-400 rounded-full bg-black text-gray-200 hover:bg-gray-200 hover:text-zinc-900 transition-colors"
     >
       Xem NFT
     </button>
-                <button className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
+                <button className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-900 transition-colors">
                   Niêm yết NFT
                 </button>
               </div>
@@ -364,16 +356,16 @@ const CreateNFT = () => {
               <div className="w-full text-center">
                 <p className="text-gray-400 text-sm mb-4">Chia sẻ trên mạng xã hội</p>
                 <div className="flex justify-center space-x-4">
-                  <button className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all">
+                  <button className="p-2 rounded-full bg-blue-700 text-white hover:bg-blue-900 transition-all">
                     <FiTwitter className="w-5 h-5" />
                   </button>
-                  <button className="p-2 rounded-full bg-blue-800 text-white hover:bg-blue-900 transition-all">
+                  <button className="p-2 rounded-full bg-blue-700 text-white hover:bg-blue-900 transition-all">
                     <FaFacebookF className="w-5 h-5" />
                   </button>
-                  <button className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-all">
+                  <button className="p-2 rounded-full bg-blue-700 text-white hover:bg-blue-900 transition-all">
                     <FaTelegramPlane className="w-5 h-5" />
                   </button>
-                  <button className="p-2 rounded-full bg-zinc-700 text-white hover:bg-zinc-600 transition-all">
+                  <button className="p-2 rounded-full bg-blue-700 text-white hover:bg-blue-900 transition-all">
                     <FiShare2 className="w-5 h-5" />
                   </button>
                 </div>

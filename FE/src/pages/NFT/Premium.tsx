@@ -138,7 +138,7 @@ const Premium = () => {
   ]
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen  bg-black text-white">
       {/* Hero Section */}
       <div className="h-screen relative overflow-hidden bg-gradient-to-b from-black to-gray-900 flex items-center justify-center">
         <div className="absolute inset-0 z-0 opacity-20">

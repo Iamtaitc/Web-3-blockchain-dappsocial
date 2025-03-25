@@ -15,7 +15,7 @@ export function ConnectedWallet({ account, walletName, isAuthenticated }: Connec
           <Wallet className="h-4 w-4 text-primary" />
         </div>
         <div>
-          <p className="text-sm font-medium">{formatAddress(account)}</p>
+          <p className="text-sm text-gray-700 font-medium">{formatAddress(account)}</p>
           <p className="text-xs text-muted-foreground">{walletName} Wallet</p>
         </div>
       </div>

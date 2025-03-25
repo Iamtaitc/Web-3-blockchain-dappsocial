@@ -193,7 +193,7 @@ const NFTDetail = () => {
     <div className="min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <button onClick={() => navigate(-1)} className="flex items-center text-white hover:text-gray-300">
+        <button onClick={() => navigate(-1)} className="flex items-center text-white bg-black  hover:text-gray-500 ">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -208,13 +208,13 @@ const NFTDetail = () => {
         </button>
 
         <div className="flex items-center space-x-4">
-          <button className="p-2 rounded-full hover:bg-zinc-800 transition-colors">
+          <button className="p-2 rounded-full bg-black hover:text-gray-500 transition-colors">
             <FiShare2 className="w-5 h-5" />
           </button>
-          <button className="p-2 rounded-full hover:bg-zinc-800 transition-colors" onClick={() => setIsLiked(!isLiked)}>
+          <button className="p-2 rounded-full bg-black hover:text-gray-500 transition-colors" onClick={() => setIsLiked(!isLiked)}>
             <FiHeart className={`w-5 h-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
           </button>
-          <button className="p-2 rounded-full hover:bg-zinc-800 transition-colors">
+          <button className="p-2 rounded-full bg-black  hover:text-gray-500 transition-colors">
             <FiMoreHorizontal className="w-5 h-5" />
           </button>
         </div>
