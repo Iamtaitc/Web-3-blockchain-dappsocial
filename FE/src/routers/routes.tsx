@@ -28,7 +28,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<WalletLogin />} />
       <Route path="/premium" element={<Premium/>} />
       <Route path="/quest" element={<Quest/>} />
-      <Route path="/wallet" element={<h1> <Wallet/> </h1>} />
+      <Route path="/wallet" element={ <Wallet/>} />
       {/* <Route path="/collections" element={<Collections/>} /> */}
       <Route path="/profile" element={<ProfileNFT />} />
       <Route path="/create" element={<CreateNFT />} />

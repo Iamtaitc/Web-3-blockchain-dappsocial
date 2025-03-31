@@ -156,7 +156,7 @@ const Premium = () => {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-mono overflow-hidden">
+    <div className="min-h-screen bg-gray-50 text-white font-mono overflow-hidden">
       {/* Hero Section */}
       <section className="relative py-20 px-6">
         {/* Background Elements */}

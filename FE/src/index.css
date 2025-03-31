@@ -101,8 +101,10 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
-button:hover {
-  border-color: #646cff;
+@layer utilities {
+  .fixed {
+    z-index: 9999 !important;
+  }
 }
 button:focus,
 button:focus-visible {
