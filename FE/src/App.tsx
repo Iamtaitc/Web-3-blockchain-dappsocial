@@ -1,9 +1,11 @@
 import { BrowserRouter } from "react-router-dom";
-  import Navbar from "./components/Navbar";
+  import Navbar from "./Components/Navbar";
   import AppRoutes from "./routers/routes"
+  import { ThemeProvider } from "./context/theme-context"
 
   const App = () => {
     return (
+      <ThemeProvider>
       <BrowserRouter>
         <div className="flex w-screen min-h-screen bg-black">
           <div className="w-[200px] h-screen fixed">
@@ -14,6 +16,7 @@ import { BrowserRouter } from "react-router-dom";
           </div>
         </div>
       </BrowserRouter>
+      </ThemeProvider>
     );
   };
   
