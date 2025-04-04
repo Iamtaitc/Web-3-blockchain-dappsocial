@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Clock, Pause } from "lucide-react"
+import { Clock, Pause } from 'lucide-react'
 import { Button } from "../../Components/UI/buttonlogin"
 import { cn } from "../../lib/utils"
 
@@ -15,7 +15,7 @@ type Point = {
   speed: number
 }
 
-export default function DropGame() {
+export default function FallingPointsGame() {
   const [gameStarted, setGameStarted] = useState(false)
   const [gameOver, setGameOver] = useState(false)
   const [score, setScore] = useState(0)
@@ -30,6 +30,7 @@ export default function DropGame() {
 
   // Start the game
   const startGame = () => {
+    console.log("Starting game...")
     setGameStarted(true)
     setGameOver(false)
     setScore(0)
@@ -52,6 +53,9 @@ export default function DropGame() {
   // Create a new point
   const createPoint = () => {
     if (!containerRef.current || freezeActive) return
+
+    // Limit maximum number of points on screen
+    if (points.length >= 5) return
 
     const containerWidth = containerRef.current.clientWidth
     const pointTypes = [
@@ -110,7 +114,7 @@ export default function DropGame() {
 
     const updateGame = (time: number) => {
       // Create new points
-      if (time - lastPointTime.current > 500) {
+      if (time - lastPointTime.current > 1000) {
         createPoint()
         lastPointTime.current = time
       }
@@ -161,80 +165,131 @@ export default function DropGame() {
   }, [gameStarted, gameOver])
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#1a0d2c] p-4 font-mono"
-      style={{
-        backgroundImage: `
-          linear-gradient(to bottom, transparent, #1a0d2c),
-          radial-gradient(#3b1d6c 2px, transparent 2px)
-        `,
-        backgroundSize: '100% 100%, 24px 24px'
-      }}
-    >
-      <div
-        className="w-full max-w-md overflow-hidden shadow-[0_0_0_4px_#352c63,0_0_0_8px_#251b43,0_8px_20px_rgba(0,0,0,0.6)]"
-        style={{
-          imageRendering: 'pixelated',
-          border: '4px solid #6b46c1',
-          boxShadow: '0 0 0 4px #352c63, 0 0 0 8px #251b43, 0 8px 20px rgba(0,0,0,0.6)'
-        }}
-      >
-        <div className="p-3 bg-[#251b43] flex justify-between items-center border-b-4 border-[#6b46c1]">
-          <div className="flex items-center gap-2 text-[#f8d15b] px-2 py-1 bg-[#1a0d2c] border-2 border-[#6b46c1]" style={{ clipPath: 'polygon(0 0, 100% 0, 95% 100%, 5% 100%)' }}>
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 font-mono bg-gradient-to-b from-[#5D54A4] to-[#2A265F] relative overflow-hidden select-none">
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        .pixel-font {
+          font-family: 'Press Start 2P', cursive;
+        }
+        .pixel-border {
+          box-shadow: 
+            -4px 0 0 0 #000,
+            4px 0 0 0 #000,
+            0 -4px 0 0 #000,
+            0 4px 0 0 #000;
+        }
+        .pixel-item {
+          image-rendering: pixelated;
+          image-rendering: crisp-edges;
+        }
+        .pixel-stars {
+          background-image: 
+            radial-gradient(2px 2px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(2px 2px at 40px 70px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(2px 2px at 50px 160px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(2px 2px at 90px 40px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(2px 2px at 130px 80px, #ffffff, rgba(0,0,0,0)),
+            radial-gradient(2px 2px at 160px 120px, #ffffff, rgba(0,0,0,0));
+          background-repeat: repeat;
+          background-size: 200px 200px;
+        }
+      `}</style>
+
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 pixel-stars opacity-70"></div>
+      
+      {/* Pixel clouds */}
+      <div className="absolute top-10 left-[10%] w-20 h-10 bg-white opacity-30 rounded-full"></div>
+      <div className="absolute top-20 left-[20%] w-32 h-12 bg-white opacity-20 rounded-full"></div>
+      <div className="absolute top-15 right-[15%] w-24 h-8 bg-white opacity-25 rounded-full"></div>
+      <div className="absolute top-40 right-[25%] w-28 h-10 bg-white opacity-15 rounded-full"></div>
+      
+      {/* Pixel mountains in the background */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-[#2A265F] z-0"></div>
+      <div className="absolute bottom-0 left-[5%] w-40 h-40 bg-[#3D3880] rounded-t-[100%] z-0"></div>
+      <div className="absolute bottom-0 left-[25%] w-60 h-60 bg-[#3D3880] rounded-t-[100%] z-0"></div>
+      <div className="absolute bottom-0 right-[15%] w-52 h-48 bg-[#3D3880] rounded-t-[100%] z-0"></div>
+      <div className="absolute bottom-0 right-[35%] w-40 h-36 bg-[#3D3880] rounded-t-[100%] z-0"></div>
+
+      <div className="w-full max-w-md bg-[#EF476F] rounded-none overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] border-4 border-black pixel-border relative z-10">
+        <div className="p-4 bg-[#26547C] flex justify-between items-center border-b-4 border-black">
+          <div className="flex items-center gap-2 text-white pixel-font text-xs">
             <Clock className="h-5 w-5" />
-            <span className="font-bold text-lg tracking-wider">{timeLeft}s</span>
+            <span>{timeLeft}s</span>
           </div>
-          <div className="text-[#f8d15b] font-bold text-xl px-3 py-1 bg-[#1a0d2c] border-2 border-[#6b46c1]" style={{ clipPath: 'polygon(5% 0, 95% 0, 100% 100%, 0% 100%)' }}>
-            {score.toString().padStart(5, '0')}
-          </div>
+          <div className="text-white pixel-font text-xs">SCORE: {score}</div>
         </div>
 
         <div
           ref={containerRef}
-          className="relative w-full h-[500px] bg-[#160925] overflow-hidden"
-          style={{
+          className="relative w-full h-[500px] overflow-hidden"
+          style={{ 
             touchAction: "none",
-            backgroundImage: `
-              linear-gradient(rgba(103, 76, 209, 0.05) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(103, 76, 209, 0.05) 1px, transparent 1px)
-            `,
-            backgroundSize: '16px 16px'
+            background: "linear-gradient(to bottom, #06D6A0, #1AC9E6)"
           }}
         >
+          {/* Grid pattern overlay */}
+          <div className="absolute inset-0 pointer-events-none" 
+            style={{
+              backgroundImage: "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
+              backgroundSize: "20px 20px"
+            }}>
+          </div>
+
+          {/* Game elements */}
           {!gameStarted && !gameOver && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0f061a]/90 z-10 p-6 text-center">
-              <h1 className="text-3xl font-bold text-[#f8d15b] mb-4 uppercase tracking-widest" style={{ textShadow: '3px 3px 0 #6b46c1' }}>Pixel Drop</h1>
-              <div className="mb-6 px-4 py-2 text-[#e2ccff] border-2 border-[#6b46c1] bg-[#251b43]">
-                <p>Click on falling items to collect points.<br/>You have 60 seconds!</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#26547C] z-10 p-6 text-center">
+              <div className="absolute inset-0 opacity-20 pointer-events-none">
+                <div className="absolute top-0 left-0 w-full h-full" 
+                  style={{
+                    backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)",
+                    backgroundSize: "16px 16px"
+                  }}>
+                </div>
               </div>
-              <Button
-                onClick={startGame}
-                className="bg-[#6b46c1] border-b-4 border-[#4c2889] hover:brightness-110 text-white font-bold py-2 px-6 tracking-wider uppercase transition-all hover:translate-y-[-2px] active:translate-y-[2px] active:border-b-2"
+              <h1 className="text-xl pixel-font text-white mb-8">PIXEL POINTS</h1>
+              <p className="text-white mb-8 pixel-font text-xs leading-relaxed">
+                CLICK FALLING ITEMS
+                <br />
+                COLLECT POINTS
+                <br />
+                60 SECONDS!
+              </p>
+              <button
+                onClick={() => startGame()}
+                className="bg-[#EF476F] hover:bg-[#FF6B8B] text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all pixel-font text-xs py-6 px-8 cursor-pointer z-20"
               >
-                Start Game
-              </Button>
+                START GAME
+              </button>
             </div>
           )}
 
           {gameOver && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0f061a]/90 z-10 p-6 text-center">
-              <h1 className="text-3xl font-bold text-[#f8d15b] mb-4 uppercase tracking-widest" style={{ textShadow: '3px 3px 0 #6b46c1' }}>Game Over!</h1>
-              <div className="mb-6 px-6 py-3 bg-[#251b43] border-2 border-[#6b46c1]">
-                <p className="text-[#e2ccff] mb-2">Your score: <span className="text-[#f8d15b]">{score.toString().padStart(5, '0')}</span></p>
-                <p className="text-[#e2ccff]">High score: <span className="text-[#f8d15b]">{highScore.toString().padStart(5, '0')}</span></p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#26547C] z-10 p-6 text-center">
+              <div className="absolute inset-0 opacity-20 pointer-events-none">
+                <div className="absolute top-0 left-0 w-full h-full" 
+                  style={{
+                    backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)",
+                    backgroundSize: "16px 16px"
+                  }}>
+                </div>
               </div>
-              <Button
-                onClick={startGame}
-                className="bg-[#6b46c1] border-b-4 border-[#4c2889] hover:brightness-110 text-white font-bold py-2 px-6 tracking-wider uppercase transition-all hover:translate-y-[-2px] active:translate-y-[2px] active:border-b-2"
+              <h1 className="text-xl pixel-font text-white mb-4">GAME OVER!</h1>
+              <p className="text-white mb-2 pixel-font text-xs">YOUR SCORE: {score}</p>
+              <p className="text-white mb-8 pixel-font text-xs">HIGH SCORE: {highScore}</p>
+              <button
+                onClick={() => startGame()}
+                className="bg-[#EF476F] hover:bg-[#FF6B8B] text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all pixel-font text-xs py-6 px-8 cursor-pointer z-20"
               >
-                Play Again
-              </Button>
+                PLAY AGAIN
+              </button>
             </div>
           )}
 
           {freezeActive && (
-            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-[#4c9dd6] border-2 border-[#3675a0] text-white px-3 py-1 z-10 flex items-center gap-1" style={{ clipPath: 'polygon(0 0, 100% 0, 95% 100%, 5% 100%)' }}>
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-[#118AB2] text-white px-3 py-1 border-2 border-black flex items-center gap-1 z-10 pixel-font text-xs">
               <Pause className="h-4 w-4" />
-              <span className="font-bold tracking-wide">FREEZE!</span>
+              <span>FREEZE!</span>
             </div>
           )}
 
@@ -243,149 +298,113 @@ export default function DropGame() {
               <motion.div
                 key={point.id}
                 initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0, rotate: 180 }}
-                transition={{ duration: 0.2 }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  rotate: point.type === "freeze" ? 15 : 0,
+                }}
+                exit={{ opacity: 0 }}
+                transition={{
+                  duration: 0.2,
+                  rotate:
+                    point.type === "freeze" ? { repeat: Number.POSITIVE_INFINITY, duration: 3, ease: "linear" } : {},
+                }}
                 className={cn(
-                  "absolute w-14 h-14 flex items-center justify-center font-bold text-xl cursor-pointer select-none",
-                  point.type === "points" && point.value === 1 && "text-white",
-                  point.type === "points" && point.value === 3 && "text-white",
-                  point.type === "points" && point.value === 5 && "text-white",
-                  point.type === "negative" && "text-white",
-                  point.type === "time" && "text-black",
-                  point.type === "freeze" && "text-white",
+                  "absolute w-16 h-16 flex items-center justify-center cursor-pointer pixel-item",
+                  "border-4 border-black",
                 )}
                 style={{
                   left: `${point.x}px`,
                   top: `${point.y}px`,
-                  imageRendering: 'pixelated',
-                  ...(point.type === "points" && point.value === 1 && {
-                    backgroundColor: '#4ade80',
-                    border: '3px solid #16a34a',
-                    boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.3), 2px 2px 0 rgba(22,163,74,0.8)',
-                    clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
-                  }),
-                  ...(point.type === "points" && point.value === 3 && {
-                    backgroundColor: '#3b82f6',
-                    border: '3px solid #2563eb',
-                    boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.3), 2px 2px 0 rgba(37,99,235,0.8)',
-                    clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)'
-                  }),
-                  ...(point.type === "points" && point.value === 5 && {
-                    backgroundColor: '#a855f7',
-                    border: '3px solid #7e22ce',
-                    boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.3), 2px 2px 0 rgba(126,34,206,0.8)',
-                    clipPath: 'polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%)'
-                  }),
-                  ...(point.type === "negative" && point.value === -3 && {
-                    backgroundColor: '#ef4444',
-                    border: '3px solid #dc2626',
-                    boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.2), 2px 2px 0 rgba(220,38,38,0.8)',
-                    clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)',
-                    transform: 'rotate(45deg)'
-                  }),
-                  ...(point.type === "negative" && point.value === -5 && {
-                    backgroundColor: '#b91c1c',
-                    border: '3px solid #7f1d1d',
-                    boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.2), 2px 2px 0 rgba(127,29,29,0.8)',
-                    clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)',
-                    transform: 'rotate(45deg)'
-                  }),
-                  ...(point.type === "time" && {
-                    backgroundColor: '#fbbf24',
-                    border: '3px solid #d97706',
-                    boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.4), 2px 2px 0 rgba(217,119,6,0.8)',
-                    borderRadius: '50%',
-                  }),
-                  ...(point.type === "freeze" && {
-                    backgroundColor: '#22d3ee',
-                    border: '3px solid #0891b2',
-                    boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.4), 2px 2px 0 rgba(8,145,178,0.8)',
-                    clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)'
-                  }),
+                  imageRendering: "pixelated",
                 }}
                 onClick={() => handlePointClick(point)}
               >
-                <div
-                  className="flex items-center justify-center font-bold w-full h-full"
-                  style={{ transform: point.type === "negative" ? 'rotate(-45deg)' : 'none' }}
-                >
-                  {point.type === "points" || point.type === "negative" ?
-                    <span style={{ textShadow: '1px 1px 0 rgba(0,0,0,0.5)' }}>{point.value > 0 ? `+${point.value}` : point.value}</span> :
-                    ""
-                  }
-                  {point.type === "time" && <span style={{ textShadow: '1px 1px 0 rgba(0,0,0,0.5)' }}>+5s</span>}
-                  {point.type === "freeze" && <span style={{ fontSize: '1.5rem' }}>❄️</span>}
-                </div>
+                {point.type === "points" && point.value === 1 && (
+                  <div className="w-full h-full bg-[#73D2DE] relative">
+                    <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-[#8EEAF7]"></div>
+                    <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-[#5BBFCB]"></div>
+                    <span className="absolute inset-0 flex items-center justify-center pixel-font text-black text-lg">
+                      +1
+                    </span>
+                  </div>
+                )}
+
+                {point.type === "points" && point.value === 3 && (
+                  <div className="w-full h-full bg-[#26547C] relative">
+                    <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-[#3A6A94]"></div>
+                    <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-[#1A4265]"></div>
+                    <span className="absolute inset-0 flex items-center justify-center pixel-font text-white text-lg">
+                      +3
+                    </span>
+                  </div>
+                )}
+
+                {point.type === "points" && point.value === 5 && (
+                  <div className="w-full h-full bg-[#FFD166] relative">
+                    <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-[#FFDC85]"></div>
+                    <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-[#EBBD52]"></div>
+                    <span className="absolute inset-0 flex items-center justify-center pixel-font text-black text-lg">
+                      +5
+                    </span>
+                  </div>
+                )}
+
+                {point.type === "negative" && (
+                  <div className="w-full h-full bg-[#EF476F] relative">
+                    <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-[#F15C80]"></div>
+                    <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-[#DB3359]"></div>
+                    <span className="absolute inset-0 flex items-center justify-center pixel-font text-white text-lg">{point.value}</span>
+                  </div>
+                )}
+
+                {point.type === "time" && (
+                  <div className="w-full h-full bg-[#FCFCFC] relative">
+                    <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-white"></div>
+                    <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-[#EBEBEB]"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full border-4 border-black"></div>
+                      <span className="absolute pixel-font text-black text-sm">+5s</span>
+                    </div>
+                  </div>
+                )}
+
+                {point.type === "freeze" && (
+                  <div className="w-full h-full bg-[#118AB2] relative">
+                    <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-[#25A0C8]"></div>
+                    <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-[#0D7599]"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-3xl">❄️</div>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
 
-        <div className="p-3 bg-[#251b43] border-t-4 border-[#6b46c1]">
-          <div className="grid grid-cols-4 gap-2 text-center text-xs">
-            <div className="p-2 border-2 flex flex-col items-center"
-              style={{
-                backgroundColor: '#4ade80',
-                borderColor: '#16a34a',
-                clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                transform: 'scale(0.8)'
-              }}>
-              <span className="font-bold text-white" style={{ textShadow: '1px 1px 0 rgba(0,0,0,0.5)' }}>+1</span>
+        <div className="p-4 bg-[#118AB2] border-t-4 border-black">
+          <div className="grid grid-cols-4 gap-3 text-center">
+            <div className="bg-[#73D2DE] text-black p-2 border-2 border-black pixel-font text-xs h-12 flex items-center justify-center">
+              <span>+1</span>
             </div>
-            <div className="p-2 border-2 flex flex-col items-center"
-              style={{
-                backgroundColor: '#3b82f6',
-                borderColor: '#2563eb',
-                clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
-                transform: 'scale(0.8)'
-              }}>
-              <span className="font-bold text-white" style={{ textShadow: '1px 1px 0 rgba(0,0,0,0.5)' }}>+3</span>
+            <div className="bg-[#26547C] text-white p-2 border-2 border-black pixel-font text-xs h-12 flex items-center justify-center">
+              <span>+3</span>
             </div>
-            <div className="p-2 border-2 flex flex-col items-center"
-              style={{
-                backgroundColor: '#a855f7',
-                borderColor: '#7e22ce',
-                clipPath: 'polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%)',
-                transform: 'scale(0.8)'
-              }}>
-              <span className="font-bold text-white" style={{ textShadow: '1px 1px 0 rgba(0,0,0,0.5)' }}>+5</span>
+            <div className="bg-[#FFD166] text-black p-2 border-2 border-black pixel-font text-xs h-12 flex items-center justify-center">
+              <span>+5</span>
             </div>
-            <div className="p-2 border-2 flex flex-col items-center"
-              style={{
-                backgroundColor: '#fbbf24',
-                borderColor: '#d97706',
-                borderRadius: '50%',
-                transform: 'scale(0.8)'
-              }}>
-              <span className="font-bold text-black" style={{ textShadow: '1px 1px 0 rgba(255,255,255,0.5)' }}>+5s</span>
+            <div className="bg-[#FCFCFC] text-black p-2 border-2 border-black pixel-font text-xs h-12 flex items-center justify-center">
+              <span>+5s</span>
             </div>
-            <div className="p-2 border-2 flex flex-col items-center"
-              style={{
-                backgroundColor: '#ef4444',
-                borderColor: '#dc2626',
-                clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)',
-                transform: 'scale(0.8) rotate(45deg)'
-              }}>
-              <span className="font-bold text-white" style={{ textShadow: '1px 1px 0 rgba(0,0,0,0.5)', transform: 'rotate(-45deg)' }}>-3</span>
+            <div className="bg-[#EF476F] text-white p-2 border-2 border-black pixel-font text-xs h-12 flex items-center justify-center">
+              <span>-3</span>
             </div>
-            <div className="p-2 border-2 flex flex-col items-center"
-              style={{
-                backgroundColor: '#b91c1c',
-                borderColor: '#7f1d1d',
-                clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)',
-                transform: 'scale(0.8) rotate(45deg)'
-              }}>
-              <span className="font-bold text-white" style={{ textShadow: '1px 1px 0 rgba(0,0,0,0.5)', transform: 'rotate(-45deg)' }}>-5</span>
+            <div className="bg-[#EF476F] text-white p-2 border-2 border-black pixel-font text-xs h-12 flex items-center justify-center">
+              <span>-5</span>
             </div>
-            <div className="p-2 border-2 flex flex-col items-center col-span-2"
-              style={{
-                backgroundColor: '#22d3ee',
-                borderColor: '#0891b2',
-                clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)',
-                transform: 'scale(0.8)'
-              }}>
-              <span className="font-bold text-white" style={{ textShadow: '1px 1px 0 rgba(0,0,0,0.5)' }}>❄️ Freeze (3s)</span>
+            <div className="bg-[#118AB2] text-white p-2 border-2 border-black col-span-2 pixel-font text-xs h-12 flex items-center justify-center">
+              <span>❄️ FREEZE</span>
             </div>
           </div>
         </div>

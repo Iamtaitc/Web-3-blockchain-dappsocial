@@ -7,11 +7,11 @@ import { BrowserRouter } from "react-router-dom";
     return (
       <ThemeProvider>
       <BrowserRouter>
-        <div className="flex w-screen min-h-screen bg-black">
+        <div className="flex w-screen min-h-screen bg-white">
           <div className="w-[200px] h-screen fixed">
             <Navbar />
           </div>
-          <div className="flex-1 p-4 bg-black ml-[200px]">
+          <div className="flex-1 p-4 bg- ml-[200px]">
             <AppRoutes />
           </div>
         </div>
