@@ -193,4 +193,4 @@ class ApiResponse {
   }
 }
 
-module.exports = ApiResponse;
+module.exports = new ApiResponse();

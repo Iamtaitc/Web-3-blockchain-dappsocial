@@ -2,7 +2,7 @@
 const NFTCache = require("../models/NFTCache.mongoose");
 const User = require("../models/User.mongoose");
 const blockchainService = require("./blockchain.services");
-const ipfsService = require("./ipfs.services");
+const IPFSService = require("./ipfs.services");
 const notificationService = require("./notification.services");
 const { retryOperation } = require("../utils/retry.utils");
 
@@ -51,7 +51,7 @@ class NFTService {
         metadata: {
           name: nft.metadata.name,
           description: nft.metadata.description,
-          image: ipfsService.ipfsUriToGatewayUrl(nft.metadata.image),
+          image: IPFSService.ipfsUriToGatewayUrl(nft.metadata.image),
         },
         mediaType: nft.mediaType,
         forSale: nft.forSale,
@@ -102,7 +102,7 @@ class NFTService {
         creatorDetails: creator
           ? {
               username: creator.username,
-              avatarURI: ipfsService.ipfsUriToGatewayUrl(creator.avatarURI),
+              avatarURI: IPFSService.ipfsUriToGatewayUrl(creator.avatarURI),
               isVerified: creator.isVerified,
             }
           : null,
@@ -110,14 +110,14 @@ class NFTService {
         ownerDetails: owner
           ? {
               username: owner.username,
-              avatarURI: ipfsService.ipfsUriToGatewayUrl(owner.avatarURI),
+              avatarURI: IPFSService.ipfsUriToGatewayUrl(owner.avatarURI),
               isVerified: owner.isVerified,
             }
           : null,
         metadata: {
           name: nft.metadata.name,
           description: nft.metadata.description,
-          image: ipfsService.ipfsUriToGatewayUrl(nft.metadata.image),
+          image: IPFSService.ipfsUriToGatewayUrl(nft.metadata.image),
           attributes: nft.metadata.attributes || [],
         },
         mediaType: nft.mediaType,
@@ -152,7 +152,7 @@ class NFTService {
 
       // Upload file lên IPFS
       const filename = `${Date.now()}-${originalname}`;
-      const imageCID = await ipfsService.uploadFile(fileBuffer, filename);
+      const imageCID = await IPFSService.uploadFile(fileBuffer, filename);
       console.log(`Media uploaded to IPFS with CID: ${imageCID}`);
 
       // Tạo metadata
@@ -168,7 +168,7 @@ class NFTService {
       };
 
       // Upload metadata lên IPFS
-      const metadataCID = await ipfsService.uploadJSON(metadata);
+      const metadataCID = await IPFSService.uploadJSON(metadata);
       console.log(`Metadata uploaded to IPFS with CID: ${metadataCID}`);
 
       const tokenURI = `ipfs://${metadataCID}`;
@@ -224,7 +224,7 @@ class NFTService {
         tokenId: mintResult.tokenId,
         name,
         description,
-        imageUrl: ipfsService.ipfsUriToGatewayUrl(`ipfs://${imageCID}`),
+        imageUrl: IPFSService.ipfsUriToGatewayUrl(`ipfs://${imageCID}`),
         mediaType,
         royaltyPercent: royaltyPercentValue,
         txHash: mintResult.transactionHash,
@@ -501,7 +501,7 @@ class NFTService {
         ownerDetails: ownersMap[nft.owner]
           ? {
               username: ownersMap[nft.owner].username,
-              avatarURI: ipfsService.ipfsUriToGatewayUrl(
+              avatarURI: IPFSService.ipfsUriToGatewayUrl(
                 ownersMap[nft.owner].avatarURI
               ),
               isVerified: ownersMap[nft.owner].isVerified,
@@ -510,7 +510,7 @@ class NFTService {
         metadata: {
           name: nft.metadata.name,
           description: nft.metadata.description,
-          image: ipfsService.ipfsUriToGatewayUrl(nft.metadata.image),
+          image: IPFSService.ipfsUriToGatewayUrl(nft.metadata.image),
         },
         mediaType: nft.mediaType,
         price: nft.price,
@@ -570,7 +570,7 @@ class NFTService {
         metadata: {
           name: nft.metadata.name,
           description: nft.metadata.description,
-          image: ipfsService.ipfsUriToGatewayUrl(nft.metadata.image),
+          image: IPFSService.ipfsUriToGatewayUrl(nft.metadata.image),
         },
         mediaType: nft.mediaType,
         forSale: nft.forSale,
@@ -589,7 +589,7 @@ class NFTService {
         creator: {
           walletAddress: creator.walletAddress,
           username: creator.username,
-          avatarURI: ipfsService.ipfsUriToGatewayUrl(creator.avatarURI),
+          avatarURI: IPFSService.ipfsUriToGatewayUrl(creator.avatarURI),
           isVerified: creator.isVerified,
         },
         nfts: formattedNFTs,

@@ -1,6 +1,6 @@
 // services/user.services.js
 const { User, Follow } = require("../models/index");
-const ipfsService = require("./ipfs.services");
+const IPFSService = require("./ipfs.services");
 const blockchainService = require("./blockchain.services");
 const notificationService = require("./notification.services");
 
@@ -55,10 +55,10 @@ class UserServices {
         ensName: user.ensName,
         bio: user.bio,
         avatarURI: user.avatarURI
-          ? ipfsService.formatIPFSUrl(user.avatarURI)
+          ? IPFSService.formatIPFSUrl(user.avatarURI)
           : null,
         coverURI: user.coverURI
-          ? ipfsService.formatIPFSUrl(user.coverURI)
+          ? IPFSService.formatIPFSUrl(user.coverURI)
           : null,
         followerCount: user.followerCount,
         followingCount: user.followingCount,
@@ -120,7 +120,7 @@ class UserServices {
       // Upload avatar nếu có
       let avatarCID;
       if (files && files.avatar) {
-        avatarCID = await ipfsService.uploadFile(
+        avatarCID = await IPFSService.uploadFile(
           files.avatar.data,
           files.avatar.name
         );
@@ -129,21 +129,21 @@ class UserServices {
       // Upload cover nếu có
       let coverCID;
       if (files && files.cover) {
-        coverCID = await ipfsService.uploadFile(
+        coverCID = await IPFSService.uploadFile(
           files.cover.data,
           files.cover.name
         );
       }
 
       // Tạo metadata và upload lên IPFS
-      const profileMetadata = ipfsService.createProfileMetadata(
+      const profileMetadata = IPFSService.createProfileMetadata(
         username || currentUser.username,
         bio || currentUser.bio,
         avatarCID || currentUser.avatarURI,
         coverCID || currentUser.coverURI
       );
 
-      const metadataCID = await ipfsService.uploadJSON(profileMetadata);
+      const metadataCID = await IPFSService.uploadJSON(profileMetadata);
 
       // Update user trong database
       const updatedUser = await User.findOneAndUpdate(
@@ -169,10 +169,10 @@ class UserServices {
         username: updatedUser.username,
         bio: updatedUser.bio,
         avatarURI: updatedUser.avatarURI
-          ? ipfsService.formatIPFSUrl(updatedUser.avatarURI)
+          ? IPFSService.formatIPFSUrl(updatedUser.avatarURI)
           : null,
         coverURI: updatedUser.coverURI
-          ? ipfsService.formatIPFSUrl(updatedUser.coverURI)
+          ? IPFSService.formatIPFSUrl(updatedUser.coverURI)
           : null,
         metadataURI: updatedUser.metadataURI,
         updatedAt: updatedUser.updatedAt,
@@ -339,7 +339,7 @@ class UserServices {
             walletAddress: user.walletAddress,
             username: user.username,
             avatarURI: user.avatarURI
-              ? ipfsService.formatIPFSUrl(user.avatarURI)
+              ? IPFSService.formatIPFSUrl(user.avatarURI)
               : null,
             followedAt: follow.createdAt,
           };
@@ -406,7 +406,7 @@ class UserServices {
             walletAddress: user.walletAddress,
             username: user.username,
             avatarURI: user.avatarURI
-              ? ipfsService.formatIPFSUrl(user.avatarURI)
+              ? IPFSService.formatIPFSUrl(user.avatarURI)
               : null,
             followedAt: follow.createdAt,
           };
@@ -465,7 +465,7 @@ class UserServices {
         walletAddress: user.walletAddress,
         username: user.username,
         avatarURI: user.avatarURI
-          ? ipfsService.formatIPFSUrl(user.avatarURI)
+          ? IPFSService.formatIPFSUrl(user.avatarURI)
           : null,
         points: user.points,
         followerCount: user.followerCount,

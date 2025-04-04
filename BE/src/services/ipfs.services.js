@@ -1,157 +1,259 @@
-const axios = require('axios');
-const FormData = require('form-data');
-const { Buffer } = require('buffer');
-const config = require('../configs/config.env');
+const axios = require("axios");
+const FormData = require("form-data");
+const { Buffer } = require("buffer");
 
-// Base URL for Infura IPFS API
-const INFURA_IPFS_ENDPOINT = 'https://ipfs.infura.io:5001/api/v0';
-
-// Auth credentials
-const getAuthHeader = () => {
-  const auth = Buffer.from(
-    `${process.env.INFURA_IPFS_PROJECT_ID}:${process.env.INFURA_IPFS_PROJECT_SECRET}`
-  ).toString('base64');
-  return `Basic ${auth}`;
-};
-
-// Upload file to IPFS
-const uploadFile = async (buffer, fileName = 'file') => {
-  try {
-    const formData = new FormData();
-    formData.append('file', buffer, { filename: fileName });
-
-    const response = await axios.post(`${INFURA_IPFS_ENDPOINT}/add`, formData, {
-      headers: {
-        ...formData.getHeaders(),
-        'Authorization': getAuthHeader(),
-      },
-    });
-
-    const cid = response.data.Hash;
-    console.log(`File uploaded to IPFS with CID: ${cid}`);
-    return cid;
-  } catch (error) {
-    console.error('IPFS upload error:', error.response?.data || error.message);
-    throw new Error('Failed to upload to IPFS');
-  }
-};
-
-// Upload JSON to IPFS
-const uploadJSON = async (data) => {
-  try {
-    const jsonBuffer = Buffer.from(JSON.stringify(data));
-    const formData = new FormData();
-    formData.append('file', jsonBuffer);
-
-    const response = await axios.post(`${INFURA_IPFS_ENDPOINT}/add`, formData, {
-      headers: {
-        ...formData.getHeaders(),
-        'Authorization': getAuthHeader(),
-      },
-    });
-
-    const cid = response.data.Hash;
-    console.log(`JSON uploaded to IPFS with CID: ${cid}`);
-    return cid;
-  } catch (error) {
-    console.error('IPFS JSON upload error:', error.response?.data || error.message);
-    throw new Error('Failed to upload JSON to IPFS');
-  }
-};
-
-// Get content from IPFS
-const getFromIPFS = async (cid) => {
-  try {
-    const response = await axios.get(`${INFURA_IPFS_ENDPOINT}/cat?arg=${cid}`, {
-      headers: {
-        'Authorization': getAuthHeader(),
-      },
-      responseType: 'arraybuffer',
-    });
-
-    return Buffer.from(response.data);
-  } catch (error) {
-    console.error('IPFS retrieval error:', error.response?.data || error.message);
-    throw new Error('Failed to retrieve from IPFS');
-  }
-};
-
-const createNFTMetadata = (name, description, imageCID, attributes = []) => {
-  return {
-    name,
-    description,
-    image: `ipfs://${imageCID}`,
-    attributes,
-    created_at: new Date().toISOString(),
-  };
-};
-
-const createPostMetadata = (content, mediaCIDs = [], tags = [], mentions = []) => {
-  return {
-    content,
-    media: mediaCIDs.map((cid) => `ipfs://${cid}`),
-    tags,
-    mentions,
-    created_at: new Date().toISOString(),
-    type: 'post',
-  };
-};
-
-const createCommentMetadata = (content, mediaCIDs = [], mentions = []) => {
-  return {
-    content,
-    media: mediaCIDs.map((cid) => `ipfs://${cid}`),
-    mentions,
-    created_at: new Date().toISOString(),
-    type: 'comment',
-  };
-};
-
-const createProfileMetadata = (username, bio, avatarCID, coverCID) => {
-  const metadata = {
-    username,
-    bio,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    type: 'profile',
-  };
-
-  if (avatarCID) {
-    metadata.avatar = `ipfs://${avatarCID}`;
+/**
+ * Service xử lý các tác vụ IPFS
+ */
+class IPFSService {
+  constructor() {
+    // Cấu hình gateway và endpoints IPFS
+    this.ipfsGateway = process.env.IPFS_GATEWAY || "https://ipfs.io/ipfs/";
+    this.infuraIPFSEndpoint = "https://ipfs.infura.io:5001/api/v0";
+    this.projectId = process.env.INFURA_IPFS_PROJECT_ID;
+    this.projectSecret = process.env.INFURA_IPFS_PROJECT_SECRET;
   }
 
-  if (coverCID) {
-    metadata.cover = `ipfs://${coverCID}`;
+  /**
+   * Tạo header xác thực cho IPFS API
+   * @returns {String} Header xác thực
+   * @private
+   */
+  _getAuthHeader() {
+    const auth = Buffer.from(
+      `${this.projectId}:${this.projectSecret}`
+    ).toString("base64");
+    return `Basic ${auth}`;
   }
 
-  return metadata;
-};
+  /**
+   * Upload file lên IPFS
+   * @param {Buffer} buffer - Buffer dữ liệu
+   * @param {String} fileName - Tên file
+   * @returns {Promise<String>} CID của file sau khi upload
+   */
+  async uploadFile(buffer, fileName = "file") {
+    try {
+      const formData = new FormData();
+      formData.append("file", buffer, { filename: fileName });
 
-const parseIPFSUri = (uri) => {
-  if (!uri) return null;
+      const response = await axios.post(
+        `${this.infuraIPFSEndpoint}/add`,
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+            Authorization: this._getAuthHeader(),
+          },
+        }
+      );
 
-  if (uri.startsWith('ipfs://')) {
-    return uri.replace('ipfs://', '');
+      const cid = response.data.Hash;
+      console.log(`File uploaded to IPFS with CID: ${cid}`);
+      return cid;
+    } catch (error) {
+      console.error(
+        "IPFS upload error:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to upload to IPFS");
+    }
   }
 
-  return uri;
-};
+  /**
+   * Upload JSON lên IPFS
+   * @param {Object} data - Dữ liệu JSON
+   * @returns {Promise<String>} CID của JSON sau khi upload
+   */
+  async uploadJSON(data) {
+    try {
+      const jsonBuffer = Buffer.from(JSON.stringify(data));
+      const formData = new FormData();
+      formData.append("file", jsonBuffer);
 
-const formatIPFSUrl = (cid) => {
-  if (!cid) return null;
+      const response = await axios.post(
+        `${this.infuraIPFSEndpoint}/add`,
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+            Authorization: this._getAuthHeader(),
+          },
+        }
+      );
 
-  const formattedCid = parseIPFSUri(cid);
-  return `https://ipfs.io/ipfs/${formattedCid}`;
-};
+      const cid = response.data.Hash;
+      console.log(`JSON uploaded to IPFS with CID: ${cid}`);
+      return cid;
+    } catch (error) {
+      console.error(
+        "IPFS JSON upload error:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to upload JSON to IPFS");
+    }
+  }
 
-module.exports = {
-  uploadFile,
-  uploadJSON,
-  getFromIPFS,
-  createNFTMetadata,
-  createPostMetadata,
-  createCommentMetadata,
-  createProfileMetadata,
-  parseIPFSUri,
-  formatIPFSUrl,
-};
+  /**
+   * Lấy nội dung từ IPFS
+   * @param {String} cid - CID của nội dung cần lấy
+   * @returns {Promise<Buffer>} Buffer dữ liệu
+   */
+  async getFromIPFS(cid) {
+    try {
+      const response = await axios.get(
+        `${this.infuraIPFSEndpoint}/cat?arg=${cid}`,
+        {
+          headers: {
+            Authorization: this._getAuthHeader(),
+          },
+          responseType: "arraybuffer",
+        }
+      );
+
+      return Buffer.from(response.data);
+    } catch (error) {
+      console.error(
+        "IPFS retrieval error:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to retrieve from IPFS");
+    }
+  }
+
+  /**
+   * Tạo metadata cho NFT
+   * @param {String} name - Tên NFT
+   * @param {String} description - Mô tả NFT
+   * @param {String} imageCID - CID của hình ảnh
+   * @param {Array} attributes - Thuộc tính của NFT
+   * @returns {Object} Metadata của NFT
+   */
+  createNFTMetadata(name, description, imageCID, attributes = []) {
+    return {
+      name,
+      description,
+      image: `ipfs://${imageCID}`,
+      attributes,
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Tạo metadata cho post
+   * @param {String} content - Nội dung post
+   * @param {Array} mediaCIDs - CIDs của media
+   * @param {Array} tags - Tags của post
+   * @param {Array} mentions - Mentions trong post
+   * @returns {Object} Metadata của post
+   */
+  createPostMetadata(content, mediaCIDs = [], tags = [], mentions = []) {
+    return {
+      content,
+      media: mediaCIDs.map((cid) => `ipfs://${cid}`),
+      tags,
+      mentions,
+      created_at: new Date().toISOString(),
+      type: "post",
+    };
+  }
+
+  /**
+   * Tạo metadata cho comment
+   * @param {String} content - Nội dung comment
+   * @param {Array} mediaCIDs - CIDs của media
+   * @param {Array} mentions - Mentions trong comment
+   * @returns {Object} Metadata của comment
+   */
+  createCommentMetadata(content, mediaCIDs = [], mentions = []) {
+    return {
+      content,
+      media: mediaCIDs.map((cid) => `ipfs://${cid}`),
+      mentions,
+      created_at: new Date().toISOString(),
+      type: "comment",
+    };
+  }
+
+  /**
+   * Tạo metadata cho profile
+   * @param {String} username - Username
+   * @param {String} bio - Bio
+   * @param {String} avatarCID - CID của avatar
+   * @param {String} coverCID - CID của cover
+   * @returns {Object} Metadata của profile
+   */
+  createProfileMetadata(username, bio, avatarCID, coverCID) {
+    const metadata = {
+      username,
+      bio,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      type: "profile",
+    };
+
+    if (avatarCID) {
+      metadata.avatar = `ipfs://${avatarCID}`;
+    }
+
+    if (coverCID) {
+      metadata.cover = `ipfs://${coverCID}`;
+    }
+
+    return metadata;
+  }
+
+  /**
+   * Parse IPFS URI để lấy CID
+   * @param {String} uri - IPFS URI
+   * @returns {String} CID
+   */
+  parseIPFSUri(uri) {
+    if (!uri) return null;
+
+    if (uri.startsWith("ipfs://")) {
+      return uri.replace("ipfs://", "");
+    }
+
+    return uri;
+  }
+
+  /**
+   * Định dạng URL IPFS từ CID
+   * @param {String} cid - CID hoặc URI
+   * @returns {String} URL đầy đủ
+   */
+  formatIPFSUrl(cid) {
+    if (!cid) return null;
+
+    // Nếu cid đã là URL đầy đủ, trả về nguyên bản
+    if (cid.startsWith("http://") || cid.startsWith("https://")) {
+      return cid;
+    }
+
+    const formattedCid = this.parseIPFSUri(cid);
+    return `${this.ipfsGateway}${formattedCid}`;
+  }
+
+  /**
+   * Chuẩn hóa IPFS URI
+   * @param {String} input - IPFS hash hoặc URL
+   * @returns {String} URI chuẩn hóa (ipfs://...)
+   */
+  normalizeIPFSUri(input) {
+    if (!input) return null;
+
+    // Đã là URI chuẩn
+    if (input.startsWith("ipfs://")) {
+      return input;
+    }
+
+    // Trích xuất hash từ URL
+    const hash = this.parseIPFSUri(input);
+
+    // Thêm tiền tố 'ipfs://'
+    return `ipfs://${hash}`;
+  }
+}
+
+module.exports = new IPFSService();

@@ -2,9 +2,9 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('../../middleware/auth.middleware');
-const userController = require("../../controllers/userController");
+const userController = require("../../controllers/user.controller");
 
-// router.use(verifyToken);
+router.use(verifyToken);
 
 router.get("/user/:id", userController.getUserProfile);
 router.patch("/user/update", userController.updateProfile);

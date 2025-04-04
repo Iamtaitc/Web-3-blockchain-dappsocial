@@ -1,5 +1,5 @@
 const { Comment, Post, User, Like } = require("../models/index");
-const ipfsService = require("./ipfs.services");
+const IPFSService = require("./ipfs.services");
 const notificationService = require("./notification.services");
 
 /**
@@ -25,7 +25,7 @@ class CommentService {
       }
 
       // Xác định cách sắp xếp
-      const sortOption = this._getSortOption(sort);
+      const sortOption = _getSortOption(sort);
 
       // Lấy comments cấp 1
       const comments = await Comment.find({
@@ -39,7 +39,7 @@ class CommentService {
 
       // Lấy thông tin người dùng và like
       const [formattedComments, total] = await Promise.all([
-        this._formatCommentsWithUserInfo(comments, currentUser),
+        _formatCommentsWithUserInfo(comments, currentUser),
         Comment.countDocuments({ postId, parentId: null, status: "active" }),
       ]);
 
@@ -94,7 +94,7 @@ class CommentService {
 
       // Lấy thông tin người dùng và like
       const [formattedReplies, total] = await Promise.all([
-        this._formatCommentsWithUserInfo(replies, currentUser),
+        _formatCommentsWithUserInfo(replies, currentUser),
         Comment.countDocuments({ parentId: commentId, status: "active" }),
       ]);
 
@@ -145,10 +145,7 @@ class CommentService {
       }
 
       // Xử lý media và metadata
-      const mediaResult = await this._processMediaAndMetadata(
-        content,
-        mediaFiles
-      );
+      const mediaResult = await _processMediaAndMetadata(content, mediaFiles);
       if (!mediaResult.success) {
         return mediaResult;
       }
@@ -156,7 +153,7 @@ class CommentService {
       const [mediaObjects, contentURI] = mediaResult.data;
 
       // Tạo comment mới
-      const newComment = await this._createCommentObject({
+      const newComment = await _createCommentObject({
         postId,
         parentId: null,
         depth: 0,
@@ -174,17 +171,11 @@ class CommentService {
 
       // Gửi thông báo cho tác giả bài đăng (nếu không phải chính họ comment)
       if (post.author.toLowerCase() !== author.toLowerCase()) {
-        this._sendCommentNotification(
-          post.author,
-          author,
-          content,
-          "post",
-          postId
-        );
+        _sendCommentNotification(post.author, author, content, "post", postId);
       }
 
       // Lấy thông tin user và format kết quả
-      const formattedComment = await this._formatSingleCommentWithUserInfo(
+      const formattedComment = await _formatSingleCommentWithUserInfo(
         newComment,
         author
       );
@@ -240,10 +231,7 @@ class CommentService {
       }
 
       // Xử lý media và metadata
-      const mediaResult = await this._processMediaAndMetadata(
-        content,
-        mediaFiles
-      );
+      const mediaResult = await _processMediaAndMetadata(content, mediaFiles);
       if (!mediaResult.success) {
         return mediaResult;
       }
@@ -251,7 +239,7 @@ class CommentService {
       const [mediaObjects, contentURI] = mediaResult.data;
 
       // Tạo reply mới
-      const newReply = await this._createCommentObject({
+      const newReply = await _createCommentObject({
         postId: parentComment.postId,
         parentId: commentId,
         depth,
@@ -275,7 +263,7 @@ class CommentService {
 
       // Gửi thông báo cho tác giả comment cha (nếu không phải chính họ reply)
       if (parentComment.author.toLowerCase() !== author.toLowerCase()) {
-        this._sendCommentNotification(
+        _sendCommentNotification(
           parentComment.author,
           author,
           content,
@@ -285,7 +273,7 @@ class CommentService {
       }
 
       // Lấy thông tin user và format kết quả
-      const formattedReply = await this._formatSingleCommentWithUserInfo(
+      const formattedReply = await _formatSingleCommentWithUserInfo(
         newReply,
         author
       );
@@ -355,12 +343,12 @@ class CommentService {
 
       // Cập nhật contentURI
       try {
-        const commentMetadata = ipfsService.createCommentMetadata(
+        const commentMetadata = IPFSService.createCommentMetadata(
           content,
           comment.media.map((media) => media.uri.replace("ipfs://", ""))
         );
 
-        const metadataCID = await ipfsService.uploadJSON(commentMetadata);
+        const metadataCID = await IPFSService.uploadJSON(commentMetadata);
         comment.contentURI = `ipfs://${metadataCID}`;
       } catch (error) {
         return {
@@ -506,7 +494,7 @@ class CommentService {
 
       // Gửi thông báo
       if (comment.author.toLowerCase() !== user.address.toLowerCase()) {
-        this._sendCommentNotification(
+        _sendCommentNotification(
           comment.author,
           user.address,
           "đã thích bình luận của bạn",
@@ -615,7 +603,7 @@ class CommentService {
 
         for (const file of files) {
           try {
-            const cid = await ipfsService.uploadFile(file.data, file.name);
+            const cid = await IPFSService.uploadFile(file.data, file.name);
             mediaCIDs.push(cid);
             mediaObjects.push({
               type: file.mimetype.startsWith("image/")
@@ -638,8 +626,8 @@ class CommentService {
 
       // Tạo metadata và upload lên IPFS
       try {
-        const metadata = ipfsService.createCommentMetadata(content, mediaCIDs);
-        const metadataCID = await ipfsService.uploadJSON(metadata);
+        const metadata = IPFSService.createCommentMetadata(content, mediaCIDs);
+        const metadataCID = await IPFSService.uploadJSON(metadata);
 
         return {
           success: true,
@@ -697,7 +685,7 @@ class CommentService {
 
       // Format kết quả
       return comments.map((comment) =>
-        this._formatCommentObject(comment, usersMap, userLikes)
+        _formatCommentObject(comment, usersMap, userLikes)
       );
     } catch (error) {
       console.error("Error in _formatCommentsWithUserInfo:", error);
@@ -718,7 +706,7 @@ class CommentService {
         ? {
             username: author.username,
             avatarURI: author.avatarURI
-              ? ipfsService.ipfsUriToGatewayUrl(author.avatarURI)
+              ? IPFSService.ipfsUriToGatewayUrl(author.avatarURI)
               : null,
             isVerified: author.isVerified,
           }
@@ -728,7 +716,7 @@ class CommentService {
       media: comment.media
         ? comment.media.map((media) => ({
             ...media,
-            uri: ipfsService.ipfsUriToGatewayUrl(media.uri),
+            uri: IPFSService.ipfsUriToGatewayUrl(media.uri),
           }))
         : [],
       stats: comment.stats,
@@ -750,7 +738,7 @@ class CommentService {
         usersMap[user.walletAddress] = user;
       }
 
-      return this._formatCommentObject(comment, usersMap);
+      return _formatCommentObject(comment, usersMap);
     } catch (error) {
       console.error("Error in _formatSingleCommentWithUserInfo:", error);
       throw error;
