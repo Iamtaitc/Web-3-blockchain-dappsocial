@@ -329,7 +329,7 @@ const NFTDetail = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={() => setShowBidModal(true)}
-                className="py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors flex-1 shadow-md hover:shadow-lg"
+                className="py-3 px-6 bg-emerald-500 hover:bg-emerald-700 text-white font-medium rounded-xl transition-colors flex-1 shadow-md hover:shadow-lg"
               >
                 Đặt giá
               </button>
@@ -480,7 +480,7 @@ const NFTDetail = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-md hover:shadow-lg"
+                  className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-700 text-white font-medium rounded-xl transition-colors shadow-md hover:shadow-lg"
                 >
                   Xác nhận
                 </button>

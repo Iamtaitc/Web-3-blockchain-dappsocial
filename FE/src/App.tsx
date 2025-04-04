@@ -1,9 +1,11 @@
-  import { BrowserRouter } from "react-router-dom";
-  import Navbar from "./components/Navbar";
+import { BrowserRouter } from "react-router-dom";
+  import Navbar from "./components/Navbar"
   import AppRoutes from "./routers/routes"
+  import { ThemeProvider } from "./context/theme-context"
 
   const App = () => {
     return (
+      <ThemeProvider>
       <BrowserRouter>
         <div className="flex w-screen min-h-screen bg-white">
           <div className="w-[200px] h-screen fixed">
@@ -14,8 +16,8 @@
           </div>
         </div>
       </BrowserRouter>
+      </ThemeProvider>
     );
   };
   
-  export default App;
-  
+  export default App; 

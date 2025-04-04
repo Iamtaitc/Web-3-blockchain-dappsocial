@@ -105,7 +105,7 @@ const CreateNFT = () => {
               <div className="flex items-center">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 
-                  ${currentStep >= 1 ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-600"}`}
+                  ${currentStep >= 1 ? "bg-emerald-500 text-white" : "bg-gray-200 text-gray-600"}`}
                 >
                   1
                 </div>
@@ -114,7 +114,7 @@ const CreateNFT = () => {
               <div className="flex items-center">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 
-                  ${currentStep >= 2 ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-600"}`}
+                  ${currentStep >= 2 ? "bg-emerald-500 text-white" : "bg-gray-200 text-gray-600"}`}
                 >
                   2
                 </div>
@@ -123,7 +123,7 @@ const CreateNFT = () => {
               <div className="flex items-center">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 
-                  ${currentStep >= 3 ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-600"}`}
+                  ${currentStep >= 3 ? "bg-emerald-500 text-white" : "bg-gray-200 text-gray-600"}`}
                 >
                   3
                 </div>
@@ -299,7 +299,7 @@ const CreateNFT = () => {
                     </button>
                     <button
                       onClick={handleCreateNFT}
-                      className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="flex-1 px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                     >
                       Tạo
                     </button>
@@ -348,7 +348,7 @@ const CreateNFT = () => {
                 >
                   Xem NFT
                 </button>
-                <button className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
+                <button className="px-6 py-2 bg-emerald-500 text-white rounded-full hover:bg-emerald-700 transition-colors">
                   Niêm yết NFT
                 </button>
               </div>
@@ -356,16 +356,16 @@ const CreateNFT = () => {
               <div className="w-full text-center">
                 <p className="text-gray-600 text-sm mb-4">Chia sẻ trên mạng xã hội</p>
                 <div className="flex justify-center space-x-4">
-                  <button className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-all">
+                  <button className="p-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-700 transition-all">
                     <FiTwitter className="w-5 h-5" />
                   </button>
-                  <button className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all">
+                  <button className="p-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-700 transition-all">
                     <FaFacebookF className="w-5 h-5" />
                   </button>
-                  <button className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-all">
+                  <button className="p-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-700 transition-all">
                     <FaTelegramPlane className="w-5 h-5" />
                   </button>
-                  <button className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-all">
+                  <button className="p-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-700 transition-all">
                     <FiShare2 className="w-5 h-5" />
                   </button>
                 </div>

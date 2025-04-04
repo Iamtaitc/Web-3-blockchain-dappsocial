@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { JSX, useEffect, useState } from "react"
+import { type JSX, useEffect, useState } from "react"
 import {
   FaWallet,
   FaExchangeAlt,
@@ -335,43 +335,43 @@ const Wallet: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-6 font-sans bg-gray-950 text-white min-h-screen">
-      <h1 className="text-4xl font-bold mb-8 text-center tracking-wider bg-gradient-to-r from-blue-500 via-purple-500 to-green-500 bg-clip-text text-transparent">
+    <div className="w-full max-w-6xl mx-auto p-6 font-sans bg-gray-50 text-gray-800 min-h-screen">
+      <h1 className="text-4xl font-bold mb-8 text-center tracking-wider bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 bg-clip-text text-transparent">
         Crypto Wallet
       </h1>
 
       {/* Error notification */}
-      {/* {error && (
-        <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg mb-6 flex items-center">
+      {error && (
+        <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center">
           <FaShieldAlt className="mr-2" />
           {error}
         </div>
-      )} */}
+      )}
 
       {/* Wallet Overview Card */}
-      <div className="bg-gray-900 rounded-2xl p-8 mb-8 border border-gray-800 shadow-xl">
+      <div className="bg-white rounded-2xl p-8 mb-8 border border-gray-200 shadow-lg">
         <div className="flex flex-col md:flex-row justify-between items-center mb-8">
           <div className="flex items-center mb-4 md:mb-0">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center mr-4 border border-blue-500/30">
-              <FaWallet className="text-blue-400 text-2xl" />
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full flex items-center justify-center mr-4 border border-emerald-200">
+              <FaWallet className="text-emerald-500 text-2xl" />
             </div>
             <div>
               <div className="flex items-center">
-                <h2 className="text-xl font-bold mr-2">Main Wallet</h2>
-                <div className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full border border-green-500/30">
+                <h2 className="text-xl font-bold mr-2 text-gray-800">Main Wallet</h2>
+                <div className="bg-emerald-100 text-emerald-600 text-xs px-2 py-1 rounded-full border border-emerald-200">
                   Active
                 </div>
               </div>
-              <div className="flex items-center text-gray-400 text-sm mt-1">
+              <div className="flex items-center text-gray-500 text-sm mt-1">
                 <span className="mr-2">
                   {walletAddress.substring(0, 8)}...{walletAddress.substring(walletAddress.length - 8)}
                 </span>
                 <button
                   onClick={copyToClipboard}
-                  className="text-gray-400  hover:text-gray-700 transition-colors"
+                  className="text-gray-400 hover:text-emerald-500 transition-colors"
                   aria-label="Copy wallet address"
                 >
-                  {copiedAddress ? <FaCheckCircle className="text-green-500" /> : <FaCopy />}
+                  {copiedAddress ? <FaCheckCircle className="text-emerald-500" /> : <FaCopy />}
                 </button>
               </div>
             </div>
@@ -379,18 +379,20 @@ const Wallet: React.FC = () => {
 
           <div className="flex flex-col items-end">
             <div className="flex items-center mb-2">
-              <h3 className="text-gray-400 mr-2">Total Balance:</h3>
+              <h3 className="text-gray-500 mr-2">Total Balance:</h3>
               <div className="flex items-center">
                 {loading ? (
-                  <div className="h-8 w-32 bg-gray-800 animate-pulse rounded"></div>
+                  <div className="h-8 w-32 bg-gray-200 animate-pulse rounded"></div>
                 ) : showBalance ? (
-                  <span className="text-2xl font-bold">{totalBalance}</span>
+                  <span className="text-2xl font-bold bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
+                    {totalBalance}
+                  </span>
                 ) : (
-                  <span className="text-2xl font-bold">••••••••</span>
+                  <span className="text-2xl font-bold text-gray-800">••••••••</span>
                 )}
                 <button
                   onClick={() => setShowBalance(!showBalance)}
-                  className="ml-2 text-gray-400 hover:text-gray-700 transition-colors"
+                  className="ml-2 text-gray-400 hover:text-emerald-500 transition-colors"
                   aria-label={showBalance ? "Hide balance" : "Show balance"}
                 >
                   {showBalance ? <FaEyeSlash /> : <FaEye />}
@@ -400,20 +402,20 @@ const Wallet: React.FC = () => {
             <div className="flex space-x-3">
               <button
                 onClick={() => setShowSendModal(true)}
-                className="flex items-center bg-gradient-to-r from-red-500/20 to-red-600/20 bg-red-600 hover:from-red-500/30 hover:to-red-600/30 px-4 py-2 rounded-lg transition-colors border border-red-500/30"
+                className="flex items-center bg-gradient-to-r from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 px-4 py-2 rounded-lg transition-colors border border-red-200 text-red-600"
               >
-                <FaArrowUp className="mr-2 text-red-400" />
+                <FaArrowUp className="mr-2" />
                 <span>Send</span>
               </button>
               <button
                 onClick={() => setShowReceiveModal(true)}
-                className="flex items-center bg-gradient-to-r from-green-500/20 bg-green-600 to-green-600/20 hover:from-green-500/30 hover:to-green-600/30 px-4 py-2 rounded-lg transition-colors border border-green-500/30"
+                className="flex items-center bg-gradient-to-r from-emerald-50 to-emerald-100 hover:from-emerald-100 hover:to-emerald-200 px-4 py-2 rounded-lg transition-colors border border-emerald-200 text-emerald-600"
               >
-                <FaArrowDown className="mr-2 text-green-400" />
+                <FaArrowDown className="mr-2" />
                 <span>Receive</span>
               </button>
-              <button className="flex items-center bg-gradient-to-r from-blue-500/20 bg-blue-600 to-blue-600/20 hover:from-blue-500/30 hover:to-blue-600/30 px-4 py-2 rounded-lg transition-colors border border-blue-500/30">
-                <FaExchangeAlt className="mr-2 text-blue-400" />
+              <button className="flex items-center bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 px-4 py-2 rounded-lg transition-colors border border-blue-200 text-blue-600">
+                <FaExchangeAlt className="mr-2" />
                 <span>Swap</span>
               </button>
             </div>
@@ -423,13 +425,13 @@ const Wallet: React.FC = () => {
         {/* Performance Chart */}
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold">Portfolio Performance</h3>
-            <div className="flex bg-gray-800 rounded-full p-1 border border-gray-700">
+            <h3 className="text-lg font-bold text-gray-800">Portfolio Performance</h3>
+            <div className="flex bg-gray-100 rounded-full p-1 border border-gray-200">
               <button
                 className={`px-3 py-1 text-xs rounded-full transition-colors ${
                   activeTab === "assets"
-                    ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
-                    : "text-gray-400 hover:text-white"
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
                 onClick={() => setActiveTab("assets")}
               >
@@ -438,8 +440,8 @@ const Wallet: React.FC = () => {
               <button
                 className={`px-3 py-1 text-xs rounded-full transition-colors ${
                   activeTab === "transactions"
-                    ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
-                    : "text-gray-400 hover:text-white"
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
                 onClick={() => setActiveTab("transactions")}
               >
@@ -448,8 +450,8 @@ const Wallet: React.FC = () => {
               <button
                 className={`px-3 py-1 text-xs rounded-full transition-colors ${
                   activeTab === "security"
-                    ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
-                    : "text-gray-400 hover:text-white"
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
                 onClick={() => setActiveTab("security")}
               >
@@ -459,7 +461,7 @@ const Wallet: React.FC = () => {
           </div>
 
           {loading ? (
-            <div className="h-64 w-full bg-gray-800 animate-pulse rounded-lg"></div>
+            <div className="h-64 w-full bg-gray-100 animate-pulse rounded-lg"></div>
           ) : (
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -468,7 +470,7 @@ const Wallet: React.FC = () => {
                     dataKey="date"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#9CA3AF", fontSize: 12 }}
+                    tick={{ fill: "#6B7280", fontSize: 12 }}
                     tickFormatter={(value) => {
                       // Only show day and month, not time
                       if (typeof value === "string") {
@@ -480,24 +482,24 @@ const Wallet: React.FC = () => {
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#9CA3AF", fontSize: 12 }}
+                    tick={{ fill: "#6B7280", fontSize: 12 }}
                     domain={["auto", "auto"]}
                     tickFormatter={(value) => `$${Math.round(value).toLocaleString()}`}
                     width={80}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#111827",
-                      border: "1px solid #374151",
+                      backgroundColor: "#FFFFFF",
+                      border: "1px solid #E5E7EB",
                       borderRadius: "8px",
-                      color: "white",
-                      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)",
+                      color: "#1F2937",
+                      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
                     }}
                     formatter={(value: number) => [
                       `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                     ]}
                     labelFormatter={(label) => `Date: ${label}`}
-                    cursor={{ stroke: "#6366F1", strokeWidth: 1, strokeDasharray: "5 5" }}
+                    cursor={{ stroke: "#10B981", strokeWidth: 1, strokeDasharray: "5 5" }}
                   />
                   <Line
                     type="monotone"
@@ -505,20 +507,20 @@ const Wallet: React.FC = () => {
                     stroke="url(#colorGradient)"
                     strokeWidth={3}
                     dot={false}
-                    activeDot={{ fill: "#6366F1", r: 6, strokeWidth: 2, stroke: "#312E81" }}
+                    activeDot={{ fill: "#10B981", r: 6, strokeWidth: 2, stroke: "#FFFFFF" }}
                   />
                   <defs>
                     <linearGradient id="colorGradient" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#6366F1" />
-                      <stop offset="50%" stopColor="#8B5CF6" />
-                      <stop offset="100%" stopColor="#EC4899" />
+                      <stop offset="0%" stopColor="#10B981" />
+                      <stop offset="50%" stopColor="#14B8A6" />
+                      <stop offset="100%" stopColor="#0D9488" />
                     </linearGradient>
                     <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                       <feGaussianBlur stdDeviation="4" result="blur" />
                       <feComposite in="SourceGraphic" in2="blur" operator="over" />
                     </filter>
                   </defs>
-                  <CartesianGrid stroke="#1F2937" strokeDasharray="5 5" vertical={false} />
+                  <CartesianGrid stroke="#E5E7EB" strokeDasharray="5 5" vertical={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -530,10 +532,10 @@ const Wallet: React.FC = () => {
       {activeTab === "assets" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Assets Distribution */}
-          <div className="bg-gray-900 rounded-2xl p-6 lg:col-span-1 border border-gray-800 shadow-lg">
-            <h3 className="text-lg font-bold mb-4">Assets Distribution</h3>
+          <div className="bg-white rounded-2xl p-6 lg:col-span-1 border border-gray-200 shadow-lg">
+            <h3 className="text-lg font-bold mb-4 text-gray-800">Assets Distribution</h3>
             {loading ? (
-              <div className="h-64 w-full bg-gray-800 animate-pulse rounded-lg"></div>
+              <div className="h-64 w-full bg-gray-100 animate-pulse rounded-lg"></div>
             ) : (
               <div className="h-64 flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
@@ -548,15 +550,15 @@ const Wallet: React.FC = () => {
                       dataKey="value"
                     >
                       {assets.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} stroke="rgba(0,0,0,0.3)" />
+                        <Cell key={`cell-${index}`} fill={entry.color} stroke="rgba(255,255,255,0.8)" />
                       ))}
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "#1F2937",
-                        border: "1px solid #374151",
+                        backgroundColor: "#FFFFFF",
+                        border: "1px solid #E5E7EB",
                         borderRadius: "8px",
-                        color: "white",
+                        color: "#1F2937",
                         boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
                       }}
                       formatter={(value) => [`${value}%`]}
@@ -569,12 +571,12 @@ const Wallet: React.FC = () => {
           </div>
 
           {/* Assets List */}
-          <div className="bg-gray-900 rounded-2xl p-6 lg:col-span-2 border border-gray-800 shadow-lg">
-            <h3 className="text-lg font-bold mb-4">Your Assets</h3>
+          <div className="bg-white rounded-2xl p-6 lg:col-span-2 border border-gray-200 shadow-lg">
+            <h3 className="text-lg font-bold mb-4 text-gray-800">Your Assets</h3>
             {loading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-20 bg-gray-800 animate-pulse rounded-lg"></div>
+                  <div key={i} className="h-20 bg-gray-100 animate-pulse rounded-lg"></div>
                 ))}
               </div>
             ) : (
@@ -582,7 +584,7 @@ const Wallet: React.FC = () => {
                 {assets.map((asset, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl hover:bg-gray-800 transition-colors border border-gray-700/50"
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors border border-gray-200 shadow-sm"
                   >
                     <div className="flex items-center">
                       <div
@@ -604,20 +606,22 @@ const Wallet: React.FC = () => {
                       </div>
                       <div>
                         <div className="flex items-center">
-                          <h4 className="font-bold">{asset.name}</h4>
-                          <span className="text-gray-400 text-xs ml-2">({asset.symbol})</span>
+                          <h4 className="font-bold text-gray-800">{asset.name}</h4>
+                          <span className="text-gray-500 text-xs ml-2">({asset.symbol})</span>
                         </div>
                         <div className="flex items-center mt-1">
-                          <p className="text-gray-400 text-sm">{asset.amount}</p>
-                          <span className={`text-xs ml-2 ${asset.change24h >= 0 ? "text-green-400" : "text-red-400"}`}>
+                          <p className="text-gray-500 text-sm">{asset.amount}</p>
+                          <span
+                            className={`text-xs ml-2 ${asset.change24h >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                          >
                             {asset.change24h >= 0 ? "↑" : "↓"} {Math.abs(asset.change24h).toFixed(2)}%
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold">{asset.usdValue}</p>
-                      <p className="text-gray-400 text-sm">
+                      <p className="font-bold text-gray-800">{asset.usdValue}</p>
+                      <p className="text-gray-500 text-sm">
                         ${asset.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -630,17 +634,17 @@ const Wallet: React.FC = () => {
       )}
 
       {activeTab === "transactions" && (
-        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-lg">
+        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold">Recent Transactions</h3>
-            <button className="flex items-center text-sm text-gray-400 hover:text-white transition-colors">
+            <h3 className="text-lg font-bold text-gray-800">Recent Transactions</h3>
+            <button className="flex items-center text-sm text-gray-500 hover:text-emerald-600 transition-colors">
               <FaHistory className="mr-1" /> View All
             </button>
           </div>
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-20 bg-gray-800 animate-pulse rounded-lg"></div>
+                <div key={i} className="h-20 bg-gray-100 animate-pulse rounded-lg"></div>
               ))}
             </div>
           ) : (
@@ -648,43 +652,41 @@ const Wallet: React.FC = () => {
               {transactions.map((tx) => (
                 <div
                   key={tx.id}
-                  className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl hover:bg-gray-800 transition-colors border border-gray-700/50"
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors border border-gray-200 shadow-sm"
                 >
                   <div className="flex items-center">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 border ${
-                        tx.type === "receive"
-                          ? "bg-green-500/10 border-green-500/30"
-                          : "bg-red-500/10 border-red-500/30"
+                        tx.type === "receive" ? "bg-emerald-100 border-emerald-200" : "bg-red-100 border-red-200"
                       }`}
                     >
                       {tx.type === "receive" ? (
-                        <FaArrowDown className="text-green-400" />
+                        <FaArrowDown className="text-emerald-600" />
                       ) : (
-                        <FaArrowUp className="text-red-400" />
+                        <FaArrowUp className="text-red-600" />
                       )}
                     </div>
                     <div>
                       <div className="flex items-center">
-                        <h4 className="font-bold">{tx.type === "receive" ? "Received" : "Sent"}</h4>
-                        <span className="text-gray-400 text-xs ml-2">{tx.asset}</span>
+                        <h4 className="font-bold text-gray-800">{tx.type === "receive" ? "Received" : "Sent"}</h4>
+                        <span className="text-gray-500 text-xs ml-2">{tx.asset}</span>
                       </div>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-gray-500 text-sm">
                         {tx.type === "receive" ? `From: ${tx.from}` : `To: ${tx.to}`}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`font-bold ${tx.type === "receive" ? "text-green-400" : "text-red-400"}`}>
+                    <p className={`font-bold ${tx.type === "receive" ? "text-emerald-600" : "text-red-600"}`}>
                       {tx.amount}
                     </p>
                     <div className="flex items-center justify-end">
-                      <p className="text-gray-400 text-sm mr-2">{tx.date}</p>
+                      <p className="text-gray-500 text-sm mr-2">{tx.date}</p>
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full ${
                           tx.status === "completed"
-                            ? "bg-green-500/10 text-green-400 border border-green-500/30"
-                            : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/30"
+                            ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
+                            : "bg-amber-100 text-amber-600 border border-amber-200"
                         }`}
                       >
                         {tx.status}
@@ -699,58 +701,58 @@ const Wallet: React.FC = () => {
       )}
 
       {activeTab === "security" && (
-        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-lg">
-          <h3 className="text-lg font-bold mb-6">Security Settings</h3>
+        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg">
+          <h3 className="text-lg font-bold mb-6 text-gray-800">Security Settings</h3>
 
           <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl border border-gray-700/50 hover:bg-gray-800 transition-colors">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors shadow-sm">
               <div className="flex items-center">
-                <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center mr-4 border border-blue-500/30">
-                  <FaLock className="text-blue-400" />
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4 border border-blue-200">
+                  <FaLock className="text-blue-600" />
                 </div>
                 <div>
-                  <h4 className="font-bold">Two-Factor Authentication</h4>
-                  <p className="text-gray-400 text-sm">Add an extra layer of security to your account</p>
+                  <h4 className="font-bold text-gray-800">Two-Factor Authentication</h4>
+                  <p className="text-gray-500 text-sm">Add an extra layer of security to your account</p>
                 </div>
               </div>
               <div className="flex items-center">
-                <span className="bg-green-500/10 text-green-400 text-xs px-2 py-1 rounded-full mr-2 border border-green-500/30">
+                <span className="bg-emerald-100 text-emerald-600 text-xs px-2 py-1 rounded-full mr-2 border border-emerald-200">
                   Enabled
                 </span>
-                <button className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-lg text-sm transition-colors">
+                <button className="bg-white hover:bg-gray-100 px-3 py-1 rounded-lg text-sm transition-colors border border-gray-200 text-gray-700">
                   Manage
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl border border-gray-700/50 hover:bg-gray-800 transition-colors">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors shadow-sm">
               <div className="flex items-center">
-                <div className="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center mr-4 border border-purple-500/30">
-                  <FaShieldAlt className="text-purple-400" />
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4 border border-purple-200">
+                  <FaShieldAlt className="text-purple-600" />
                 </div>
                 <div>
-                  <h4 className="font-bold">Backup Recovery Phrase</h4>
-                  <p className="text-gray-400 text-sm">Secure your wallet with a 12-word recovery phrase</p>
+                  <h4 className="font-bold text-gray-800">Backup Recovery Phrase</h4>
+                  <p className="text-gray-500 text-sm">Secure your wallet with a 12-word recovery phrase</p>
                 </div>
               </div>
-              <button className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-lg text-sm transition-colors">
+              <button className="bg-white hover:bg-gray-100 px-3 py-1 rounded-lg text-sm transition-colors border border-gray-200 text-gray-700">
                 View
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl border border-gray-700/50 hover:bg-gray-800 transition-colors">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors shadow-sm">
               <div className="flex items-center">
-                <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mr-4 border border-red-500/30">
-                  <FaChartLine className="text-red-400" />
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4 border border-red-200">
+                  <FaChartLine className="text-red-600" />
                 </div>
                 <div>
-                  <h4 className="font-bold">Transaction Limits</h4>
-                  <p className="text-gray-400 text-sm">Set daily transaction limits for added security</p>
+                  <h4 className="font-bold text-gray-800">Transaction Limits</h4>
+                  <p className="text-gray-500 text-sm">Set daily transaction limits for added security</p>
                 </div>
               </div>
               <div className="flex items-center">
-                <span className="text-gray-400 mr-2">$5,000/day</span>
-                <button className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-lg text-sm transition-colors">
+                <span className="text-gray-500 mr-2">$5,000/day</span>
+                <button className="bg-white hover:bg-gray-100 px-3 py-1 rounded-lg text-sm transition-colors border border-gray-200 text-gray-700">
                   Edit
                 </button>
               </div>
@@ -761,13 +763,13 @@ const Wallet: React.FC = () => {
 
       {/* Send Modal */}
       {showSendModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-gray-900 rounded-xl p-6 max-w-md w-full border border-gray-800 shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full border border-gray-200 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold">Send Assets</h3>
+              <h3 className="text-xl font-bold text-gray-800">Send Assets</h3>
               <button
                 onClick={() => setShowSendModal(false)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
                 aria-label="Close modal"
               >
                 ✕
@@ -776,8 +778,8 @@ const Wallet: React.FC = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-gray-400 mb-2">Select Asset</label>
-                <select className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 focus:outline-none focus:border-blue-500 transition-colors">
+                <label className="block text-gray-600 mb-2">Select Asset</label>
+                <select className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-emerald-500 transition-colors text-gray-800">
                   {assets.map((asset) => (
                     <option key={asset.id} value={asset.symbol.toLowerCase()}>
                       {asset.name} ({asset.symbol}) - {asset.amount}
@@ -787,46 +789,48 @@ const Wallet: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-2">Recipient Address</label>
+                <label className="block text-gray-600 mb-2">Recipient Address</label>
                 <input
                   type="text"
                   placeholder="Enter wallet address"
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-emerald-500 transition-colors text-gray-800"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-2">Amount</label>
+                <label className="block text-gray-600 mb-2">Amount</label>
                 <div className="flex">
                   <input
                     type="number"
                     placeholder="0.00"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-l-lg p-3 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-l-lg p-3 focus:outline-none focus:border-emerald-500 transition-colors text-gray-800"
                   />
-                  <div className="bg-gray-700 border border-gray-700 rounded-r-lg px-4 flex items-center">BTC</div>
+                  <div className="bg-gray-100 border border-gray-200 rounded-r-lg px-4 flex items-center text-gray-700">
+                    BTC
+                  </div>
                 </div>
-                <p className="text-gray-400 text-sm mt-1">≈ $0.00</p>
+                <p className="text-gray-500 text-sm mt-1">≈ $0.00</p>
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-2">Network Fee</label>
+                <label className="block text-gray-600 mb-2">Network Fee</label>
                 <div className="flex space-x-2">
-                  <button className="flex-1 bg-gray-800 border border-gray-700 rounded-lg p-2 focus:outline-none hover:bg-gray-700 transition-colors">
+                  <button className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-2 focus:outline-none hover:bg-gray-100 transition-colors text-gray-800">
                     <div className="text-sm font-bold">Slow</div>
-                    <div className="text-xs text-gray-400">0.0001 BTC</div>
+                    <div className="text-xs text-gray-500">0.0001 BTC</div>
                   </button>
-                  <button className="flex-1 bg-gray-800 border border-blue-500 rounded-lg p-2 focus:outline-none hover:bg-gray-700 transition-colors">
+                  <button className="flex-1 bg-gray-50 border border-emerald-500 rounded-lg p-2 focus:outline-none hover:bg-gray-100 transition-colors text-gray-800">
                     <div className="text-sm font-bold">Medium</div>
-                    <div className="text-xs text-gray-400">0.0002 BTC</div>
+                    <div className="text-xs text-gray-500">0.0002 BTC</div>
                   </button>
-                  <button className="flex-1 bg-gray-800 border border-gray-700 rounded-lg p-2 focus:outline-none hover:bg-gray-700 transition-colors">
+                  <button className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-2 focus:outline-none hover:bg-gray-100 transition-colors text-gray-800">
                     <div className="text-sm font-bold">Fast</div>
-                    <div className="text-xs text-gray-400">0.0003 BTC</div>
+                    <div className="text-xs text-gray-500">0.0003 BTC</div>
                   </button>
                 </div>
               </div>
 
-              <button className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold py-3 rounded-lg transition-colors mt-4">
+              <button className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 rounded-lg transition-colors mt-4 shadow-md">
                 Send Transaction
               </button>
             </div>
@@ -836,13 +840,13 @@ const Wallet: React.FC = () => {
 
       {/* Receive Modal */}
       {showReceiveModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-gray-900 rounded-xl p-6 max-w-md w-full border border-gray-800 shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full border border-gray-200 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold">Receive Assets</h3>
+              <h3 className="text-xl font-bold text-gray-800">Receive Assets</h3>
               <button
                 onClick={() => setShowReceiveModal(false)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
                 aria-label="Close modal"
               >
                 ✕
@@ -851,8 +855,8 @@ const Wallet: React.FC = () => {
 
             <div className="space-y-4 text-center">
               <div>
-                <label className="block text-gray-400 mb-2">Select Asset</label>
-                <select className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 focus:outline-none focus:border-blue-500 transition-colors">
+                <label className="block text-gray-600 mb-2">Select Asset</label>
+                <select className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-emerald-500 transition-colors text-gray-800">
                   {assets.map((asset) => (
                     <option key={asset.id} value={asset.symbol.toLowerCase()}>
                       {asset.name} ({asset.symbol})
@@ -861,26 +865,26 @@ const Wallet: React.FC = () => {
                 </select>
               </div>
 
-              <div className="bg-white p-4 rounded-lg mx-auto w-48 h-48 flex items-center justify-center">
-                <FaQrcode className="text-black text-8xl" />
+              <div className="bg-white p-4 rounded-lg mx-auto w-48 h-48 flex items-center justify-center border border-gray-200 shadow-md">
+                <FaQrcode className="text-gray-800 text-8xl" />
               </div>
 
               <div>
-                <p className="text-gray-400 mb-2">Your Wallet Address</p>
-                <div className="flex items-center justify-center bg-gray-800 rounded-lg p-3 border border-gray-700">
-                  <span className="text-sm mr-2 truncate">{walletAddress}</span>
+                <p className="text-gray-600 mb-2">Your Wallet Address</p>
+                <div className="flex items-center justify-center bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <span className="text-sm mr-2 truncate text-gray-700">{walletAddress}</span>
                   <button
                     onClick={copyToClipboard}
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-gray-400 hover:text-emerald-500 transition-colors"
                     aria-label="Copy wallet address"
                   >
-                    {copiedAddress ? <FaCheckCircle className="text-green-500" /> : <FaCopy />}
+                    {copiedAddress ? <FaCheckCircle className="text-emerald-500" /> : <FaCopy />}
                   </button>
                 </div>
               </div>
 
               <div className="pt-4">
-                <p className="text-yellow-400 text-sm flex items-center justify-center">
+                <p className="text-amber-600 text-sm flex items-center justify-center">
                   <FaShieldAlt className="mr-1" />
                   Only send the selected asset to this address
                 </p>

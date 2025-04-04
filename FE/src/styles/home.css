@@ -101,7 +101,7 @@
    gap: 20px;
   }
   .buy-nft {
-    background: linear-gradient(45deg, #00c853, #64dd17);
+    background: linear-gradient(45deg, #10B981, #14B8A6); /* màu gốc đổi luôn */
     color: white;
     border: none;
     padding: 8px 15px;
@@ -111,21 +111,22 @@
     font-weight: bold;
     text-transform: uppercase;
     transition: 0.3s ease-in-out;
-    box-shadow: 0 4px 10px rgba(0, 255, 0, 0.3);
-    border: 1px solid #0a0;
+    box-shadow: 0 4px 10px rgba(20, 184, 166, 0.3); /* teal shadow */
+    border: 1px solid #14B8A6;
     z-index: 10;
     position: relative;
     overflow: hidden;
 }
 
 .buy-nft:hover {
-    background: linear-gradient(45deg, #64dd17, #00c853);
-    box-shadow: 0 0 15px rgba(0, 255, 0, 0.6), 0 0 25px rgba(0, 255, 0, 0.4);
+    background: linear-gradient(45deg, #14B8A6, #10B981); /* đảo lại để hover mượt hơn */
+    box-shadow: 0 0 15px rgba(20, 184, 166, 0.6), 0 0 25px rgba(20, 184, 166, 0.4);
     transform: scale(1.05);
 }
+
 .buy-nft:active {
     transform: scale(0.95);
-    box-shadow: 0 0 5px rgba(0, 255, 0, 0.8);
+    box-shadow: 0 0 5px rgba(20, 184, 166, 0.8);
 }
 
 .buy-nft::before {
@@ -175,13 +176,15 @@
   }
   
   .claim-checkin {
-    background-color: #33ff66;
-    color: black;
+    background-color: #10B981;
+    color: white;
     font-size: 15px;
     padding: 10px 15px;
     border: none;
     border-radius: 10px;
     cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3); /* emerald shadow */
   }
   .farming {
     font-size: 20px;
@@ -189,7 +192,7 @@
     margin-top: 10px;
   }
   
-  .claim-farming {
+  /* .claim-farming {
     background-color: #33ff66;
     color: black;
     font-size: 16px;
@@ -204,6 +207,29 @@
   .claim-checkin:hover,
   .claim-farming:hover {
     background-color: #2ecc71;
+  } */
+  .claim-farming,
+  .invite {
+      background-color: #10B981; /* emerald */
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      padding: 10px;
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 10px;
+      text-transform: uppercase;
+      transition: all 0.3s ease-in-out;
+      box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3); /* emerald shadow */
+  }
+  .claim-checkin:hover,
+  .claim-farming:hover,
+  .invite:hover {
+      background-color: #14B8A6; /* teal */
+      box-shadow: 0 0 12px rgba(20, 184, 166, 0.5), 0 0 20px rgba(20, 184, 166, 0.4);
+      transform: scale(1.03);
   }
 
   .referrals {
@@ -228,7 +254,7 @@
     font-size: 14px;
     color: black;
   }
-  
+/*   
   .invite {
     background-color: #33ff66;
     color: black;
@@ -245,7 +271,7 @@
   
   .invite:hover {
     background-color: #2ecc71;
-  }
+  } */
   
   .image-container {
     display: grid;

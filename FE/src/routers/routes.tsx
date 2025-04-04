@@ -13,6 +13,8 @@ import Premium from "../pages/NFT/Premium";
 import Wallet from "../pages/NFT/Wallet";
 import Farm from "../pages/NFT/Farm";
 import SnakeGame from "../pages/game/SnakeGame";
+import DropGame from "../pages/game/DropGame";
+import Settings from "../pages/Settings";
 
 
 const AppRoutes = () => {
@@ -32,6 +34,8 @@ const AppRoutes = () => {
       <Route path="/create" element={<CreateNFT />} />
       <Route path="/nft" element={<NFTDetail />} />
       <Route path="/SnakeGame" element={<SnakeGame/>} />
+      <Route path="/DropGame" element={<DropGame/>} />
+      <Route path="/Setting" element={<Settings/>} />
     </Routes>
   );
 };
