@@ -71,7 +71,7 @@ class UserController {
     const result = await userServices.getUserFollowers(address, page, limit);
     
     if (!result.success) {
-      return ApiResponse.serverError(res, result.message);
+      return ApiResponse.error(res, result.message);
     }
     
     const { followers, pagination } = result.data;
@@ -94,7 +94,7 @@ class UserController {
     const result = await userServices.getUserFollowing(address, page, limit);
     
     if (!result.success) {
-      return ApiResponse.serverError(res, result.message);
+      return ApiResponse.error(res, result.message);
     }
     
     const { following, pagination } = result.data;
@@ -116,7 +116,7 @@ class UserController {
     const result = await userServices.getLeaderboard(page, limit);
     
     if (!result.success) {
-      return ApiResponse.serverError(res, result.message);
+      return ApiResponse.error(res, result.message);
     }
     
     const { leaderboard, pagination } = result.data;

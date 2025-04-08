@@ -17,7 +17,7 @@ class NFTController {
       const result = await NFTService.getAllNFTs(filters, { page, limit });
       return ApiResponse.success(res, result, "Lấy danh sách NFT thành công");
     } catch (error) {
-      return ApiResponse.serverError(res, "Lỗi khi lấy danh sách NFT", error.message);
+      return ApiResponse.error(res, "Lỗi khi lấy danh sách NFT", error.message);
     }
   }
 
@@ -29,7 +29,7 @@ class NFTController {
     } catch (error) {
       return error.message === "NFT không tồn tại"
         ? ApiResponse.notFound(res, "NFT không tồn tại")
-        : ApiResponse.serverError(res, "Lỗi khi lấy thông tin NFT", error.message);
+        : ApiResponse.error(res, "Lỗi khi lấy thông tin NFT", error.message);
     }
   }
 
@@ -47,7 +47,7 @@ class NFTController {
       const result = await NFTService.mintNFT(req.body, req.user.address, req.file.buffer, req.file.mimetype, req.file.originalname);
       return ApiResponse.created(res, { message: "NFT minted successfully", nft: result });
     } catch (error) {
-      return ApiResponse.serverError(res, "Lỗi khi mint NFT", error.message);
+      return ApiResponse.error(res, "Lỗi khi mint NFT", error.message);
     }
   }
 
@@ -91,7 +91,7 @@ class NFTController {
       const result = await NFTService.getMarketplaceNFTs(filters, { page, limit });
       return ApiResponse.success(res, result, "Lấy danh sách NFT marketplace thành công");
     } catch (error) {
-      return ApiResponse.serverError(res, "Lỗi khi lấy danh sách NFT trên marketplace", error.message);
+      return ApiResponse.error(res, "Lỗi khi lấy danh sách NFT trên marketplace", error.message);
     }
   }
 
@@ -102,7 +102,7 @@ class NFTController {
     } catch (error) {
       return error.message === "Creator không tồn tại"
         ? ApiResponse.notFound(res, "Creator không tồn tại")
-        : ApiResponse.serverError(res, "Lỗi khi lấy danh sách NFT của creator", error.message);
+        : ApiResponse.error(res, "Lỗi khi lấy danh sách NFT của creator", error.message);
     }
   }
 
@@ -118,7 +118,7 @@ class NFTController {
     };
     return messages[error.message]
       ? ApiResponse.badRequest(res, messages[error.message])
-      : ApiResponse.serverError(res, "Lỗi xử lý NFT", error.message);
+      : ApiResponse.error(res, "Lỗi xử lý NFT", error.message);
   }
 }
 

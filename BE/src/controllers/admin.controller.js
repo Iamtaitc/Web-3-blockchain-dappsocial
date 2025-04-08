@@ -8,7 +8,6 @@ const config = require("../configs/config.env");
  * Controller xử lý các chức năng quản trị
  */
 class AdminController {
-
   /**
    * Kiểm tra quyền admin
    * @param {String} address - Địa chỉ ví cần kiểm tra
@@ -93,10 +92,7 @@ class AdminController {
       return ApiResponse.badRequest(res, "Trạng thái không hợp lệ");
     }
 
-    const result = await AdminService.updateUserStatus(
-      walletAddress,
-      status
-    );
+    const result = await AdminService.updateUserStatus(walletAddress, status);
 
     if (!result.success) {
       return ApiResponse.error(
@@ -419,10 +415,7 @@ class AdminController {
       return ApiResponse.badRequest(res, "Tiêu đề và nội dung là bắt buộc");
     }
 
-    const result = await AdminService.createSystemAnnouncement(
-      title,
-      content
-    );
+    const result = await AdminService.createSystemAnnouncement(title, content);
 
     if (!result.success) {
       return ApiResponse.error(
