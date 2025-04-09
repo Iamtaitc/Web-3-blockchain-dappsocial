@@ -192,5 +192,5 @@ class ApiResponse {
     return this.success(res, null, message, 202);
   }
 }
-
-module.exports = new ApiResponse();
+// lỗi new ApiResponse
+module.exports = ApiResponse;
