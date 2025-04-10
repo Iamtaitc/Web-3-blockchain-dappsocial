@@ -33,7 +33,6 @@ class AuthService {
       // Tạo message để ký
       const message = `Chào mừng đến với DeSo Social!`;
 
-    console.log("Signature:", signature);
       return {
         success: true,
         data: { message, nonce },
