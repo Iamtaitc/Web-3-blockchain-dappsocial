@@ -140,17 +140,10 @@ const Farm = () => {
             <path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" fill="currentColor" opacity=".5"></path>
             <path d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z" fill="currentColor"></path>
           </svg>
-        </div>
       </div>
 
       {/* Main Content - Shifted up to overlap with header */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 -mt-10">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Farming Stats */}
-          <div className="lg:col-span-2 space-y-6">
-            {activeTab === "farming" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Active Farming */}
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xl transition-all duration-300 hover:shadow-2xl group">
                   <h3 className="font-bold text-xl mb-4 flex items-center text-gray-800">
                     <FaFire className="mr-2 text-amber-500" /> Active Farming
@@ -163,7 +156,6 @@ const Farm = () => {
                     </div>
                     <div className="text-gray-700 bg-gray-100 px-4 py-2 rounded-lg font-bold shadow-sm">x 10</div>
                   </div>
-
                   <div className="flex justify-center my-8">
                     <div className="w-28 h-28 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-full flex items-center justify-center relative shadow-lg group-hover:shadow-emerald-100/50 transition-all duration-500">
                       <div className="absolute inset-0 rounded-full bg-emerald-500 opacity-10 animate-ping"></div>
@@ -380,88 +372,6 @@ const Farm = () => {
                 <div className="flex items-center justify-center gap-3 bg-amber-50 p-3 rounded-lg border border-amber-100">
                   <FaCoins className="text-amber-500 text-xl" />
                   <span className="font-bold text-gray-800 text-lg">1,000 Dx</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Weekly Rewards */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xl transition-all duration-300 hover:shadow-2xl">
-              <h3 className="font-bold text-xl mb-4 flex items-center text-gray-800">
-                <FaGem className="mr-2 text-emerald-500" /> Weekly Rewards
-              </h3>
-
-              <div className="grid grid-cols-7 gap-2 mb-6">
-                {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                  <div
-                    key={day}
-                    className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all duration-300 ${
-                      day < 5
-                        ? "bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-md"
-                        : "bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-200"
-                    }`}
-                  >
-                    <span className="font-bold">{day}</span>
-                    <span className="text-xs">{day < 5 ? "✓" : ""}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-4 mb-4 border border-gray-100 shadow-sm">
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-gray-600">Day 7 Reward:</p>
-                  <div className="flex items-center bg-purple-50 px-3 py-1 rounded-lg border border-purple-100">
-                    <FaGem className="text-purple-500 mr-2" />
-                    <span className="font-bold text-gray-800">Rare NFT</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                <FaArrowRight className="mr-2 text-emerald-500" />
-                <p>Claim 7 days in a row for a special reward!</p>
-              </div>
-            </div>
-
-            {/* Farming Stats */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xl transition-all duration-300 hover:shadow-2xl">
-              <h3 className="font-bold text-xl mb-4 flex items-center text-gray-800">
-                <FaChartLine className="mr-2 text-blue-500" /> Farming Stats
-              </h3>
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-center bg-gradient-to-br from-gray-50 to-white p-3 rounded-lg border border-gray-100">
-                  <p className="text-gray-500">Total Farmed:</p>
-                  <p className="font-bold text-gray-800">189,381,433 Dx</p>
-                </div>
-                <div className="flex justify-between items-center bg-gradient-to-br from-gray-50 to-white p-3 rounded-lg border border-gray-100">
-                  <p className="text-gray-500">Current Rate:</p>
-                  <p className="font-bold text-gray-800">4,000 Dx/h</p>
-                </div>
-                <div className="flex justify-between items-center bg-gradient-to-br from-gray-50 to-white p-3 rounded-lg border border-gray-100">
-                  <p className="text-gray-500">Active Boosters:</p>
-                  <p className="font-bold text-emerald-500">2x Speed</p>
-                </div>
-                <div className="flex justify-between items-center bg-gradient-to-br from-gray-50 to-white p-3 rounded-lg border border-gray-100">
-                  <p className="text-gray-500">Next Level:</p>
-                  <p className="font-bold text-gray-800">Level 15</p>
-                </div>
-              </div>
-
-              <div className="mt-6 bg-gradient-to-br from-gray-50 to-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                <p className="text-sm mb-3 text-gray-600">Progress to Next Level</p>
-                <div className="bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
-                  <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 relative" style={{ width: "65%" }}>
-                    <div className="absolute inset-0 bg-white/20 overflow-hidden flex">
-                      <div className="w-full h-full bg-stripes-white opacity-20"></div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center mt-2">
-                  <p className="text-xs text-gray-500">0%</p>
-                  <p className="text-xs font-medium text-blue-500">65%</p>
-                  <p className="text-xs text-gray-500">100%</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
