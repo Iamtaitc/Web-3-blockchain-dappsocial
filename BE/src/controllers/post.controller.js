@@ -1,4 +1,4 @@
-const { validationResult } = require("express-validator");
+ const { validationResult } = require("express-validator");
 const postService = require("../services/post.services");
 const ApiResponse = require("../utils/apiResponse.utils");
 const { processMediaFiles } = require("../utils/mediaHelper.utils");
