@@ -1,7 +1,8 @@
+
 .container {
     display: flex;
     justify-content: space-between;
-    color: white;
+    color: black;
     padding: 20px;
   }
   .left-panel {
