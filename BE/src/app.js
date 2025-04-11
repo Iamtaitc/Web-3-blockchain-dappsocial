@@ -7,10 +7,15 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const listEndpoints = require("express-list-endpoints");
 const bodyParser = require("body-parser");
-const { notFoundHandler, errorHandler } = require("./middleware/errors.middleware");
-require('dotenv').config();
-const swaggerUi = require('swagger-ui-express');
-const swaggerDocs = require('./docs/swagger');
+const {
+  notFoundHandler,
+  errorHandler,
+} = require("./middleware/errors.middleware");
+
+const initializeJwtSecrets  = require("./utils/initializeJwtSecrets");
+require("dotenv").config();
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocs = require("./docs/swagger");
 const connectDB = require("./configs/configs.mongoose");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -26,17 +31,19 @@ app.use(
     optionsSuccessStatus: 200,
   })
 );
+
+initializeJwtSecrets();
 // Doc API
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 connectDB();
 // Routes
 app.use("", require("./routers"));
 
-console.log(listEndpoints(app));
+// console.log(listEndpoints(app));
 
 // error handler
-app.use(notFoundHandler);
-app.use(errorHandler);
+// app.use(notFoundHandler);
+// app.use(errorHandler);
 
 app.use((error, req, res, next) => {
   res.status(error.statusCode || 500);

@@ -192,5 +192,6 @@ class ApiResponse {
     return this.success(res, null, message, 202);
   }
 }
-// lỗi new ApiResponse
+
+// Export the class itself, not an instance
 module.exports = ApiResponse;
