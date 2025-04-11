@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import {
   Home,
   Search,
@@ -18,8 +18,15 @@ import {
   User,
   LogOut,
   ChevronDown,
+  Shield,
 } from "lucide-react"
 import { WalletLoginModal } from "./Login/wallet-login-modal"
+import { useSelector, useDispatch } from "react-redux"
+import type { RootState, AppDispatch } from "../store"
+import { useAuth } from "../hooks/useAuth"
+import { refreshToken as refreshTokenAction } from "../store/slices/authSlice"
+import api from "../services/api"
+import { store } from "../store" // Import store trực tiếp
 
 // Utility function to format wallet address
 const formatAddress = (address: string): string => {
@@ -27,69 +34,115 @@ const formatAddress = (address: string): string => {
   return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
 }
 
-const Navbar: React.FC = () => {
+const Navbar = () => {
   const location = useLocation()
+  const navigate = useNavigate()
   const currentPath = location.pathname
   const [menuOpen, setMenuOpen] = useState(false)
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
-  const [account, setAccount] = useState<string | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [walletName, setWalletName] = useState<string>("")
   const menuRef = useRef<HTMLDivElement>(null)
+  const dispatch = useDispatch<AppDispatch>()
 
-  // Check if wallet is connected when component mounts
+  // Lấy thông tin xác thực từ Redux store
+  const {
+    isAuthenticated,
+    walletAddress,
+    walletType,
+    user,
+    token,
+    refreshToken: refreshTokenValue,
+  } = useSelector((state: RootState) => state.auth)
+  const { logout: handleLogout, connectWallet, authenticate } = useAuth()
+
+  // Kiểm tra và làm mới token khi component mount
   useEffect(() => {
-    const checkConnection = async () => {
-      if (typeof window !== "undefined" && window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: "eth_accounts" })
-          if (accounts.length > 0) {
-            setAccount(accounts[0])
+    const checkAndRefreshToken = async () => {
+      // Kiểm tra xem có token trong localStorage nhưng không có trong Redux store không
+      const localToken = localStorage.getItem("token")
+      const localRefreshToken = localStorage.getItem("refreshToken")
+      const localUser = localStorage.getItem("user")
 
-            // Try to detect which wallet is connected
-            let detectedWalletName = "Wallet"
-            if (window.ethereum.isMetaMask) detectedWalletName = "MetaMask"
-            else if (window.ethereum.isCoinbaseWallet) detectedWalletName = "Coinbase"
-            else if (window.ethereum.isWalletConnect) detectedWalletName = "WalletConnect"
-            else if (window.ethereum.isOkxWallet || window.ethereum.isOKExWallet || window.ethereum.isOKX)
-              detectedWalletName = "OKX"
+      // Nếu có dữ liệu trong localStorage nhưng không có trong Redux store
+      if (localToken && localRefreshToken && localUser && !token) {
+        console.log("Phát hiện token trong localStorage nhưng không có trong Redux store, đang khôi phục...")
 
-            setWalletName(detectedWalletName)
+        // Kiểm tra Redux store trực tiếp
+        const authState = store.getState().auth
+        console.log("Redux store hiện tại:", {
+          isAuthenticated: authState.isAuthenticated,
+          token: authState.token,
+          refreshToken: authState.refreshToken,
+          user: authState.user,
+        })
 
-            // Check if user was previously authenticated
-            const authStatus = localStorage.getItem("web3auth")
-            if (authStatus) {
-              setIsAuthenticated(true)
+        // Nếu token hết hạn, làm mới token
+        if (isTokenExpired(localToken) && localRefreshToken) {
+          try {
+            // Gọi API để làm mới token
+            const response = await api.post("/refresh-token", { refreshToken: localRefreshToken })
+
+            if (response.data.success) {
+              // Cập nhật token mới vào Redux store
+              dispatch(
+                refreshTokenAction({
+                  token: response.data.data.token,
+                  refreshToken: response.data.data.refreshToken,
+                }),
+              )
+
+              console.log("Token đã được làm mới thành công")
             }
+          } catch (error) {
+            console.error("Lỗi khi làm mới token:", error)
+            // Xóa dữ liệu đăng nhập nếu có lỗi
+            localStorage.removeItem("token")
+            localStorage.removeItem("refreshToken")
+            localStorage.removeItem("user")
           }
-        } catch (err) {
-          console.error("Could not get accounts", err)
-        }
-      }
-    }
-
-    checkConnection()
-  }, [])
-
-  // Listen for account changes
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length === 0) {
-          // User disconnected wallet
-          handleDisconnect()
         } else {
-          setAccount(accounts[0])
+          // Nếu token còn hạn, khôi phục trạng thái đăng nhập
+          try {
+            dispatch({
+              type: "auth/setAuthData",
+              payload: {
+                token: localToken,
+                refreshToken: localRefreshToken,
+                user: JSON.parse(localUser),
+              },
+            })
+
+            console.log("Đã khôi phục trạng thái đăng nhập từ localStorage")
+
+            // Kiểm tra Redux store sau khi dispatch
+            setTimeout(() => {
+              const updatedAuthState = store.getState().auth
+              console.log("Redux store sau khi khôi phục:", {
+                isAuthenticated: updatedAuthState.isAuthenticated,
+                token: updatedAuthState.token,
+                refreshToken: updatedAuthState.refreshToken,
+                user: updatedAuthState.user,
+              })
+            }, 100)
+          } catch (error) {
+            console.error("Lỗi khi khôi phục trạng thái đăng nhập:", error)
+          }
         }
       }
-
-      window.ethereum.on("accountsChanged", handleAccountsChanged)
-
-      return () => {
-        window.ethereum.removeListener("accountsChanged", handleAccountsChanged)
-      }
     }
-  }, [])
+
+    checkAndRefreshToken()
+  }, [dispatch, token])
+
+  // Kiểm tra xem token có hết hạn không
+  const isTokenExpired = (token: string): boolean => {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]))
+      const expiry = payload.exp * 1000 // Chuyển đổi thành milliseconds
+      return Date.now() > expiry
+    } catch (error) {
+      return true // Nếu có lỗi khi parse token, coi như token đã hết hạn
+    }
+  }
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -105,6 +158,13 @@ const Navbar: React.FC = () => {
     }
   }, [])
 
+  // Kiểm tra nếu đang ở trang add-nft và chưa đăng nhập thì hiện modal đăng nhập
+  useEffect(() => {
+    if (currentPath === "/add-nft" && !isAuthenticated) {
+      setIsWalletModalOpen(true)
+    }
+  }, [currentPath, isAuthenticated])
+
   // Toggle menu
   const toggleMenu = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -112,33 +172,30 @@ const Navbar: React.FC = () => {
   }
 
   // Handle successful wallet connection
-  const handleWalletSuccess = (address: string, walletType: string) => {
-    setAccount(address)
-    setWalletName(walletType)
+  const handleWalletSuccess = () => {
     setIsWalletModalOpen(false)
+
+    // Kiểm tra Redux store sau khi đăng nhập thành công
+    setTimeout(() => {
+      const authState = store.getState().auth
+      console.log("Redux store sau khi đăng nhập thành công:", {
+        isAuthenticated: authState.isAuthenticated,
+        token: authState.token,
+        refreshToken: authState.refreshToken,
+        user: authState.user,
+      })
+    }, 100)
   }
 
   // Handle wallet disconnection
   const handleDisconnect = async () => {
     try {
-      // Clear app state
-      setAccount(null)
-      setIsAuthenticated(false)
-      setWalletName("")
-      localStorage.removeItem("web3auth")
+      await handleLogout()
       setMenuOpen(false)
 
-      // If provider exists, try to disconnect
-      if (window.ethereum) {
-        try {
-          // This is an unofficial method that might work with some MetaMask versions
-          await window.ethereum.request({
-            method: "wallet_revokePermissions",
-            params: [{ eth_accounts: {} }],
-          })
-        } catch (e) {
-          console.log("Wallet doesn't support revokePermissions", e)
-        }
+      // Nếu đang ở trang yêu cầu đăng nhập, chuyển hướng về trang chủ
+      if (currentPath === "/add-nft" || currentPath === "/profile") {
+        navigate("/")
       }
     } catch (err) {
       console.error("Error disconnecting:", err)
@@ -152,6 +209,9 @@ const Navbar: React.FC = () => {
     setMenuOpen(false)
   }
 
+  // Kiểm tra quyền admin
+  const isAdmin = user?.isVerified || false
+
   return (
     <>
       <nav className="w-[200px] h-screen bg-white text-gray-700 fixed top-0 left-0 flex flex-col border-r border-gray-200 font-mono shadow-lg z-50">
@@ -161,6 +221,9 @@ const Navbar: React.FC = () => {
             <span className="text-emerald-500">X</span>
           </div>
         </div>
+
+        {/* Bỏ phần hiển thị thông tin người dùng ở đầu sidebar */}
+        {/* Chỉ giữ lại trong dropdown menu */}
 
         <ul className="flex-1 py-4 px-2">
           <NavItem to="/" icon={<Home size={18} />} label="Home" isActive={currentPath === "/"} />
@@ -175,7 +238,7 @@ const Navbar: React.FC = () => {
             to="/add-nft"
             icon={<PlusCircle size={18} />}
             label="Add NFT"
-            isActive={currentPath === "/add-nft"}
+            isActive={currentPath === "/add-nft" || currentPath.startsWith("/add-nft/")}
           />
           <NavItem to="/premium" icon={<Crown size={18} />} label="Premium" isActive={currentPath === "/premium"} />
           <NavItem to="/quest" icon={<Target size={18} />} label="Quest" isActive={currentPath === "/quest"} />
@@ -198,7 +261,7 @@ const Navbar: React.FC = () => {
 
           {menuOpen && (
             <div className="absolute left-0 bottom-full mb-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
-              {account ? (
+              {isAuthenticated && walletAddress ? (
                 // Show wallet info when connected
                 <>
                   <div className="p-3 border-b border-gray-200">
@@ -206,13 +269,20 @@ const Navbar: React.FC = () => {
                       <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
                         <Wallet className="text-white" size={10} />
                       </div>
-                      <span className="text-gray-800 text-sm font-medium">{walletName}</span>
+                      <span className="text-gray-800 text-sm font-medium">{walletType || "Wallet"}</span>
+                      {isAdmin && (
+                        <div className="bg-blue-100 text-blue-800 text-xs px-1.5 py-0.5 rounded-full flex items-center">
+                          <Shield size={10} className="mr-1" />
+                          Admin
+                        </div>
+                      )}
                     </div>
-                    <div className="text-gray-500 text-xs truncate">{formatAddress(account)}</div>
+                    <div className="text-gray-500 text-xs truncate">{formatAddress(walletAddress)}</div>
+                    {user?.username && <div className="text-gray-700 text-sm font-medium mt-1">@{user.username}</div>}
                   </div>
 
                   <Link
-                    to={`https://etherscan.io/address/${account}`}
+                    to={`https://etherscan.io/address/${walletAddress}`}
                     target="_blank"
                     className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
                     onClick={(e) => e.stopPropagation()}
@@ -221,19 +291,17 @@ const Navbar: React.FC = () => {
                     <span className="text-gray-700">View on Etherscan</span>
                   </Link>
 
-                  {isAuthenticated && (
-                    <Link
-                      to="/profile"
-                      className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <User size={16} className="text-gray-500" />
-                      <span className="text-gray-700">Profile</span>
-                    </Link>
-                  )}
+                  <Link
+                    to="/profile"
+                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <User size={16} className="text-gray-500" />
+                    <span className="text-gray-700">Profile</span>
+                  </Link>
 
                   <Link
-                    to="/settings"
+                    to="/Setting"
                     className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -263,7 +331,7 @@ const Navbar: React.FC = () => {
                     <span className="text-gray-700">Login</span>
                   </div>
                   <Link
-                    to="/settings"
+                    to="/Setting"
                     className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -283,6 +351,10 @@ const Navbar: React.FC = () => {
           isOpen={isWalletModalOpen}
           onClose={() => setIsWalletModalOpen(false)}
           onSuccess={handleWalletSuccess}
+          requireSignature={true}
+          actionMessage={
+            currentPath === "/add-nft" ? "Vui lòng đăng nhập để tạo NFT" : "Kết nối ví để truy cập ứng dụng"
+          }
         />
       )}
     </>
@@ -296,7 +368,7 @@ interface NavItemProps {
   isActive: boolean
 }
 
-const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isActive }) => {
+const NavItem = ({ to, icon, label, isActive }: NavItemProps) => {
   return (
     <li
       className={`my-1 px-2 py-2 rounded-lg transition-all duration-200 ${
@@ -314,4 +386,3 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isActive }) => {
 }
 
 export default Navbar
-

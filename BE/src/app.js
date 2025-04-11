@@ -5,17 +5,11 @@ const { default: helmet } = require("helmet");
 const compression = require("compression");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const listEndpoints = require("express-list-endpoints");
 const bodyParser = require("body-parser");
-const {
-  notFoundHandler,
-  errorHandler,
-} = require("./middleware/errors.middleware");
-
 const initializeJwtSecrets  = require("./utils/initializeJwtSecrets");
+const { swaggerUi, swaggerDocs } = require('./docs/swagger');
 require("dotenv").config();
-const swaggerUi = require("swagger-ui-express");
-const swaggerDocs = require("./docs/swagger");
+
 const connectDB = require("./configs/configs.mongoose");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -34,7 +28,8 @@ app.use(
 
 initializeJwtSecrets();
 // Doc API
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use('/api-docs', swaggerUi.serve);
+app.get('/api-docs', swaggerUi.setup(swaggerDocs));
 connectDB();
 // Routes
 app.use("", require("./routers"));

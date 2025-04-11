@@ -150,7 +150,7 @@ class NFTService {
           ? "video"
           : "audio";
 
-      // Upload file lên IPFS 
+      // Upload file lên IPFS
       const filename = `${Date.now()}-${originalname}`;
       const imageCID = await IPFSService.uploadFile(fileBuffer, filename);
       console.log(`Media uploaded to IPFS with CID: ${imageCID}`);

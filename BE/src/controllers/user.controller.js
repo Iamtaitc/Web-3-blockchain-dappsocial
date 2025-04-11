@@ -4,8 +4,9 @@ const ApiResponse = require("../utils/apiResponse.utils");
 const userServices = require("../services/user.services");
 
 class UserController {
+  
   async getUserProfile(req, res) {
-    const { address } = req.params;
+    const address  = req.params;
     const currentUserAddress = req.user ? req.user.address : null;
     
     const result = await userServices.getUserProfile(address, currentUserAddress);
@@ -16,7 +17,6 @@ class UserController {
     
     ApiResponse.success(res, result.data, "User profile retrieved successfully");
   }
-
   async updateProfile(req, res) {
     // Validate request
     const errors = validationResult(req);
@@ -33,7 +33,6 @@ class UserController {
     
     ApiResponse.success(res, result.data, "Profile updated successfully");
   }
-
   async followUser(req, res) {
     const { address } = req.params;
     const followerAddress = req.user.address;

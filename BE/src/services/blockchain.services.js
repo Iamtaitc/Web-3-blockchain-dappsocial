@@ -17,7 +17,7 @@ const contracts = {
 
 // Khởi tạo provider
 const getProvider = () => {
-  return new ethers.providers.JsonRpcProvider(config.RPC_URL);
+  return new ethers.JsonRpcProvider(config.RPC_URL);
 };
 
 // Lấy contract instances (read-only)
@@ -237,13 +237,25 @@ const getSubscriptionInfo = async (address) => {
 
     const [level, expiration] = await subscription.getSubscription(address);
 
+    // Chuyển đổi các giá trị thành số JavaScript trước
+    const levelNum =
+      typeof level === "bigint"
+        ? Number(level)
+        : typeof level === "object" && level.toNumber
+          ? level.toNumber()
+          : Number(level);
+
+    const expirationNum =
+      typeof expiration === "bigint"
+        ? Number(expiration)
+        : typeof expiration === "object" && expiration.toNumber
+          ? expiration.toNumber()
+          : Number(expiration);
+
     return {
-      level: level.toNumber(),
-      expiration:
-        expiration.toNumber() > 0
-          ? new Date(expiration.toNumber() * 1000)
-          : null,
-      isActive: expiration.toNumber() > Math.floor(Date.now() / 1000),
+      level: levelNum,
+      expiration: expirationNum > 0 ? new Date(expirationNum * 1000) : null,
+      isActive: expirationNum > Math.floor(Date.now() / 1000),
     };
   } catch (error) {
     console.error("Error getting subscription info:", error);
