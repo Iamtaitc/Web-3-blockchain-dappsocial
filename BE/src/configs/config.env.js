@@ -85,7 +85,9 @@ const config = {
   ENCRYPTION_KEY: getEnv('ENCRYPTION_KEY', ''),
   
   // Admin Config
-  ADMIN_ADDRESSES: getEnv('ADMIN_ADDRESSES', '').split(',').filter(Boolean),
+  ADMIN_ADDRESSES: process.env.ADMIN_ADDRESSES 
+    ? process.env.ADMIN_ADDRESSES.split(',').map(address => address.trim().toLowerCase())
+    : [],
   
   // AWS S3 Config (nếu sử dụng)
   AWS_ACCESS_KEY_ID: getEnv('AWS_ACCESS_KEY_ID', ''),

@@ -6,12 +6,12 @@ const userController = require("../../controllers/user.controller");
 
 router.use(verifyToken);
 
-router.get("/user/:id", userController.getUserProfile);
+router.get("/user/:address", userController.getUserProfile);
 router.patch("/user/update", userController.updateProfile);
-router.post("/user/follower/:id", userController.followUser);
-router.post("/user/unfollower/:id", userController.unfollowUser);
-router.get("/user/following", userController.getUserFollowing);
-router.get("/user/followers", userController.getUserFollowers);
-router.get("/user/leaderboard", userController.getLeaderboard);
+router.post("/user/follower/:address", userController.followUser);
+router.post("/user/unfollower/:address", userController.unfollowUser);
+router.get("/user/following/:address", userController.getUserFollowing);
+router.get("/user/followers/:address", userController.getUserFollowers);
+router.post("/user/leaderboard", userController.getLeaderboard);
 
 module.exports = router;

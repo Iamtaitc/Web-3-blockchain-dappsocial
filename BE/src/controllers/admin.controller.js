@@ -24,7 +24,7 @@ class AdminController {
    * @param {Function} next - Next middleware
    */
   checkAdminAccess(req, res, next) {
-    if (!req.user || !isAdmin(req.user.address)) {
+    if (!req.user || !this.isAdmin(req.user.address)) {
       return ApiResponse.forbidden(res, "Không có quyền truy cập admin");
     }
 
