@@ -1,6 +1,6 @@
 // services/AuthService.js
 const jwt = require("jsonwebtoken");
-const ethers = require("ethers");
+const { ethers, verifyMessage } = require("ethers");
 const User = require("../models/User.mongoose");
 const config = require("../configs/config.env");
 
@@ -12,10 +12,6 @@ class AuthService {
    */
   async connectWallet(walletAddress) {
     try {
-      // if (!walletAddress || !ethers.utils.isAddress(walletAddress)) {
-      //   return { success: false, error: "Địa chỉ ví không hợp lệ", status: 400 };
-      // }
-
       // Tạo nonce ngẫu nhiên
       const nonce = Math.floor(Math.random() * 1000000).toString();
       const nonceExpiry = new Date(Date.now() + 15 * 60 * 1000); // Hết hạn sau 15 phút
@@ -32,20 +28,26 @@ class AuthService {
         },
         { upsert: true }
       );
+      const privateKey = "58916da8cddcc196ccd2e3cf245a7ded853e548711bc213507a7aa6a21dbca44";
+      const wallet = new ethers.Wallet(privateKey);
 
+      
       // Tạo message để ký
-      const message = `Chào mừng đến với DeSo Social!\n\nVui lòng ký thông điệp này để xác thực.\n\nThao tác này không tạo transaction và không tiêu tốn gas fee.\n\nĐịa chỉ ví: ${walletAddress}\nNonce: ${nonce}\nThời gian: ${new Date().toISOString()}`;
+      const message = `Chào mừng đến với DeSo Social!`;
 
+      // Ký tin nhắn đã được hash
+      const signature = await wallet.signMessage(message);
+      console.log("signature:", signature);
       return {
         success: true,
-        data: { message, nonce }
+        data: { message, nonce },
       };
     } catch (error) {
       console.error("Lỗi khi kết nối ví:", error);
       return {
         success: false,
         error: "Lỗi server",
-        status: 500
+        status: 500,
       };
     }
   }
@@ -62,7 +64,7 @@ class AuthService {
         return {
           success: false,
           error: "Địa chỉ ví và chữ ký là bắt buộc",
-          status: 400
+          status: 400,
         };
       }
 
@@ -75,7 +77,7 @@ class AuthService {
         return {
           success: false,
           error: "Vui lòng lấy nonce mới trước khi đăng nhập",
-          status: 400
+          status: 400,
         };
       }
 
@@ -84,32 +86,30 @@ class AuthService {
         return {
           success: false,
           error: "Nonce đã hết hạn, vui lòng lấy nonce mới",
-          status: 400
+          status: 400,
         };
       }
 
       // Tái tạo message đã ký
-      const message = `Chào mừng đến với DeSo Social!\n\nVui lòng ký thông điệp này để xác thực.\n\nThao tác này không tạo transaction và không tiêu tốn gas fee.\n\nĐịa chỉ ví: ${walletAddress}\nNonce: ${user.nonce}\nThời gian: ${new Date().toISOString()}`;
-
+      const message = `Chào mừng đến với DeSo Social!`;
       // Xác thực chữ ký
       try {
-        const recoveredAddress = ethers.utils.verifyMessage(message, signature);
+        const recoveredAddress = verifyMessage(message, signature);
 
         if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
           return {
             success: false,
             error: "Chữ ký không hợp lệ",
-            status: 401
+            status: 401,
           };
         }
       } catch (error) {
         return {
           success: false,
           error: "Xác thực chữ ký thất bại",
-          status: 401
+          status: 401,
         };
       }
-
       // Tạo JWT token
       const token = jwt.sign(
         {
@@ -119,7 +119,6 @@ class AuthService {
         config.JWT_SECRET,
         { expiresIn: config.JWT_EXPIRES_IN || "24h" }
       );
-
       // Tạo refresh token
       const refreshToken = jwt.sign(
         {
@@ -129,7 +128,7 @@ class AuthService {
         config.JWT_REFRESH_SECRET,
         { expiresIn: config.JWT_REFRESH_EXPIRES_IN || "7d" }
       );
-
+      console.log("Refresh Token:", refreshToken);
       // Xóa nonce sau khi xác thực thành công
       user.nonce = null;
       user.nonceExpiry = null;
@@ -146,18 +145,19 @@ class AuthService {
           user: {
             id: user._id,
             walletAddress: user.walletAddress,
-            username: user.username || `user_${user.walletAddress.substring(2, 8)}`,
+            username:
+              user.username || `user_${user.walletAddress.substring(2, 8)}`,
             avatarURI: user.avatarURI,
             isVerified: user.isVerified,
-          }
-        }
+          },
+        },
       };
     } catch (error) {
       console.error("Lỗi đăng nhập:", error);
       return {
         success: false,
         error: "Lỗi server",
-        status: 500
+        status: 500,
       };
     }
   }
@@ -173,7 +173,7 @@ class AuthService {
         return {
           success: false,
           error: "Refresh token là bắt buộc",
-          status: 400
+          status: 400,
         };
       }
 
@@ -185,7 +185,7 @@ class AuthService {
         return {
           success: false,
           error: "Refresh token không hợp lệ hoặc đã hết hạn",
-          status: 401
+          status: 401,
         };
       }
 
@@ -199,7 +199,7 @@ class AuthService {
         return {
           success: false,
           error: "Refresh token không hợp lệ",
-          status: 401
+          status: 401,
         };
       }
 
@@ -231,15 +231,15 @@ class AuthService {
         success: true,
         data: {
           token: newToken,
-          refreshToken: newRefreshToken
-        }
+          refreshToken: newRefreshToken,
+        },
       };
     } catch (error) {
       console.error("Lỗi refresh token:", error);
       return {
         success: false,
         error: "Lỗi server",
-        status: 500
+        status: 500,
       };
     }
   }
@@ -255,33 +255,36 @@ class AuthService {
         return {
           success: false,
           error: "Refresh token là bắt buộc",
-          status: 400
+          status: 400,
         };
       }
 
       // Xóa refresh token trong database
-      const result = await User.updateOne({ refreshToken }, { $set: { refreshToken: null } });
-      
+      const result = await User.updateOne(
+        { refreshToken },
+        { $set: { refreshToken: null } }
+      );
+
       if (result.modifiedCount === 0) {
         return {
           success: false,
           error: "Refresh token không tồn tại",
-          status: 400
+          status: 400,
         };
       }
 
       return {
         success: true,
         data: {
-          message: "Đăng xuất thành công"
-        }
+          message: "Đăng xuất thành công",
+        },
       };
     } catch (error) {
       console.error("Lỗi đăng xuất:", error);
       return {
         success: false,
         error: "Lỗi server",
-        status: 500
+        status: 500,
       };
     }
   }

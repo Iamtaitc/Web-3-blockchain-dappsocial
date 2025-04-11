@@ -1,114 +1,112 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { FaTwitter, FaYoutube, FaDiscord, FaTelegram, FaLock, FaCheckCircle, FaTrophy } from "react-icons/fa"
+import { TaskService } from "../services/TaskApi"
 
-// Simple Quest type
+// Quest type definition
 interface Quest {
-  id: number
-  icon: "twitter" | "youtube" | "discord" | "telegram"
-  title: string
+  _id: string
+  name: string
   description: string
-  reward: string
-  status: "available" | "completed" | "locked"
-  url: string
-  category: "daily" | "weekly" | "special"
+  type: "daily" | "weekly" | "special"
+  rewardPoints: number
+  rewardTokens: number
+  requirements?: string[]
+  isCompleted: boolean
+  completedAt?: Date
+  icon?: "twitter" | "youtube" | "discord" | "telegram" // Frontend only
+  url?: string // Frontend only
+}
+
+// Map icons based on task name (for frontend visualization)
+const getIconFromName = (name: string): "twitter" | "youtube" | "discord" | "telegram" => {
+  if (name.toLowerCase().includes("twitter") || name.toLowerCase().includes("x")) return "twitter"
+  if (name.toLowerCase().includes("youtube") || name.toLowerCase().includes("video")) return "youtube"
+  if (name.toLowerCase().includes("discord")) return "discord"
+  if (name.toLowerCase().includes("telegram")) return "telegram"
+  // Default
+  return "twitter"
 }
 
 const Quest = () => {
+  const navigate = useNavigate()
   const [activeCategory, setActiveCategory] = useState<"daily" | "weekly" | "special">("daily")
+  const [quests, setQuests] = useState<{ daily: Quest[], weekly: Quest[], special: Quest[] }>({
+    daily: [],
+    weekly: [],
+    special: []
+  })
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    completedCount: 0,
+    totalTasks: 0
+  })
 
-  // Sample quests data
-  const quests: Quest[] = [
-    {
-      id: 1,
-      icon: "twitter",
-      title: "Follow on Twitter",
-      description: "Follow our official Twitter account to earn Dx tokens.",
-      reward: "3,000 Dx",
-      status: "available",
-      url: "https://twitter.com/example",
-      category: "daily",
-    },
-    {
-      id: 2,
-      icon: "youtube",
-      title: "Watch Tutorial Video",
-      description: "Watch our tutorial video to learn about farming.",
-      reward: "5,000 Dx",
-      status: "available",
-      url: "https://youtube.com/watch?v=example",
-      category: "daily",
-    },
-    {
-      id: 3,
-      icon: "discord",
-      title: "Join Discord Community",
-      description: "Join our Discord server to connect with other farmers.",
-      reward: "4,000 Dx",
-      status: "completed",
-      url: "https://discord.gg/example",
-      category: "daily",
-    },
-    {
-      id: 4,
-      icon: "telegram",
-      title: "Join Telegram Group",
-      description: "Join our Telegram group for instant updates.",
-      reward: "3,500 Dx",
-      status: "available",
-      url: "https://t.me/example",
-      category: "daily",
-    },
-    {
-      id: 5,
-      icon: "youtube",
-      title: "Complete Platform Tutorial",
-      description: "Watch the complete series of tutorial videos.",
-      reward: "10,000 Dx",
-      status: "available",
-      url: "https://youtube.com/playlist?list=example",
-      category: "weekly",
-    },
-    {
-      id: 6,
-      icon: "twitter",
-      title: "Retweet Announcement",
-      description: "Retweet our latest announcement.",
-      reward: "7,500 Dx",
-      status: "available",
-      url: "https://twitter.com/example/status/123456",
-      category: "weekly",
-    },
-    {
-      id: 7,
-      icon: "discord",
-      title: "Participate in AMA",
-      description: "Join our Ask Me Anything session on Discord.",
-      reward: "2x Speed Booster",
-      status: "locked",
-      url: "https://discord.gg/example/events",
-      category: "weekly",
-    },
-    {
-      id: 8,
-      icon: "youtube",
-      title: "NFT Creation Tutorial",
-      description: "Learn how to create and list your first NFT.",
-      reward: "Rare NFT",
-      status: "available",
-      url: "https://youtube.com/watch?v=example2",
-      category: "special",
-    },
-  ]
+  // Fetch quests data on component mount
+  useEffect(() => {
+    fetchUserTasks()
+  }, [])
+
+  const fetchUserTasks = async () => {
+    try {
+      setLoading(true)
+      const response = await TaskService.getUserTasks()
+      if (response.success) {
+        setQuests(response.data.tasks)
+        setStats({
+          completedCount: response.data.completedCount,
+          totalTasks: response.data.totalTasks
+        })
+      }
+    } catch (error) {
+      console.error("Failed to load quests:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Filter quests by category
-  const filteredQuests = quests.filter((quest) => quest.category === activeCategory)
+  const filteredQuests = quests[activeCategory] || []
 
   // Handle quest action
   const handleQuestAction = (quest: Quest) => {
-    if (quest.status === "locked") return
-    window.open(quest.url, "_blank")
+    if (quest.isCompleted) return
+    
+    // For tasks that need redirection to external sites
+    if (quest.name.toLowerCase().includes("twitter") || 
+        quest.name.toLowerCase().includes("youtube") ||
+        quest.name.toLowerCase().includes("discord") ||
+        quest.name.toLowerCase().includes("telegram")) {
+      // Navigate to task detail page
+      navigate(`/task/${quest._id}`)
+    } else {
+      // For tasks that can be completed directly (like check-in)
+      handleDirectCompletion(quest)
+    }
+  }
+
+  const handleDirectCompletion = async (quest: Quest) => {
+    try {
+      // For special handling of check-in
+      if (quest.name.toLowerCase().includes("check-in")) {
+        const response = await TaskService.checkIn()
+        if (response.success) {
+          // Refresh quests after check-in
+          fetchUserTasks()
+        }
+      } else {
+        // Regular task completion
+        const response = await TaskService.completeTask(quest._id)
+        if (response.success) {
+          // Refresh quests after completion
+          fetchUserTasks()
+        }
+      }
+    } catch (error) {
+      console.error("Failed to complete task:", error)
+    }
   }
 
   // Get icon component based on quest type
@@ -123,6 +121,10 @@ const Quest = () => {
       case "telegram":
         return <FaTelegram className="text-blue-500" />
     }
+  }
+
+  if (loading) {
+    return <div className="w-full flex justify-center items-center min-h-screen">Loading quests...</div>
   }
 
   return (
@@ -142,7 +144,7 @@ const Quest = () => {
             <FaTrophy className="text-amber-500 mr-2" />
             <div>
               <p className="text-sm text-gray-500">Quests Completed</p>
-              <p className="text-xl font-bold text-gray-800">1/8</p>
+              <p className="text-xl font-bold text-gray-800">{stats.completedCount}/{stats.totalTasks}</p>
             </div>
           </div>
         </div>
@@ -184,59 +186,56 @@ const Quest = () => {
 
       {/* Quest Grid */}
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredQuests.map((quest) => (
-          <div
-            key={quest.id}
-            className={`bg-white rounded-xl overflow-hidden border border-gray-100 shadow-md transition-all duration-300 hover:shadow-lg ${
-              quest.status === "locked" ? "opacity-80" : ""
-            }`}
-          >
-            <div className="p-5">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center mr-3 shadow-sm">
-                    {getQuestIcon(quest.icon)}
+        {filteredQuests.map((quest) => {
+          // Assign an icon based on quest name
+          const iconType = getIconFromName(quest.name)
+          
+          return (
+            <div
+              key={quest._id}
+              className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-md transition-all duration-300 hover:shadow-lg"
+            >
+              <div className="p-5">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center">
+                    <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                      {getQuestIcon(iconType)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-800">{quest.name}</h3>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-800">{quest.title}</h3>
-                  </div>
+
+                  {quest.isCompleted && (
+                    <div className="bg-emerald-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-sm">
+                      Completed
+                    </div>
+                  )}
                 </div>
 
-                {quest.status === "completed" && (
-                  <div className="bg-emerald-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-sm">
-                    Completed
+                <p className="text-gray-600 text-sm mb-4">{quest.description}</p>
+
+                <div className="flex justify-between items-center">
+                  <div className="font-bold text-emerald-600">
+                    {quest.rewardPoints} Points {quest.rewardTokens > 0 ? `+ ${quest.rewardTokens} Tokens` : ''}
                   </div>
-                )}
 
-                {quest.status === "locked" && (
-                  <div className="bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-xs font-bold flex items-center shadow-sm">
-                    <FaLock className="mr-1 text-xs" /> Locked
-                  </div>
-                )}
-              </div>
-
-              <p className="text-gray-600 text-sm mb-4">{quest.description}</p>
-
-              <div className="flex justify-between items-center">
-                <div className="font-bold text-emerald-600">{quest.reward}</div>
-
-                <button
-                  onClick={() => handleQuestAction(quest)}
-                  disabled={quest.status === "locked"}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm ${
-                    quest.status === "locked"
-                      ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                      : quest.status === "completed"
-                        ? "bg-gray-200 text-gray-700"
+                  <button
+                    onClick={() => handleQuestAction(quest)}
+                    disabled={quest.isCompleted}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm ${
+                      quest.isCompleted
+                        ? "bg-gray-200 text-gray-700 cursor-not-allowed"
                         : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600"
-                  }`}
-                >
-                  {quest.status === "locked" ? "Locked" : quest.status === "completed" ? "Completed" : "Start"}
-                </button>
+                    }`}
+                  >
+                    {quest.isCompleted ? "Completed" : "Start"}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Empty State */}
@@ -252,4 +251,3 @@ const Quest = () => {
 }
 
 export default Quest
-

@@ -11,11 +11,12 @@ class UserServices {
    * @param {string} currentUserAddress - Địa chỉ ví của user đang đăng nhập (nếu có)
    * @returns {object} Kết quả xử lý
    */
+  //TODO done
   async getUserProfile(address, currentUserAddress = null) {
     try {
       // Tìm user trong database
       const user = await User.findOne({
-        walletAddress: address.toLowerCase(),
+        walletAddress: address.address,
       });
 
       if (!user) {
@@ -24,12 +25,12 @@ class UserServices {
 
       // Lấy thông tin subscription từ blockchain
       const subscriptionInfo =
-        await blockchainService.getSubscriptionInfo(address);
+        await blockchainService.getSubscriptionInfo(address.address);
 
       // Cập nhật thông tin subscription trong database nếu cần
       if (subscriptionInfo.isActive) {
         await User.updateOne(
-          { walletAddress: address.toLowerCase() },
+          { walletAddress: address },
           {
             "subscription.level": subscriptionInfo.level,
             "subscription.expiration": subscriptionInfo.expiration,
@@ -41,8 +42,8 @@ class UserServices {
       let isFollowing = false;
       if (currentUserAddress) {
         const follow = await Follow.findOne({
-          follower: currentUserAddress.toLowerCase(),
-          following: address.toLowerCase(),
+          follower: currentUserAddress,
+          following: address.address,
         });
 
         isFollowing = !!follow;
@@ -92,6 +93,7 @@ class UserServices {
    * @param {object} files - Các file upload (avatar, cover)
    * @returns {object} Kết quả xử lý
    */
+  //TODO done
   async updateProfile(address, userData, files) {
     try {
       const { username, bio } = userData;
@@ -100,7 +102,7 @@ class UserServices {
       if (username) {
         const existingUser = await User.findOne({
           username,
-          walletAddress: { $ne: address.toLowerCase() },
+          walletAddress: { $ne: address.address },
         });
 
         if (existingUser) {
@@ -110,7 +112,7 @@ class UserServices {
 
       // Lấy thông tin user hiện tại
       const currentUser = await User.findOne({
-        walletAddress: address.toLowerCase(),
+        walletAddress: address,
       });
 
       if (!currentUser) {
@@ -147,7 +149,7 @@ class UserServices {
 
       // Update user trong database
       const updatedUser = await User.findOneAndUpdate(
-        { walletAddress: address.toLowerCase() },
+        { walletAddress: address },
         {
           $set: {
             username: username || currentUser.username,
@@ -194,13 +196,13 @@ class UserServices {
   async followUser(targetAddress, followerAddress) {
     try {
       // Không thể follow chính mình
-      if (targetAddress.toLowerCase() === followerAddress.toLowerCase()) {
+      if (targetAddress === followerAddress) {
         return { success: false, message: "Cannot follow yourself" };
       }
 
       // Kiểm tra user có tồn tại không
       const userToFollow = await User.findOne({
-        walletAddress: targetAddress.toLowerCase(),
+        walletAddress: targetAddress,
       });
 
       if (!userToFollow) {
@@ -209,8 +211,8 @@ class UserServices {
 
       // Kiểm tra đã follow chưa
       const existingFollow = await Follow.findOne({
-        follower: followerAddress.toLowerCase(),
-        following: targetAddress.toLowerCase(),
+        follower: followerAddress,
+        following: targetAddress,
       });
 
       if (existingFollow) {
@@ -219,38 +221,38 @@ class UserServices {
 
       // Tạo follow mới
       await Follow.create({
-        follower: followerAddress.toLowerCase(),
-        following: targetAddress.toLowerCase(),
+        follower: followerAddress,
+        following: targetAddress,
         createdAt: new Date(),
       });
 
       // Cập nhật follower và following count
       await User.updateOne(
-        { walletAddress: targetAddress.toLowerCase() },
+        { walletAddress: targetAddress },
         { $inc: { followerCount: 1 } }
       );
 
       await User.updateOne(
-        { walletAddress: followerAddress.toLowerCase() },
+        { walletAddress: followerAddress },
         { $inc: { followingCount: 1 } }
       );
 
       // Gửi thông báo khi follow thành công
       await notificationService.createNotification({
-        recipient: targetAddress.toLowerCase(),
+        recipient: targetAddress,
         type: "follow",
-        sender: followerAddress.toLowerCase(),
+        sender: followerAddress,
         content: `${followerAddress} started following you!`,
-        targetType: "User",
-        targetId: followerAddress.toLowerCase(),
+        targetType: "user",
+        targetId: followerAddress,
         createdAt: new Date(),
       });
 
       return {
         success: true,
         data: {
-          follower: followerAddress.toLowerCase(),
-          following: targetAddress.toLowerCase(),
+          follower: followerAddress,
+          following: targetAddress,
         },
       };
     } catch (error) {
@@ -269,8 +271,8 @@ class UserServices {
     try {
       // Kiểm tra follow có tồn tại không
       const existingFollow = await Follow.findOne({
-        follower: followerAddress.toLowerCase(),
-        following: targetAddress.toLowerCase(),
+        follower: followerAddress,
+        following: targetAddress,
       });
 
       if (!existingFollow) {
@@ -279,26 +281,26 @@ class UserServices {
 
       // Xóa follow
       await Follow.deleteOne({
-        follower: followerAddress.toLowerCase(),
-        following: targetAddress.toLowerCase(),
+        follower: followerAddress,
+        following: targetAddress,
       });
 
       // Cập nhật follower và following count
       await User.updateOne(
-        { walletAddress: targetAddress.toLowerCase() },
+        { walletAddress: targetAddress },
         { $inc: { followerCount: -1 } }
       );
 
       await User.updateOne(
-        { walletAddress: followerAddress.toLowerCase() },
+        { walletAddress: followerAddress },
         { $inc: { followingCount: -1 } }
       );
 
       return {
         success: true,
         data: {
-          follower: followerAddress.toLowerCase(),
-          following: targetAddress.toLowerCase(),
+          follower: followerAddress,
+          following: targetAddress,
         },
       };
     } catch (error) {
@@ -320,7 +322,7 @@ class UserServices {
 
       // Lấy danh sách followers
       const followers = await Follow.find({
-        following: address.toLowerCase(),
+        following: address,
       })
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -353,7 +355,7 @@ class UserServices {
 
       // Lấy tổng số followers để phân trang
       const total = await Follow.countDocuments({
-        following: address.toLowerCase(),
+        following: address,
       });
 
       return {
@@ -387,7 +389,7 @@ class UserServices {
 
       // Lấy danh sách following
       const following = await Follow.find({
-        follower: address.toLowerCase(),
+        follower: address,
       })
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -420,7 +422,7 @@ class UserServices {
 
       // Lấy tổng số following để phân trang
       const total = await Follow.countDocuments({
-        follower: address.toLowerCase(),
+        follower: address,
       });
 
       return {

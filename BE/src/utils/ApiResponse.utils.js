@@ -193,4 +193,5 @@ class ApiResponse {
   }
 }
 
-module.exports = new ApiResponse();
+// Export the class itself, not an instance
+module.exports = ApiResponse;

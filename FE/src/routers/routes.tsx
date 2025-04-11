@@ -15,6 +15,7 @@ import Farm from "../pages/NFT/Farm";
 import SnakeGame from "../pages/game/SnakeGame";
 import DropGame from "../pages/game/DropGame";
 import Settings from "../pages/Settings";
+import TaskDetail from "../pages/TaskDetail";
 
 
 const AppRoutes = () => {
@@ -27,7 +28,8 @@ const AppRoutes = () => {
       <Route path="/add-nft/nft-view" element={<NTFview  />}/>
       <Route path="/login" element={<WalletLogin />} />
       <Route path="/premium" element={<Premium/>} />
-      <Route path="/quest" element={<Quest/>} />
+      <Route path="/quest" element={<Quest />} />
+      <Route path="/task/:taskId" element={<TaskDetail />} />
       <Route path="/wallet" element={ <Wallet/>} />
       {/* <Route path="/collections" element={<Collections/>} /> */}
       <Route path="/profile" element={<ProfileNFT />} />

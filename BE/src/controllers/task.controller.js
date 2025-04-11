@@ -151,6 +151,36 @@ class TaskController {
       transactionHash: result.data.transactionHash,
     });
   }
+
+  /**
+ * Hoàn thành nhiệm vụ
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
+async completeTask(req, res) {
+  const taskId = req.params.taskId;
+  const address = req.user.address;
+  
+  const result = await TaskService.completeTask(address, taskId);
+  
+  if (!result.success) {
+    return ApiResponse.error(
+      res,
+      result.message,
+      result.status,
+      result.error
+    );
+  }
+  
+  return ApiResponse.success(res, {
+    message: "Hoàn thành nhiệm vụ thành công",
+    pointsEarned: result.data.pointsEarned,
+    tokensEarned: result.data.tokensEarned,
+  });
+}
 }
 
+
+
 module.exports = new TaskController();
+

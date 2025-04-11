@@ -1,100 +1,88 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Edit, Trash2, RefreshCw, Award, Filter, ChevronDown, Search, X, Save } from "lucide-react"
+import type React from "react"
 
-// Mock task data
-const mockTasks = [
-  {
-    id: 1,
-    name: "Daily Login",
-    description: "Log in to the platform once per day",
-    type: "daily",
-    pointsReward: 100,
-    tokenReward: 10,
-    requirements: "User must log in to the platform",
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Share Content",
-    description: "Share platform content on social media",
-    type: "daily",
-    pointsReward: 200,
-    tokenReward: 20,
-    requirements: "User must share content on Twitter or Facebook",
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "Complete Profile",
-    description: "Fill out all profile information",
-    type: "onetime",
-    pointsReward: 500,
-    tokenReward: 50,
-    requirements: "User must complete all profile fields",
-    status: "active",
-  },
-  {
-    id: 4,
-    name: "Refer a Friend",
-    description: "Invite a friend to join the platform",
-    type: "onetime",
-    pointsReward: 1000,
-    tokenReward: 100,
-    requirements: "Referred user must sign up and complete profile",
-    status: "active",
-  },
-  {
-    id: 5,
-    name: "Create NFT",
-    description: "Create and list an NFT on the marketplace",
-    type: "weekly",
-    pointsReward: 2000,
-    tokenReward: 200,
-    requirements: "User must create and list an NFT for sale",
-    status: "inactive",
-  },
-  {
-    id: 6,
-    name: "Participate in Governance",
-    description: "Vote on platform proposals",
-    type: "weekly",
-    pointsReward: 1500,
-    tokenReward: 150,
-    requirements: "User must vote on at least one proposal",
-    status: "active",
-  },
-]
+import { useState, useEffect } from "react"
+import {
+  Plus,
+  Edit,
+  Trash2,
+  RefreshCw,
+  Award,
+  Filter,
+  ChevronDown,
+  Search,
+  X,
+  Save,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react"
+// import { taskAPI } from "../../services/api"
+
+interface Task {
+  id: number | string
+  name: string
+  description: string
+  type: string
+  pointsReward: number
+  tokenReward: number
+  requirements: string
+  status: string
+}
 
 const TaskManagement = () => {
-  const [tasks, setTasks] = useState(mockTasks)
+  const [tasks, setTasks] = useState<Task[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [showTaskModal, setShowTaskModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showResetModal, setShowResetModal] = useState(false)
-  const [currentTask, setCurrentTask] = useState<any>(null)
+  const [currentTask, setCurrentTask] = useState<Task | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [totalTasks, setTotalTasks] = useState(0)
+  const limit = 10
 
-  // Filter tasks
-  const filteredTasks = tasks.filter((task) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      task.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.description.toLowerCase().includes(searchTerm.toLowerCase())
+  // Fetch tasks
+  const fetchTasks = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await taskAPI.getTasks({
+        page,
+        limit,
+        search: searchTerm,
+        type: typeFilter !== "all" ? typeFilter : undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+      })
 
-    const matchesType = typeFilter === "all" || task.type === typeFilter
-    const matchesStatus = statusFilter === "all" || task.status === statusFilter
+      // Assume the API returns { data: Task[], total: number }
+      setTasks(response.data)
+      setTotalTasks(response.total)
+      setHasMore(response.data.length === limit)
+    } catch (err) {
+      console.error("Error fetching tasks:", err)
+      setError(err instanceof Error ? err.message : "Failed to fetch tasks")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-    return matchesSearch && matchesType && matchesStatus
-  })
+  // Load tasks on component mount and when filters change
+  useEffect(() => {
+    fetchTasks()
+  }, [page, searchTerm, typeFilter, statusFilter])
 
   // Handle task creation/editing
-  const handleTaskModal = (task: any = null) => {
+  const handleTaskModal = (task: Task | null = null) => {
     setCurrentTask(
       task || {
+        id: "",
         name: "",
         description: "",
         type: "daily",
@@ -106,39 +94,106 @@ const TaskManagement = () => {
     )
     setIsEditing(!!task)
     setShowTaskModal(true)
+    setError(null)
   }
 
   // Handle task deletion
-  const handleDeleteModal = (task: any) => {
+  const handleDeleteModal = (task: Task) => {
     setCurrentTask(task)
     setShowDeleteModal(true)
+    setError(null)
   }
 
   // Handle task reset
   const handleResetModal = () => {
     setShowResetModal(true)
+    setError(null)
   }
 
   // Save task
-  const handleSaveTask = () => {
-    if (isEditing) {
-      setTasks(tasks.map((task) => (task.id === currentTask.id ? currentTask : task)))
-    } else {
-      setTasks([...tasks, { ...currentTask, id: tasks.length + 1 }])
+  const handleSaveTask = async () => {
+    if (!currentTask) return
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      if (isEditing) {
+        await taskAPI.updateTask(currentTask.id.toString(), currentTask)
+        setSuccess(`Task "${currentTask.name}" updated successfully`)
+      } else {
+        await taskAPI.createTask(currentTask)
+        setSuccess(`Task "${currentTask.name}" created successfully`)
+      }
+      fetchTasks()
+      setShowTaskModal(false)
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save task")
+    } finally {
+      setIsLoading(false)
     }
-    setShowTaskModal(false)
   }
 
   // Delete task
-  const handleDeleteTask = () => {
-    setTasks(tasks.filter((task) => task.id !== currentTask.id))
-    setShowDeleteModal(false)
+  const handleDeleteTask = async () => {
+    if (!currentTask) return
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      await taskAPI.deleteTask(currentTask.id.toString())
+      setSuccess(`Task "${currentTask.name}" deleted successfully`)
+      fetchTasks()
+      setShowDeleteModal(false)
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete task")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // Reset daily tasks
-  const handleResetTasks = () => {
-    // In a real app, this would reset completion status for daily tasks
-    setShowResetModal(false)
+  const handleResetTasks = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      await taskAPI.resetDailyTasks()
+      setSuccess("Daily tasks reset successfully")
+      fetchTasks()
+      setShowResetModal(false)
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reset daily tasks")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle search input
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+    setPage(1) // Reset to first page on new search
+  }
+
+  // Handle filters
+  const handleTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setTypeFilter(e.target.value)
+    setPage(1) // Reset to first page on filter change
+  }
+
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatusFilter(e.target.value)
+    setPage(1) // Reset to first page on filter change
   }
 
   // Get task type badge color
@@ -175,6 +230,7 @@ const TaskManagement = () => {
           <button
             onClick={() => handleTaskModal()}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+            disabled={isLoading}
           >
             <Plus className="h-4 w-4 mr-2" />
             Create Task
@@ -182,12 +238,40 @@ const TaskManagement = () => {
           <button
             onClick={handleResetModal}
             className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+            disabled={isLoading}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Reset Daily Tasks
           </button>
         </div>
       </div>
+
+      {/* Success/Error Messages */}
+      {error && (
+        <div className="rounded-md bg-red-50 dark:bg-red-900/30 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-red-400 dark:text-red-500" aria-hidden="true" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-300">{error}</h3>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {success && (
+        <div className="rounded-md bg-green-50 dark:bg-green-900/30 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <CheckCircle className="h-5 w-5 text-green-400 dark:text-green-500" aria-hidden="true" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-green-800 dark:text-green-300">{success}</h3>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -201,7 +285,7 @@ const TaskManagement = () => {
               className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5"
               placeholder="Search tasks..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearch}
             />
           </div>
         </div>
@@ -214,7 +298,7 @@ const TaskManagement = () => {
             <select
               className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5 pr-8"
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              onChange={handleTypeFilterChange}
             >
               <option value="all">All Types</option>
               <option value="daily">Daily</option>
@@ -233,7 +317,7 @@ const TaskManagement = () => {
             <select
               className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5 pr-8"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={handleStatusFilterChange}
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -248,113 +332,150 @@ const TaskManagement = () => {
 
       {/* Tasks Table */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Task
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Type
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Rewards
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Requirements
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Status
-              </th>
-              <th scope="col" className="px-6 py-3 text-right">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredTasks.map((task) => (
-              <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="px-6 py-4">
-                  <div className="flex flex-col">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">{task.name}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{task.description}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTaskTypeBadgeColor(
-                      task.type,
-                    )}`}
-                  >
-                    {task.type.charAt(0).toUpperCase() + task.type.slice(1)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex flex-col">
-                    <div className="flex items-center text-sm text-gray-900 dark:text-white">
-                      <Award className="h-4 w-4 text-amber-500 mr-1" />
-                      {task.pointsReward} Points
-                    </div>
-                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                      <Award className="h-4 w-4 text-emerald-500 mr-1" />
-                      {task.tokenReward} DX
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">{task.requirements}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTaskStatusBadgeColor(
-                      task.status,
-                    )}`}
-                  >
-                    {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    onClick={() => handleTaskModal(task)}
-                    className="text-emerald-600 dark:text-emerald-500 hover:text-emerald-900 dark:hover:text-emerald-400 mr-3"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteModal(task)}
-                    className="text-red-600 dark:text-red-500 hover:text-red-900 dark:hover:text-red-400"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </td>
+        {isLoading && tasks.length === 0 ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+          </div>
+        ) : tasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+            <AlertCircle className="h-12 w-12 mb-4" />
+            <p className="text-center">No tasks found</p>
+            <p className="text-center text-sm mt-2">Try adjusting your filters or create a new task</p>
+          </div>
+        ) : (
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Task
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Type
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Rewards
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Requirements
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th scope="col" className="px-6 py-3 text-right">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {tasks.map((task) => (
+                <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{task.name}</div>
+
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{task.description}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTaskTypeBadgeColor(
+                        task.type,
+                      )}`}
+                    >
+                      {task.type.charAt(0).toUpperCase() + task.type.slice(1)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-col">
+                      <div className="flex items-center text-sm text-gray-900 dark:text-white">
+                        <Award className="h-4 w-4 text-amber-500 mr-1" />
+                        {task.pointsReward} Points
+                      </div>
+                      <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                        <Award className="h-4 w-4 text-emerald-500 mr-1" />
+                        {task.tokenReward} DX
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{task.requirements}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTaskStatusBadgeColor(
+                        task.status,
+                      )}`}
+                    >
+                      {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={() => handleTaskModal(task)}
+                      className="text-emerald-600 dark:text-emerald-500 hover:text-emerald-900 dark:hover:text-emerald-400 mr-3"
+                      disabled={isLoading}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteModal(task)}
+                      className="text-red-600 dark:text-red-500 hover:text-red-900 dark:hover:text-red-400"
+                      disabled={isLoading}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Pagination */}
+        {tasks.length > 0 && (
+          <div className="px-6 py-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Showing {(page - 1) * limit + 1} to {Math.min(page * limit, totalTasks)} of {totalTasks} tasks
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1 || isLoading}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage(page + 1)}
+                disabled={!hasMore || isLoading}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Task Modal */}
       {showTaskModal && currentTask && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-              <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
-            </div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
               &#8203;
             </span>
@@ -377,6 +498,7 @@ const TaskManagement = () => {
                           className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                           value={currentTask.name}
                           onChange={(e) => setCurrentTask({ ...currentTask, name: e.target.value })}
+                          required
                         />
                       </div>
                       <div>
@@ -428,6 +550,7 @@ const TaskManagement = () => {
                             onChange={(e) =>
                               setCurrentTask({ ...currentTask, pointsReward: Number.parseInt(e.target.value) || 0 })
                             }
+                            min="0"
                           />
                         </div>
                         <div>
@@ -446,6 +569,7 @@ const TaskManagement = () => {
                             onChange={(e) =>
                               setCurrentTask({ ...currentTask, tokenReward: Number.parseInt(e.target.value) || 0 })
                             }
+                            min="0"
                           />
                         </div>
                       </div>
@@ -489,9 +613,19 @@ const TaskManagement = () => {
                   type="button"
                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:ml-3 sm:w-auto sm:text-sm"
                   onClick={handleSaveTask}
+                  disabled={isLoading}
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isEditing ? "Update Task" : "Create Task"}
+                  {isLoading ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                      Saving...
+                    </div>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      {isEditing ? "Update Task" : "Create Task"}
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -511,9 +645,6 @@ const TaskManagement = () => {
       {showDeleteModal && currentTask && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-              <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
-            </div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
               &#8203;
             </span>
@@ -538,8 +669,16 @@ const TaskManagement = () => {
                   type="button"
                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
                   onClick={handleDeleteTask}
+                  disabled={isLoading}
                 >
-                  Delete
+                  {isLoading ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                      Deleting...
+                    </div>
+                  ) : (
+                    "Delete"
+                  )}
                 </button>
                 <button
                   type="button"
@@ -558,9 +697,6 @@ const TaskManagement = () => {
       {showResetModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-              <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
-            </div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
               &#8203;
             </span>
@@ -586,8 +722,16 @@ const TaskManagement = () => {
                   type="button"
                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:ml-3 sm:w-auto sm:text-sm"
                   onClick={handleResetTasks}
+                  disabled={isLoading}
                 >
-                  Reset Tasks
+                  {isLoading ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                      Resetting...
+                    </div>
+                  ) : (
+                    "Reset Tasks"
+                  )}
                 </button>
                 <button
                   type="button"
