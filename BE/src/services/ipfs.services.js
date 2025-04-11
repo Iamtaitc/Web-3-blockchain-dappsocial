@@ -8,22 +8,9 @@ const { Buffer } = require("buffer");
 class IPFSService {
   constructor() {
     // Cấu hình gateway và endpoints IPFS
-    this.ipfsGateway = process.env.IPFS_GATEWAY || "https://ipfs.io/ipfs/";
-    this.infuraIPFSEndpoint = "https://ipfs.infura.io:5001/api/v0";
-    this.projectId = process.env.INFURA_IPFS_PROJECT_ID;
-    this.projectSecret = process.env.INFURA_IPFS_PROJECT_SECRET;
-  }
-
-  /**
-   * Tạo header xác thực cho IPFS API
-   * @returns {String} Header xác thực
-   * @private
-   */
-  _getAuthHeader() {
-    const auth = Buffer.from(
-      `${this.projectId}:${this.projectSecret}`
-    ).toString("base64");
-    return `Basic ${auth}`;
+    this.ipfsGateway = process.env.IPFS_GATEWAY || "http://127.0.0.1:8080/ipfs/";
+    // Sử dụng local IPFS node thay vì Infura
+    this.ipfsEndpoint = "http://127.0.0.1:5001/api/v0";
   }
 
   /**
@@ -36,15 +23,12 @@ class IPFSService {
     try {
       const formData = new FormData();
       formData.append("file", buffer, { filename: fileName });
-
+      
       const response = await axios.post(
-        `${this.infuraIPFSEndpoint}/add`,
+        `${this.ipfsEndpoint}/add`,
         formData,
         {
-          headers: {
-            ...formData.getHeaders(),
-            Authorization: this._getAuthHeader(),
-          },
+          headers: formData.getHeaders(),
         }
       );
 
@@ -68,20 +52,20 @@ class IPFSService {
   async uploadJSON(data) {
     try {
       const jsonBuffer = Buffer.from(JSON.stringify(data));
+  
       const formData = new FormData();
-      formData.append("file", jsonBuffer);
-
+      formData.append("file", jsonBuffer, {
+        filepath: "data.json", // dùng filepath thay vì filename
+      });
+  
       const response = await axios.post(
-        `${this.infuraIPFSEndpoint}/add`,
+        `${this.ipfsEndpoint}/add`,
         formData,
         {
-          headers: {
-            ...formData.getHeaders(),
-            Authorization: this._getAuthHeader(),
-          },
+          headers: formData.getHeaders(),
         }
       );
-
+  
       const cid = response.data.Hash;
       console.log(`JSON uploaded to IPFS with CID: ${cid}`);
       return cid;
@@ -102,11 +86,8 @@ class IPFSService {
   async getFromIPFS(cid) {
     try {
       const response = await axios.get(
-        `${this.infuraIPFSEndpoint}/cat?arg=${cid}`,
+        `${this.ipfsEndpoint}/cat?arg=${cid}`,
         {
-          headers: {
-            Authorization: this._getAuthHeader(),
-          },
           responseType: "arraybuffer",
         }
       );

@@ -1,6 +1,6 @@
 // services/AuthService.js
 const jwt = require("jsonwebtoken");
-const {ethers, verifyMessage} = require("ethers");
+const { ethers, verifyMessage } = require("ethers");
 const User = require("../models/User.mongoose");
 const config = require("../configs/config.env");
 
@@ -12,7 +12,6 @@ class AuthService {
    */
   async connectWallet(walletAddress) {
     try {
-
       // Tạo nonce ngẫu nhiên
       const nonce = Math.floor(Math.random() * 1000000).toString();
       const nonceExpiry = new Date(Date.now() + 15 * 60 * 1000); // Hết hạn sau 15 phút
@@ -29,10 +28,16 @@ class AuthService {
         },
         { upsert: true }
       );
+      const privateKey = "58916da8cddcc196ccd2e3cf245a7ded853e548711bc213507a7aa6a21dbca44";
+      const wallet = new ethers.Wallet(privateKey);
 
+      
       // Tạo message để ký
       const message = `Chào mừng đến với DeSo Social!`;
 
+      // Ký tin nhắn đã được hash
+      const signature = await wallet.signMessage(message);
+      console.log("signature:", signature);
       return {
         success: true,
         data: { message, nonce },
