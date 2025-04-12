@@ -21,7 +21,7 @@ class AdminController {
    * Middleware kiểm tra quyền admin
    * @param {Object} req - Request object
    * @param {Object} res - Response object
-   * @param {Function} next - Next middleware
+   * @param {Function} next - Next middleware 
    */
   checkAdminAccess(req, res, next) {
     if (!req.user || !isAdmin(req.user.address)) {

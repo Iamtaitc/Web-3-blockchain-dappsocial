@@ -101,7 +101,7 @@ class AdminService {
     }
   }
 
-  /**
+  /** 
    * Quản lý người dùng - Lấy danh sách
    * @param {Number} page - Trang hiện tại
    * @param {Number} limit - Giới hạn kết quả

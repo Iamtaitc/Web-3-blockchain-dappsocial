@@ -27,7 +27,7 @@ import { useAuth } from "../hooks/useAuth"
 import { refreshToken as refreshTokenAction } from "../store/slices/authSlice"
 import api from "../services/api"
 import { store } from "../store" // Import store trực tiếp
-
+import NotificationButton from "../Components/NotificationButton"
 // Utility function to format wallet address
 const formatAddress = (address: string): string => {
   if (!address) return ""
@@ -244,104 +244,112 @@ const Navbar = () => {
           <NavItem to="/quest" icon={<Target size={18} />} label="Quest" isActive={currentPath === "/quest"} />
           <NavItem to="/wallet" icon={<Wallet size={18} />} label="Wallet" isActive={currentPath === "/wallet"} />
         </ul>
-
-        <div ref={menuRef} className="relative">
-          <div
-            className={`p-4 mt-auto border-t border-gray-200 flex items-center justify-between cursor-pointer ${
-              menuOpen ? "bg-gray-100 text-gray-800" : "text-gray-600 hover:bg-gray-50"
-            }`}
-            onClick={toggleMenu}
-          >
-            <div className="flex items-center">
-              <Menu size={18} className="mr-3" />
-              <span>Menu</span>
+        <div className="mt-auto border-t border-gray-200">
+          <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center">
+                <Menu size={18} className="mr-3" />
+                <span>Menu</span>
+              </div>
+              
+              <div className="flex items-center">
+              <NotificationButton />
+              <div ref={menuRef} className="relative ml-2">
+                <div
+                  className={`cursor-pointer ${menuOpen ? "text-gray-800" : "text-gray-600 hover:text-gray-800"}`}
+                  onClick={toggleMenu}
+                >
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`}
+                  />
             </div>
-            <ChevronDown size={16} className={`transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`} />
-          </div>
 
-          {menuOpen && (
-            <div className="absolute left-0 bottom-full mb-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
-              {isAuthenticated && walletAddress ? (
-                // Show wallet info when connected
-                <>
-                  <div className="p-3 border-b border-gray-200">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
-                        <Wallet className="text-white" size={10} />
-                      </div>
-                      <span className="text-gray-800 text-sm font-medium">{walletType || "Wallet"}</span>
-                      {isAdmin && (
-                        <div className="bg-blue-100 text-blue-800 text-xs px-1.5 py-0.5 rounded-full flex items-center">
-                          <Shield size={10} className="mr-1" />
-                          Admin
+            {menuOpen && (
+              <div className="absolute left-0 bottom-full mb-2 w-400 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
+                {isAuthenticated && walletAddress ? (
+                  // Show wallet info when connected
+                  <>
+                    <div className="p-3 border-b border-gray-200">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
+                          <Wallet className="text-white" size={10} />
                         </div>
-                      )}
+                        <span className="text-gray-800 text-sm font-medium">{walletType || "Wallet"}</span>
+                        {isAdmin && (
+                          <div className="bg-blue-100 text-blue-800 text-xs px-1.5 py-0.5 rounded-full flex items-center">
+                            <Shield size={10} className="mr-1" />
+                            Admin
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-gray-500 text-xs truncate">{formatAddress(walletAddress)}</div>
+                      {user?.username && <div className="text-gray-700 text-sm font-medium mt-1">@{user.username}</div>}
                     </div>
-                    <div className="text-gray-500 text-xs truncate">{formatAddress(walletAddress)}</div>
-                    {user?.username && <div className="text-gray-700 text-sm font-medium mt-1">@{user.username}</div>}
-                  </div>
 
-                  <Link
-                    to={`https://etherscan.io/address/${walletAddress}`}
-                    target="_blank"
-                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink size={16} className="text-gray-500" />
-                    <span className="text-gray-700">View on Etherscan</span>
-                  </Link>
+                    <Link
+                      to={`https://etherscan.io/address/${walletAddress}`}
+                      target="_blank"
+                      className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink size={16} className="text-gray-500" />
+                      <span className="text-gray-700">View on Etherscan</span>
+                    </Link>
 
-                  <Link
-                    to="/profile"
-                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <User size={16} className="text-gray-500" />
-                    <span className="text-gray-700">Profile</span>
-                  </Link>
+                    <Link
+                      to="/profile"
+                      className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <User size={16} className="text-gray-500" />
+                      <span className="text-gray-700">Profile</span>
+                    </Link>
 
-                  <Link
-                    to="/Setting"
-                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Settings size={16} className="text-gray-500" />
-                    <span className="text-gray-700">Settings</span>
-                  </Link>
+                    <Link
+                      to="/Setting"
+                      className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Settings size={16} className="text-gray-500" />
+                      <span className="text-gray-700">Settings</span>
+                    </Link>
 
-                  <div
-                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors border-t border-gray-200"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDisconnect()
-                    }}
-                  >
-                    <LogOut size={16} className="text-red-500" />
-                    <span className="text-red-500">Disconnect</span>
-                  </div>
-                </>
-              ) : (
-                // Show login options when not connected
-                <>
-                  <div
-                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={openWalletModal}
-                  >
-                    <LogIn size={16} className="text-emerald-500" />
-                    <span className="text-gray-700">Login</span>
-                  </div>
-                  <Link
-                    to="/Setting"
-                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Settings size={16} className="text-emerald-500" />
-                    <span className="text-gray-700">Settings</span>
-                  </Link>
-                </>
-              )}
-            </div>
-          )}
+                    <div
+                      className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors border-t border-gray-200"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDisconnect()
+                      }}
+                    >
+                      <LogOut size={16} className="text-red-500" />
+                      <span className="text-red-500">Disconnect</span>
+                    </div>
+                  </>
+                ) : (
+                  // Show login options when not connected
+                  <>
+                    <div
+                      className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={openWalletModal}
+                    >
+                      <LogIn size={16} className="text-emerald-500" />
+                      <span className="text-gray-700">Login</span>
+                    </div>
+                    <Link
+                      to="/Setting"
+                      className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Settings size={16} className="text-emerald-500" />
+                      <span className="text-gray-700">Settings</span>
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          </div>
+          </div>
         </div>
       </nav>
 
@@ -371,11 +379,10 @@ interface NavItemProps {
 const NavItem = ({ to, icon, label, isActive }: NavItemProps) => {
   return (
     <li
-      className={`my-1 px-2 py-2 rounded-lg transition-all duration-200 ${
-        isActive
+      className={`my-1 px-2 py-2 rounded-lg transition-all duration-200 ${isActive
           ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md"
           : "hover:bg-gray-50 text-gray-600"
-      }`}
+        }`}
     >
       <Link to={to} className="flex items-center">
         <span className={`mr-3 ${isActive ? "text-white" : "text-emerald-500"}`}>{icon}</span>

@@ -16,7 +16,7 @@ import SnakeGame from "../pages/game/SnakeGame";
 import DropGame from "../pages/game/DropGame";
 import Settings from "../pages/Settings";
 import TaskDetail from "../pages/TaskDetail";
-
+import Notification from "../pages/Notification"
 
 const AppRoutes = () => {
   return (
@@ -38,6 +38,8 @@ const AppRoutes = () => {
       <Route path="/SnakeGame" element={<SnakeGame/>} />
       <Route path="/DropGame" element={<DropGame/>} />
       <Route path="/Setting" element={<Settings/>} />
+      <Route path="/notifications" element={<Notification />} />
+      
     </Routes>
   );
 };
