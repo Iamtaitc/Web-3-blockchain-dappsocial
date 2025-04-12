@@ -2,7 +2,7 @@ const { validationResult } = require("express-validator");
 const postService = require("../services/post.services");
 const ApiResponse = require("../utils/apiResponse.utils");
 const { processMediaFiles } = require("../utils/mediaHelper.utils");
-const { SavedPost, Like } = require("../models/index");
+const { SavePost, Like } = require("../models/index");
 const notificationService = require("../services/notification.services");
 
 class PostController {
@@ -31,7 +31,7 @@ class PostController {
       // Validate request
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.success(400).json({ errors: errors.array() });
       }
 
       const { content, tags, mentions } = req.body;
@@ -48,23 +48,11 @@ class PostController {
         address,
         mediaObjects
       );
+      if (!newPost) {
+        return ApiResponse.badRequest(res, "Failed to create post:", newPost);
+      }
 
-      // Format ApiResponse
-      const postApiResponse = {
-        id: newPost._id,
-        author: newPost.author,
-        content: newPost.content,
-        contentURI: newPost.contentURI,
-        media: newPost.mediaObjects,
-        tags: newPost.tags,
-        mentions: newPost.mentions,
-        likeCount: newPost.likeCount,
-        commentCount: newPost.commentCount,
-        saveCount: newPost.saveCount,
-        createdAt: newPost.createdAt,
-      };
-
-      ApiResponse.status(res, postApiResponse, "Post created successfully");
+      ApiResponse.success(res, newPost, "Post created successfully");
     } catch (error) {
       console.error("Error creating post:", error);
       ApiResponse.error(res, "Server error", error);
@@ -77,24 +65,24 @@ class PostController {
       const skip = (page - 1) * limit;
 
       // Lấy danh sách bài đăng
-      await postService.getAllPosts(page, skip, limit);
+      const postAll = await postService.getAllPosts(page, skip, limit);
 
-      ApiResponse.status(
+      ApiResponse.success(
         res,
         {
-          posts: postsWithAuthorDetails,
+          posts: postAll.posts,
           pagination: {
-            total,
+            total: postAll.total,
             page,
             limit,
-            pages: Math.ceil(total / limit),
+            pages: Math.ceil(postAll.total / limit),
           },
         },
         "Get all posts successfully"
       );
     } catch (error) {
       console.error("Error getting posts:", error);
-      res.status(500).json({ error: "Server error" });
+      ApiResponse.error(res, "Server error", error);
     }
   }
   async getTrendingPosts(req, res) {
@@ -105,7 +93,7 @@ class PostController {
 
       const result = await postService.getTrendingPosts(page, limit);
       if (!result.success) {
-        return ApiResponse.error(res, result.message, result.status);
+        return ApiResponse.error(res, result.message, result.success);
       }
 
       const { posts, total } = result.data;
@@ -122,7 +110,7 @@ class PostController {
               user: address.toLowerCase(),
               postId: post._id,
             }));
-            isSaved = !!(await SavedPost.findOne({
+            isSaved = !!(await SavePost.findOne({
               user: address.toLowerCase(),
               postId: post._id,
             }));
@@ -186,23 +174,18 @@ class PostController {
 
     await notificationService.createNotification({
       recipient: postId,
-      type: "Like",
+      type: "like",
       sender: userAddress,
       content: `${userAddress} liked your post`,
-      targetType: "Post",
+      targetType: "post",
       targetId: postId,
       createdAt: new Date(),
     });
-    if (result.success) {
-      return ApiResponse.success(
-        res,
-        result.data,
-        result.message,
-        result.status
-      );
+    if (result) {
+      return ApiResponse.success(res, result.data, result.message);
     }
 
-    return ApiResponse.error(res, result.message, result.status);
+    return ApiResponse.error(res, result.message, result.success);
   }
   async unlikePost(req, res) {
     const { postId } = req.params;
@@ -210,54 +193,55 @@ class PostController {
 
     const result = await postService.unlikePostService(userAddress, postId);
 
-    if (result.success) {
-      return ApiResponse.success(
-        res,
-        result.data,
-        result.message,
-        result.status
-      );
+    if (result) {
+      return ApiResponse.success(res, result.data, result.message);
     }
 
-    return ApiResponse.error(res, result.message, result.status);
+    return ApiResponse.error(res, result.message, result.success);
   }
   async savePost(req, res) {
-    const { postId } = req.params;
-    const address = req.user.address;
+    try {
+      const { postId } = req.params;
+      const address = req.user.address;
 
-    const result = await postService.savePostService(address, postId);
+      const result = await postService.savePostService(address, postId);
 
-    if (!result.success) {
-      return ApiResponse.error(res, result.message, result.status);
+      return ApiResponse.success(res, result.data, result.message);
+    } catch (error) {
+      console.error("savePost error:", error);
+      return ApiResponse.error(res, "Internal server error", error);
     }
-
-    return ApiResponse.success(res, result.data, result.message, result.status);
   }
+
   async unsavePost(req, res) {
-    const { postId } = req.params;
-    const address = req.user.address;
+    try {
+      const { postId } = req.params;
+      const address = req.user.address;
 
-    const result = await postService.unsavePostService(address, postId);
+      const result = await postService.unsavePostService(address, postId);
 
-    if (!result.success) {
-      return ApiResponse.error(res, result.message, result.status);
+      return ApiResponse.success(res, result.data, result.message);
+    } catch (error) {
+      console.error("unsavePost error:", error);
+      return ApiResponse.error(res, "Internal server error", error);
     }
-
-    return ApiResponse.success(res, result.data, result.message, result.status);
   }
+
   async getSavedPosts(req, res) {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
-    const address = req.user.address;
-
-    const result = await postService.getSavedPostsService(address, page, limit);
-
-    if (!result.success) {
-      return ApiResponse.error(res, result.message, result.status);
+    try {
+      const page = parseInt(req.query.page, 10) || 1;
+      const limit = parseInt(req.query.limit, 10) || 20;
+      const address = req.user.address;
+  
+      const result = await postService.getSavePostsService(address, page, limit);
+  
+      return ApiResponse.success(res, result.data, result.message);
+    } catch (error) {
+      console.error('getSavedPosts error:', error);
+      return ApiResponse.error(res, 'Internal server error', null);
     }
-
-    return ApiResponse.success(res, result.data, result.message, result.status);
   }
+  
 }
 
 module.exports = new PostController();

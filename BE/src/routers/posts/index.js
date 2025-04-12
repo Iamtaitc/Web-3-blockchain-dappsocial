@@ -5,7 +5,7 @@ const router = express.Router();
 const postController = require("../../controllers/post.controller");
 
 router.get("/post/user/:address", postController.getPostUser);
-router.get("/post/:postId", postController.getIdPost);
+router.get("/post/:postId/id", postController.getIdPost);
 router.post("/post/create", postController.createPost);
 
 router.patch("/post/:postId/like", postController.likePost);

@@ -18,7 +18,6 @@ class UserServices {
       const user = await User.findOne({
         walletAddress: address.address,
       });
-
       if (!user) {
         return { success: false, message: "User not found" };
       }
