@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const User = require("./User.mongoose");
 const Task = require("./Task.mongoose");
 const Notification = require("./Notification.mongoose");
-const CheckIn = require("./CheckIn.mongoose");
+const Subscription = require("./Subscription.mongoose");
 const Comment = require("./Comment.mongoose");
 const Post = require("./Post.mongoose");
 const NFTCache = require("./NFTCache.mongoose");
@@ -20,7 +20,7 @@ module.exports = {
   User,
   Task,
   Notification,
-  CheckIn,
+  Subscription,
   Comment,
   Post,
   NFTCache,

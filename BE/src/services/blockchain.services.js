@@ -100,6 +100,52 @@ const mintNFT = async (privateKey, tokenURI, mediaType, royaltyPercent) => {
   }
 };
 
+// Mint reward tokens to a user
+const mintReward = async (privateKey, recipientAddress, amount) => {
+  try {
+    // Validate inputs
+    if (!privateKey || typeof privateKey !== 'string') {
+      throw new Error("Invalid private key");
+    }
+    
+    if (!ethers.isAddress(recipientAddress)) {
+      throw new Error("Invalid recipient address");
+    }
+    
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      throw new Error("Invalid amount");
+    }
+
+    // Get signed contract instance with admin wallet
+    const { dxToken, wallet } = getSignedContracts(privateKey);
+    
+    // Convert amount to proper format (with decimals)
+    const tokenAmount = ethers.parseEther(amount);
+    
+    // Check admin balance to ensure they have enough tokens to distribute
+    const adminBalance = await dxToken.balanceOf(wallet.address);
+    if (adminBalance.lt(tokenAmount)) {
+      throw new Error("Insufficient tokens in admin wallet for rewards");
+    }
+    
+    // Execute the token transfer
+    const tx = await dxToken.transfer(recipientAddress, tokenAmount);
+    const receipt = await tx.wait();
+    
+    console.log(`Reward minted: ${amount} tokens to ${recipientAddress}`);
+    
+    return {
+      recipientAddress,
+      amount: amount,
+      transactionHash: receipt.transactionHash,
+      blockNumber: receipt.blockNumber
+    };
+  } catch (error) {
+    console.error("Error minting reward tokens:", error);
+    throw new Error(`Failed to mint reward tokens: ${error.message}`);
+  }
+};
+
 // Lấy thông tin NFT
 const getNFTInfo = async (tokenId) => {
   try {
@@ -262,6 +308,8 @@ const getSubscriptionInfo = async (address) => {
     throw new Error("Failed to get subscription information");
   }
 };
+// Trong contract Subscription.sol
+
 
 module.exports = {
   getProvider,
@@ -273,4 +321,6 @@ module.exports = {
   buyNFT,
   purchaseSubscription,
   getSubscriptionInfo,
+  mintReward,
+  getSignedContracts
 };

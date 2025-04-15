@@ -26,17 +26,6 @@ class UserServices {
       const subscriptionInfo =
         await blockchainService.getSubscriptionInfo(address.address);
 
-      // Cập nhật thông tin subscription trong database nếu cần
-      if (subscriptionInfo.isActive) {
-        await User.updateOne(
-          { walletAddress: address },
-          {
-            "subscription.level": subscriptionInfo.level,
-            "subscription.expiration": subscriptionInfo.expiration,
-          }
-        );
-      }
-
       // Kiểm tra nếu người dùng hiện tại follow user này
       let isFollowing = false;
       if (currentUserAddress) {

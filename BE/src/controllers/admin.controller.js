@@ -25,7 +25,7 @@ class AdminController {
    */
   checkAdminAccess(req, res, next) {
     if (!req.user || !this.isAdmin(req.user.address)) {
-      return ApiResponse.forbidden(res, "Không có quyền truy cập admin");
+      return ApiResponse.forbidden(res, "Không có quyền truy cập admin", 403);
     }
 
     next();

@@ -1,11 +1,11 @@
-// models/UserRewards.js
 const mongoose = require('mongoose');
 
 const UserRewardsSchema = new mongoose.Schema({
   user: {
     type: String, // Địa chỉ ví
     required: true,
-    lowercase: true
+    lowercase: true,
+    trim: true
   },
   
   // Điểm tích lũy tổng cộng
@@ -35,6 +35,25 @@ const UserRewardsSchema = new mongoose.Schema({
   claimHistory: [{
     amount: Number,
     timestamp: Date,
-    transactionHash: String
-  }]
+    // transactionHash: String
+  }],
+  
+  // Thông tin check-in
+  checkIn: {
+    lastCheckIn: { type: Date },
+    currentStreak: { type: Number, default: 0 },
+    lastStreakUpdate: { type: Date }, // Để biết khi nào streak được cập nhật lần cuối
+    history: [{
+      date: Date,
+      streak: Number,
+      pointsEarned: Number,
+      tokensEarned: Number
+    }]
+  }
 });
+
+// Index
+UserRewardsSchema.index({ user: 1 }, { unique: true });
+UserRewardsSchema.index({ 'checkIn.lastCheckIn': -1 });
+
+module.exports = mongoose.model('RewardPoints', UserRewardsSchema);
