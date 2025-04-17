@@ -28,7 +28,7 @@ class AuthService {
         },
         { upsert: true }
       );
-      const privateKey = "58916da8cddcc196ccd2e3cf245a7ded853e548711bc213507a7aa6a21dbca44";
+      const privateKey = "6b74d9ba5835a91a54cf26ebb45d7304c5232afcfdde6f6ebda3366a09511a3d";
       const wallet = new ethers.Wallet(privateKey);
 
       

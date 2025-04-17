@@ -1,12 +1,23 @@
 import axios from "axios"
 
-// Tạo instance axios với URL cơ sở
+// Tạo instance axios
 const instance = axios.create({
-  // baseURL: "http://localhost:3001/v1/",
-  baseURL: "https://f9ee-2402-800-620e-2d27-8450-83c5-9a9f-54a3.ngrok-free.app/v1/",
+  baseURL: "https://dfed-2a09-bac5-d5cb-16d2-00-246-bf.ngrok-free.app/v1/",
   headers: {
     "Content-Type": "application/json",
   },
 })
+
+// 👉 Gắn interceptor để tự động đính kèm token
+instance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token") // Hoặc tên key bạn lưu token
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
 
 export default instance

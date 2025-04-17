@@ -5,7 +5,7 @@ import Home from "../pages/Home/home";
 // import HomeNFT from "../pages/NFT/HomeNFT";
 import CreateNFT from "../pages/NFT/CreateNFT";
 import Dashboard from "../pages/Dashboard";
-import WalletLogin from "../components/Login";
+import WalletLogin from "../Components/Login";
 import Quest from "../pages/Quest";
 import NFTDetail from "../pages/NFTDetail";
 import NTFview  from "../pages/NFT/nft-view";

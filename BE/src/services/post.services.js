@@ -1,8 +1,7 @@
-const { User, Post, SavedPost, Like } = require("../models/index");
+const { User, Post, SavePost, Like } = require("../models/index");
 const IPFSService = require("./ipfs.services");
 const ApiResponse = require("../utils/apiResponse.utils");
-const getPostsWithDetails = require("../utils/getPostDetails.utils");
-const addres = require("../utils/address.utils");
+const { getPostsWithDetails } = require("../utils/getPostDetails.utils");
 
 class PostServices {
   async getPostsByUser(address, skip = 0, limit = 10) {
@@ -15,10 +14,8 @@ class PostServices {
         };
       }
 
-      const userAddress = await address.normalizeAddress(address);
-
       // Kiểm tra user có tồn tại không
-      const user = await User.findOne({ walletAddress: userAddress });
+      const user = await User.findOne({ walletAddress: address });
       if (!user) {
         return {
           success: false,
@@ -28,7 +25,7 @@ class PostServices {
       }
 
       // Lấy danh sách bài đăng
-      const posts = await Post.find({ author: userAddress, status: "active" })
+      const posts = await Post.find({ author: address, status: "active" })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
@@ -61,15 +58,33 @@ class PostServices {
     }
   }
   async getIdPost(postId) {
-    const post = await Post.findOne({ _id: postId, author: userAddress });
-    if (!post) {
-      ApiResponse.badRequest(res, "Post not found");
+    try {
+      const post = await Post.findOne({ _id: postId });
+      if (!post) {
+        return {
+          success: true,
+          status: 400,
+          message: "Post not found",
+          data: null,
+        };
+      }
+      return {
+        success: true,
+        status: 200,
+        message: "Posts retrieved successfully",
+        data: post,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        status: 500,
+        message: "Error getting post by ID",
+        error: error.message,
+      };
     }
   }
   async createPost(content, tags, mentions, address, mediaObjects) {
     try {
-      const userAddress = await address.normalizeAddress(address);
-
       // Tạo metadata và upload lên IPFS
       const mediaCIDs = mediaObjects.map((media) =>
         media.uri.replace("ipfs://", "")
@@ -84,7 +99,7 @@ class PostServices {
 
       // Tạo post
       const newPost = new Post({
-        author: address.toLowerCase(),
+        author: address,
         content,
         contentURI: `ipfs://${metadataCID}`,
         media: mediaObjects,
@@ -101,7 +116,7 @@ class PostServices {
 
       // Cập nhật postCount của user
       await User.updateOne(
-        { walletAddress: userAddress },
+        { walletAddress: address },
         { $inc: { postCount: 1 } }
       );
 
@@ -145,15 +160,38 @@ class PostServices {
     }
   }
   async getAllPosts(page, skip, limit) {
-    const posts = await Post.find({ status: "active" })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    try {
+      const posts = await Post.find({ status: "active" })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+      if (!posts) {
+        return {
+          success: false,
+          status: 400,
+          message: "No posts found",
+          data: [],
+        };
+      }
 
-    // Lấy tổng số bài đăng để phân trang
-    const total = await Post.countDocuments({ status: "active" });
-    const postsWithAuthorDetails = await getPostsWithDetails(posts);
-    return { posts: postsWithAuthorDetails, total };
+      // Lấy tổng số bài đăng để phân trang
+      const total = await Post.countDocuments({ status: "active" });
+      const postsWithAuthorDetails = await getPostsWithDetails(posts);
+      return {
+        success: true,
+        status: 201,
+        message: "Post created successfully",
+        posts: postsWithAuthorDetails,
+        total,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        status: 500,
+        message: "Error getting all posts",
+        error: error.message,
+      };
+    }
   }
   async getTrendingPosts(page, ship, limit) {
     try {
@@ -213,7 +251,7 @@ class PostServices {
       return { success: false, status: 500, message: "Server error" };
     }
   }
-  async likePost(userAddress, postId) {
+  async likePost(address, postId) {
     try {
       // Kiểm tra bài đăng có tồn tại không
       const post = await Post.findById(postId);
@@ -223,7 +261,7 @@ class PostServices {
 
       // Kiểm tra đã like chưa
       const existingLike = await Like.findOne({
-        user: userAddress.toLowerCase(),
+        user: address,
         postId,
       });
 
@@ -233,7 +271,7 @@ class PostServices {
 
       // Tạo like mới
       await Like.create({
-        user: userAddress.toLowerCase(),
+        user: address,
         postId,
         createdAt: new Date(),
       });
@@ -252,10 +290,10 @@ class PostServices {
       return { success: false, status: 500, message: "Server error" };
     }
   }
-  async unlikePostService(userAddress, postId) {
+  async unlikePostService(address, postId) {
     try {
       const existingLike = await Like.findOne({
-        user: userAddress.toLowerCase(),
+        user: address,
         postId,
       });
 
@@ -263,7 +301,7 @@ class PostServices {
         return { success: false, status: 400, message: "Post not liked" };
       }
 
-      await Like.deleteOne({ user: userAddress.toLowerCase(), postId });
+      await Like.deleteOne({ user: address, postId });
       await Post.updateOne({ _id: postId }, { $inc: { likeCount: -1 } });
 
       return {
@@ -285,8 +323,8 @@ class PostServices {
         return { success: false, status: 404, message: "Post not found" };
       }
 
-      const existingSave = await SavedPost.findOne({
-        user: address.toLowerCase(),
+      const existingSave = await SavePost.findOne({
+        user: address,
         postId,
       });
 
@@ -294,8 +332,8 @@ class PostServices {
         return { success: false, status: 400, message: "Post already saved" };
       }
 
-      await SavedPost.create({
-        user: address.toLowerCase(),
+      await SavePost.create({
+        user: address,
         postId,
         createdAt: new Date(),
       });
@@ -313,10 +351,10 @@ class PostServices {
       return { success: false, status: 500, message: "Server error" };
     }
   }
-  async unsavePostService(ddress, postId) {
+  async unsavePostService(address, postId) {
     try {
-      const existingSave = await SavedPost.findOne({
-        user: address.toLowerCase(),
+      const existingSave = await SavePost.findOne({
+        user: address,
         postId,
       });
 
@@ -324,8 +362,8 @@ class PostServices {
         return { success: false, status: 404, message: "Post not saved" };
       }
 
-      await SavedPost.deleteOne({
-        user: address.toLowerCase(),
+      await SavePost.deleteOne({
+        user: address,
         postId,
       });
 
@@ -342,18 +380,18 @@ class PostServices {
       return { success: false, status: 500, message: "Server error" };
     }
   }
-  async getSavedPostsService(address, page, limit) {
+  async getSavePostsService(address, page, limit) {
     try {
       const skip = (page - 1) * limit;
 
       // Tìm tất cả bài đã lưu
-      const savedPosts = await SavedPost.find({ user: address.toLowerCase() })
+      const SavePosts = await SavePost.find({ user: address })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(); // Dùng `lean()` để giảm tải bộ nhớ
 
-      if (!savedPosts.length) {
+      if (!SavePosts.length) {
         return {
           success: true,
           status: 200,
@@ -363,7 +401,7 @@ class PostServices {
       }
 
       // Lấy danh sách postId để tối ưu truy vấn
-      const postIds = savedPosts.map((saved) => saved.postId);
+      const postIds = SavePosts.map((saved) => saved.postId);
       const posts = await Post.find({
         _id: { $in: postIds },
         status: "active",
@@ -382,7 +420,7 @@ class PostServices {
 
       // Lấy danh sách bài viết yêu thích
       const likedPosts = await Like.find({
-        user: address.toLowerCase(),
+        user: address,
         postId: { $in: postIds },
       })
         .select("postId")
@@ -392,55 +430,53 @@ class PostServices {
       );
 
       // Xây dựng danh sách post trả về
-      const savedPostDetails = savedPosts
-        .map((saved) => {
-          const post = posts.find(
-            (p) => p._id.toString() === saved.postId.toString()
-          );
-          if (!post) return null;
+      const SavePostDetails = SavePosts.map((saved) => {
+        const post = posts.find(
+          (p) => p._id.toString() === saved.postId.toString()
+        );
+        if (!post) return null;
 
-          const author = authorMap.get(post.author) || null;
+        const author = authorMap.get(post.author) || null;
 
-          return {
-            _id: post._id,
-            author: post.author,
-            authorDetails: author
-              ? {
-                  username: author.username,
-                  avatarURI: author.avatarURI
-                    ? IPFSService.formatIPFSUrl(author.avatarURI)
-                    : null,
-                  isVerified: author.isVerified,
-                }
-              : null,
-            content: post.content,
-            contentURI: post.contentURI,
-            media: post.media.map((media) => ({
-              ...media,
-              uri: IPFSService.formatIPFSUrl(media.uri),
-            })),
-            tags: post.tags,
-            likeCount: post.likeCount,
-            commentCount: post.commentCount,
-            saveCount: post.saveCount,
-            isLiked: likedPostIds.has(post._id.toString()),
-            isSaved: true,
-            savedAt: saved.createdAt,
-            createdAt: post.createdAt,
-          };
-        })
-        .filter((post) => post !== null);
+        return {
+          _id: post._id,
+          author: post.author,
+          authorDetails: author
+            ? {
+                username: author.username,
+                avatarURI: author.avatarURI
+                  ? IPFSService.formatIPFSUrl(author.avatarURI)
+                  : null,
+                isVerified: author.isVerified,
+              }
+            : null,
+          content: post.content,
+          contentURI: post.contentURI,
+          media: post.media.map((media) => ({
+            ...media,
+            uri: IPFSService.formatIPFSUrl(media.uri),
+          })),
+          tags: post.tags,
+          likeCount: post.likeCount,
+          commentCount: post.commentCount,
+          saveCount: post.saveCount,
+          isLiked: likedPostIds.has(post._id.toString()),
+          isSaved: true,
+          savedAt: saved.createdAt,
+          createdAt: post.createdAt,
+        };
+      }).filter((post) => post !== null);
 
       // Đếm tổng số bài viết đã lưu
-      const total = await SavedPost.countDocuments({
-        user: address.toLowerCase(),
+      const total = await SavePost.countDocuments({
+        user: address,
       });
 
       return {
         success: true,
         status: 200,
         data: {
-          posts: savedPostDetails,
+          posts: SavePostDetails,
           pagination: {
             total,
             page,
