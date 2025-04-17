@@ -9,17 +9,14 @@ router.get("/nft/all", NftController.getAllNFTs);
 // Lấy thông tin chi tiết của một NFT
 router.get("/nft/id/:tokenId", NftController.getNFTById);
 
-// Mint NFT mới (yêu cầu xác thực)
-// router.post("/nft/mint", NftController.mintNFT);
-
-// Đăng bán NFT (yêu cầu xác thực)
-// router.post("/nft/:tokenId/list", NftController.listNFTForSale);
-
 // Hủy đăng bán NFT (yêu cầu xác thực)
 router.post("/nft/:tokenId/unlist", NftController.unlistNFT);
 
 // Mua NFT (yêu cầu xác thực)
 router.post("/nft/:tokenId/buy", NftController.buyNFT);
+
+// Xác nhận hoàn tất giao dịch mua NFT
+router.post("/nft/purchase-complete", NftController.purchaseComplete);
 
 // Lấy danh sách NFT trên marketplace
 router.get("/nft/marketplace", NftController.getMarketplaceNFTs);

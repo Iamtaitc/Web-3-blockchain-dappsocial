@@ -447,6 +447,14 @@ class NFTService {
         };
       }
 
+      // THÊM: Phê duyệt cho marketplace sử dụng tokens
+      const approveResult = await retryOperation(async () => {
+        return await blockchainService.approveMarketplace(
+          process.env.PRIVATE_KEY,
+          nft.price
+        );
+      }, 3);
+
       // Thực hiện mua NFT trên blockchain
       const buyResult = await retryOperation(async () => {
         return await blockchainService.buyNFT(process.env.PRIVATE_KEY, tokenId);
@@ -504,6 +512,79 @@ class NFTService {
         status: 500,
         message: error.message,
       };
+    }
+  }
+
+  /**
+   * Xác nhận hoàn tất giao dịch mua NFT
+   */
+  async purchaseComplete(tokenId, txHash, buyer) {
+    try {
+      // Kiểm tra NFT có tồn tại không
+      const nft = await NFTCache.findOne({ tokenId });
+
+      if (!nft) {
+        throw new Error("NFT không tồn tại");
+      }
+
+      // Xác minh giao dịch trên blockchain
+      const isValidTx = await blockchainService.verifyTransaction(
+        txHash,
+        buyer,
+        tokenId
+      );
+      if (!isValidTx) {
+        throw new Error("Giao dịch không hợp lệ");
+      }
+
+      // Lưu lại owner cũ để thông báo
+      const previousOwner = nft.owner;
+
+      // Cập nhật thông tin trong database
+      const updatedNFT = await NFTCache.findOneAndUpdate(
+        { tokenId },
+        {
+          $set: {
+            owner: buyer.toLowerCase(),
+            forSale: false,
+            price: "0",
+            lastUpdated: new Date(),
+          },
+          $push: {
+            transactions: {
+              type: "sale",
+              from: previousOwner,
+              to: buyer.toLowerCase(),
+              price: nft.price,
+              timestamp: new Date(),
+              txHash: txHash,
+            },
+          },
+        },
+        { new: true }
+      );
+
+      // Tạo thông báo cho người bán
+      await notificationService.createNotification({
+        recipient: previousOwner,
+        type: "sale",
+        sender: buyer.toLowerCase(),
+        content: `NFT "${nft.metadata.name}" đã được bán với giá ${nft.price} DX`,
+        targetType: "nft",
+        targetId: tokenId,
+      });
+
+      return {
+        tokenId,
+        name: nft.metadata.name,
+        previousOwner,
+        newOwner: buyer.toLowerCase(),
+        price: nft.price,
+        txHash: txHash,
+      };
+    } catch (error) {
+      console.error("Error processing purchase completion:", error);
+      throw error;
     }
   }
 

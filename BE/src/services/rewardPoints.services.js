@@ -1,11 +1,5 @@
-const {
-  RewardPoints,
-  User,
-  CheckIn,
-  Task,
-  CompletedTask,
-} = require("../models/index");
-const {getSubscriptionInfo} = require("./blockchain.services");
+const { RewardPoints, User, Task, CompletedTask } = require("../models/index");
+const { getSubscriptionInfo } = require("./blockchain.services");
 
 /**
  * Service xử lý các chức năng liên quan đến điểm thưởng và tokens
@@ -50,8 +44,7 @@ class RewardPointsService {
    */
   async _getMultiplier(address) {
     try {
-      const subscriptionInfo =
-        await blockchainService.getSubscriptionInfo(address);
+      const subscriptionInfo = await getSubscriptionInfo(address);
       return subscriptionInfo.level || 1;
     } catch (error) {
       return 1; // Default multiplier if error
@@ -69,31 +62,46 @@ class RewardPointsService {
       const normalizedAddress = address.toLowerCase();
       const today = this._getTodayStart();
 
-      // Kiểm tra đã check-in hôm nay chưa
-      const alreadyCheckedIn = await CheckIn.findOne({
+      // Tìm hoặc tạo mới record RewardPoints
+      let userRewards = await RewardPoints.findOne({
         user: normalizedAddress,
-        date: { $gte: today },
       });
 
-      if (alreadyCheckedIn) {
+      if (!userRewards) {
+        userRewards = new RewardPoints({
+          user: normalizedAddress,
+          totalPoints: 0,
+          pendingTokens: 0,
+          claimedTokens: 0,
+          checkIn: {
+            currentStreak: 0,
+            history: [],
+          },
+        });
+      }
+
+      // Kiểm tra đã check-in hôm nay chưa
+      const todayCheckInExists = userRewards.checkIn.history.some(
+        (check) => new Date(check.date).setHours(0, 0, 0, 0) === today.getTime()
+      );
+
+      if (todayCheckInExists) {
         return {
           success: false,
           message: "Bạn đã check-in hôm nay rồi",
         };
       }
 
-      // Lấy check-in gần nhất để tính streak
-      const lastCheckIn = await CheckIn.findOne({
-        user: normalizedAddress,
-      }).sort({ date: -1 });
-
+      // Tính toán streak
       let streak = 1;
+      const lastCheckIn = userRewards.checkIn.lastCheckIn;
+
       if (lastCheckIn) {
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
 
-        if (lastCheckIn.date >= yesterday) {
-          streak = lastCheckIn.streak + 1;
+        if (new Date(lastCheckIn).setHours(0, 0, 0, 0) >= yesterday.getTime()) {
+          streak = userRewards.checkIn.currentStreak + 1;
         }
       }
 
@@ -112,15 +120,27 @@ class RewardPointsService {
       pointsEarned *= multiplier;
       tokensEarned *= multiplier;
 
-      const checkIn = await CheckIn.create({
-        user: normalizedAddress,
+      // Cập nhật thông tin check-in
+      userRewards.checkIn.lastCheckIn = today;
+      userRewards.checkIn.currentStreak = streak;
+      userRewards.checkIn.lastStreakUpdate = new Date();
+
+      // Thêm vào lịch sử check-in
+      userRewards.checkIn.history.push({
         date: today,
         streak,
         pointsEarned,
         tokensEarned,
-        createdAt: new Date(),
       });
 
+      // Cập nhật điểm và token
+      userRewards.totalPoints += pointsEarned;
+      userRewards.pendingTokens += tokensEarned;
+
+      // Lưu vào database
+      await userRewards.save();
+
+      // Cập nhật thông tin user
       await User.updateOne(
         { walletAddress: normalizedAddress },
         {
@@ -129,19 +149,7 @@ class RewardPointsService {
         }
       );
 
-      if (tokensEarned > 0) {
-        await RewardPoints.findOneAndUpdate(
-          { user: normalizedAddress },
-          {
-            $inc: {
-              pendingTokens: tokensEarned,
-              totalPoints: pointsEarned,
-            },
-          },
-          { upsert: true, new: true }
-        );
-      }
-
+      // Xử lý nhiệm vụ check-in hàng ngày nếu có
       const checkInTask = await Task.findOne({
         name: "Daily Check-in",
         isActive: true,
@@ -165,7 +173,7 @@ class RewardPointsService {
           streak,
           pointsEarned,
           tokensEarned,
-          checkIn,
+          checkInInfo: userRewards.checkIn,
         },
       };
     } catch (error) {
@@ -189,19 +197,14 @@ class RewardPointsService {
       const today = this._getTodayStart();
 
       // Thực hiện các truy vấn song song để tăng hiệu suất
-      const [user, completedToday, checkInToday, userRewards] =
-        await Promise.all([
-          User.findOne({ walletAddress: normalizedAddress }),
-          CompletedTask.find({
-            user: normalizedAddress,
-            completedForDate: { $gte: today },
-          }),
-          CheckIn.findOne({
-            user: normalizedAddress,
-            date: { $gte: today },
-          }),
-          RewardPoints.findOne({ user: normalizedAddress }),
-        ]);
+      const [user, completedToday, userRewards] = await Promise.all([
+        User.findOne({ walletAddress: normalizedAddress }),
+        CompletedTask.find({
+          user: normalizedAddress,
+          completedForDate: { $gte: today },
+        }),
+        RewardPoints.findOne({ user: normalizedAddress }),
+      ]);
 
       if (!user) {
         return {
@@ -210,9 +213,18 @@ class RewardPointsService {
         };
       }
 
+      // Tìm check-in hôm nay từ history nếu có
+      let todayCheckIn = null;
+      if (userRewards && userRewards.checkIn && userRewards.checkIn.history) {
+        todayCheckIn = userRewards.checkIn.history.find(
+          (check) =>
+            new Date(check.date).setHours(0, 0, 0, 0) === today.getTime()
+        );
+      }
+
       const todayPoints =
         completedToday.reduce((sum, task) => sum + task.pointsEarned, 0) +
-        (checkInToday ? checkInToday.pointsEarned : 0);
+        (todayCheckIn ? todayCheckIn.pointsEarned : 0);
 
       return {
         success: true,
@@ -220,8 +232,10 @@ class RewardPointsService {
         data: {
           points: user.points || 0,
           todayPoints,
-          checkInStreak: user.checkInStreak || 0,
-          lastCheckIn: user.lastCheckIn,
+          checkInStreak: userRewards
+            ? userRewards.checkIn.currentStreak || 0
+            : 0,
+          lastCheckIn: userRewards ? userRewards.checkIn.lastCheckIn : null,
           pendingTokens: userRewards ? userRewards.pendingTokens : 0,
           claimedTokens: userRewards ? userRewards.claimedTokens : 0,
           totalPoints: userRewards ? userRewards.totalPoints : 0,
@@ -245,28 +259,28 @@ class RewardPointsService {
     try {
       this._validateWalletAddress(walletAddress);
       const normalizedAddress = walletAddress.toLowerCase();
-  
+
       // Lấy thông tin rewards của user
       const userRewards = await RewardPoints.findOne({
         user: normalizedAddress,
       });
-  
+
       if (!userRewards) {
         return {
           success: false,
           message: "Không tìm thấy thông tin rewards của người dùng",
         };
       }
-  
+
       // Kiểm tra thời gian claim (giới hạn 8h claim 1 lần)
       if (userRewards.lastClaimTime) {
         const hoursSinceLastClaim =
           (new Date() - userRewards.lastClaimTime) / (1000 * 60 * 60);
-  
+
         if (hoursSinceLastClaim < 8) {
           const nextClaimTime = new Date(userRewards.lastClaimTime);
           nextClaimTime.setHours(nextClaimTime.getHours() + 8);
-  
+
           return {
             success: false,
             message: "Bạn chỉ có thể claim 8h một lần",
@@ -274,16 +288,16 @@ class RewardPointsService {
           };
         }
       }
-  
+
       // Lấy thông tin subscription để tính toán số token
       const subscriptionInfo = await getSubscriptionInfo(normalizedAddress);
-      
+
       // Số token cơ bản cho mỗi lần claim (8 giờ)
       const baseTokenAmount = 8;
-      
+
       // Nhân hệ số dựa vào level subscription
       let multiplier = 1; // Mặc định là 1 cho người không có subscription
-      
+
       if (subscriptionInfo.isActive) {
         switch (subscriptionInfo.level) {
           case 1: // Standard
@@ -302,23 +316,23 @@ class RewardPointsService {
             multiplier = 1;
         }
       }
-      
+
       // Tính số token người dùng nhận được
       const tokenAmount = Math.floor(baseTokenAmount * multiplier);
-  
+
       // Lấy private key từ môi trường (nếu muốn mint trên blockchain)
       const privateKey = process.env.PRIVATE_KEY;
       if (!privateKey) {
         throw new Error("Không thể lấy private key từ cấu hình");
       }
-  
+
       // Trong tương lai, khi muốn mint token on-chain, bỏ comment đoạn code này
       // const result = await blockchainService.mintReward(
       //   privateKey,
       //   walletAddress,
       //   tokenAmount.toString()
       // );
-  
+
       // Cập nhật database
       userRewards.pendingTokens += tokenAmount; // Cộng dồn vào pending tokens
       userRewards.lastClaimTime = new Date();
@@ -328,16 +342,18 @@ class RewardPointsService {
         // Khi mint trên blockchain, bỏ comment dòng này
         // transactionHash: result.transactionHash,
       });
-  
+
       await userRewards.save();
-  
+
       return {
         success: true,
         message: "Claim token thành công",
         data: {
           amount: tokenAmount,
           totalPending: userRewards.pendingTokens,
-          subscriptionLevel: subscriptionInfo.isActive ? subscriptionInfo.level : 0,
+          subscriptionLevel: subscriptionInfo.isActive
+            ? subscriptionInfo.level
+            : 0,
           // Khi mint trên blockchain, bỏ comment dòng này
           // transactionHash: result.transactionHash,
         },
@@ -350,51 +366,6 @@ class RewardPointsService {
       };
     }
   }
-
-  /**
-   * Thêm tokens vào pending
-   * @param {String} walletAddress - Địa chỉ ví
-   * @param {Number} amount - Số lượng token
-   * @param {String} reason - Lý do thêm token
-   * @returns {Object} Kết quả thêm token
-   */
-  // async addPendingTokens(walletAddress, amount, reason) {
-  //   try {
-  //     this._validateWalletAddress(walletAddress);
-  //     const normalizedAddress = walletAddress.toLowerCase();
-
-  //     // Kiểm tra amount
-  //     if (!amount || isNaN(amount) || amount <= 0) {
-  //       return {
-  //         success: false,
-  //         message: "Số lượng token không hợp lệ",
-  //       };
-  //     }
-
-  //     // Sử dụng findOneAndUpdate với upsert để tạo mới nếu không tìm thấy
-  //     const userRewards = await RewardPoints.findOneAndUpdate(
-  //       { user: normalizedAddress },
-  //       { $inc: { pendingTokens: amount, totalPoints: amount } },
-  //       { upsert: true, new: true }
-  //     );
-
-  //     return {
-  //       success: true,
-  //       message: `Đã thêm ${amount} token vào tài khoản`,
-  //       data: {
-  //         pendingTokens: userRewards.pendingTokens,
-  //         totalPoints: userRewards.totalPoints,
-  //         reason,
-  //       },
-  //     };
-  //   } catch (error) {
-  //     return {
-  //       success: false,
-  //       message: "Lỗi khi thêm token",
-  //       error: error.message,
-  //     };
-  //   }
-  // }
 
   /**
    * Lấy thông tin rewards của người dùng
@@ -420,28 +391,15 @@ class RewardPointsService {
             checkIn: {
               currentStreak: 0,
               lastCheckIn: null,
+              history: [],
             },
           },
         };
       }
 
-      // Lấy thêm thông tin check-in streak
-      const user = await User.findOne(
-        {
-          walletAddress: normalizedAddress,
-        },
-        { checkInStreak: 1, lastCheckIn: 1 }
-      );
-
       return {
         success: true,
-        data: {
-          ...userRewards.toObject(),
-          checkIn: {
-            currentStreak: user ? user.checkInStreak || 0 : 0,
-            lastCheckIn: user ? user.lastCheckIn : null,
-          },
-        },
+        data: userRewards.toObject(),
       };
     } catch (error) {
       return {
@@ -475,6 +433,10 @@ class RewardPointsService {
           user: normalizedAddress,
           pendingTokens: welcomeBonus,
           totalPoints: welcomeBonus,
+          checkIn: {
+            currentStreak: 0,
+            history: [],
+          },
           createdAt: new Date(),
         });
 

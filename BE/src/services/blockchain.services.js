@@ -62,6 +62,25 @@ const getSignedContracts = (privateKey) => {
   };
 };
 
+const approveMarketplace = async (walletPrivateKey, amount) => {
+  try {
+    const provider = getProvider(); // Thêm dòng này
+    const { dxToken, marketplace } = getSignedContracts(walletPrivateKey);
+
+    // Convert amount to wei format
+    const amountInWei = ethers.parseEther(amount.toString());
+
+    // Approve marketplace to spend tokens
+    const tx = await dxToken.approve(marketplace.target, amountInWei);
+    await tx.wait();
+
+    return { success: true, transactionHash: tx.hash };
+  } catch (error) {
+    console.error("Error approving tokens:", error);
+    throw error;
+  }
+};
+
 // Lấy số dư DX token
 const getDXBalance = async (address) => {
   try {
@@ -391,7 +410,11 @@ const unlistNFT = async (privateKey, tokenId) => {
         });
 
         // Tên event có thể là NFTUnlisted hoặc ListingCancelled tùy thuộc vào contract implementation
-        if (parsedLog && (parsedLog.name === "NFTUnlisted" || parsedLog.name === "ListingCancelled")) {
+        if (
+          parsedLog &&
+          (parsedLog.name === "NFTUnlisted" ||
+            parsedLog.name === "ListingCancelled")
+        ) {
           nftUnlistedEvent = parsedLog;
           break;
         }
@@ -403,7 +426,9 @@ const unlistNFT = async (privateKey, tokenId) => {
 
     if (!nftUnlistedEvent) {
       // Nếu không tìm thấy event cụ thể, vẫn trả về thông tin cơ bản
-      console.warn("Không tìm thấy sự kiện hủy đăng bán trong transaction receipt");
+      console.warn(
+        "Không tìm thấy sự kiện hủy đăng bán trong transaction receipt"
+      );
       return {
         tokenId: tokenId.toString(),
         transactionHash: receipt.hash,
@@ -425,60 +450,66 @@ const unlistNFT = async (privateKey, tokenId) => {
 // Mua NFT
 const buyNFT = async (privateKey, tokenId) => {
   try {
-    const { marketplace, dxToken } = getSignedContracts(privateKey);
+    const { marketplace } = getSignedContracts(privateKey);
 
-    // Lấy thông tin listing
-    const listing = await marketplace.listings(tokenId);
+    // Gọi hàm buyNFT trên smart contract
+    const tx = await marketplace.buyNFT(tokenId);
+    const receipt = await tx.wait();
 
-    // Approve token transfer
-    const approveTx = await dxToken.approve(
-      contracts.Marketplace,
-      listing.price
-    );
-    await approveTx.wait();
-
-    // Mua NFT
-    const buyTx = await marketplace.buyNFT(tokenId);
-    const receipt = await buyTx.wait();
-
-    // Xử lý events cho ethers.js v6
-    let nftSoldEvent = null;
-
-    // Duyệt qua logs để tìm event NFTSold
-    for (const log of receipt.logs) {
-      try {
-        const parsedLog = marketplace.interface.parseLog({
-          topics: log.topics,
-          data: log.data,
-        });
-
-        if (parsedLog && parsedLog.name === "NFTSold") {
-          nftSoldEvent = parsedLog;
-          break;
-        }
-      } catch (e) {
-        // Bỏ qua logs không phân tích được
-        continue;
-      }
-    }
-
-    if (!nftSoldEvent) {
-      throw new Error(
-        "Không tìm thấy sự kiện NFTSold trong transaction receipt"
-      );
-    }
-
-    // Truy cập đối số event
     return {
-      tokenId: nftSoldEvent.args[0].toString(), // tokenId
-      seller: nftSoldEvent.args[1], // seller
-      buyer: nftSoldEvent.args[2], // buyer
-      price: ethers.formatEther(nftSoldEvent.args[3]), // price
+      success: true,
       transactionHash: receipt.hash,
     };
   } catch (error) {
-    console.error("Error buying NFT:", error);
-    throw new Error(`Không thể mua NFT: ${error.message}`);
+    console.error("Blockchain error buying NFT:", error);
+    throw error;
+  }
+};
+
+const verifyTransaction = async (txHash, buyer, tokenId) => {
+  try {
+    const provider = getProvider();
+    
+    // Lấy transaction receipt
+    const receipt = await provider.getTransactionReceipt(txHash);
+    
+    // Kiểm tra transaction có tồn tại và thành công
+    if (!receipt || receipt.status !== 1) {
+      return false;
+    }
+    
+    const { marketplace } = getContracts();
+    
+    // Tìm event NFTSold trong logs
+    for (const log of receipt.logs) {
+      try {
+        // Chỉ check các log từ marketplace contract
+        if (log.address.toLowerCase() === marketplace.target.toLowerCase()) {
+          const parsedLog = marketplace.interface.parseLog({
+            topics: log.topics,
+            data: log.data,
+          });
+          
+          if (parsedLog && parsedLog.name === "NFTSold") {
+            // Kiểm tra tokenId trong event
+            const eventTokenId = parsedLog.args[0];
+            if (eventTokenId.toString() === tokenId.toString()) {
+              // Kiểm tra buyer trong event nếu cần
+              const buyer = parsedLog.args[2];
+              return true;
+            }
+          }
+        }
+      } catch (e) {
+        // Bỏ qua lỗi khi parse log, tiếp tục kiểm tra log tiếp theo
+        continue;
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.error("Error verifying transaction:", error);
+    return false;
   }
 };
 
@@ -581,4 +612,6 @@ module.exports = {
   purchaseSubscription,
   getSubscriptionInfo,
   mintReward,
+  approveMarketplace,
+  verifyTransaction,
 };
