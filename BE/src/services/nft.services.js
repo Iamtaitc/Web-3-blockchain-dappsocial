@@ -38,7 +38,7 @@ class NFTService {
       const nfts = await NFTCache.find(query)
         .sort({ mintedAt: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(parseInt(limit));
 
       // Lấy tổng số NFTs để phân trang
       const total = await NFTCache.countDocuments(query);
@@ -51,7 +51,7 @@ class NFTService {
         metadata: {
           name: nft.metadata.name,
           description: nft.metadata.description,
-          image: IPFSService.ipfsUriToGatewayUrl(nft.metadata.image),
+          image: IPFSService.formatIPFSUrl(nft.metadata.image),
         },
         mediaType: nft.mediaType,
         forSale: nft.forSale,
@@ -102,7 +102,7 @@ class NFTService {
         creatorDetails: creator
           ? {
               username: creator.username,
-              avatarURI: IPFSService.ipfsUriToGatewayUrl(creator.avatarURI),
+              avatarURI: IPFSService.formatIPFSUrl(creator.avatarURI),
               isVerified: creator.isVerified,
             }
           : null,
@@ -110,14 +110,14 @@ class NFTService {
         ownerDetails: owner
           ? {
               username: owner.username,
-              avatarURI: IPFSService.ipfsUriToGatewayUrl(owner.avatarURI),
+              avatarURI: IPFSService.formatIPFSUrl(owner.avatarURI),
               isVerified: owner.isVerified,
             }
           : null,
         metadata: {
           name: nft.metadata.name,
           description: nft.metadata.description,
-          image: IPFSService.ipfsUriToGatewayUrl(nft.metadata.image),
+          image: IPFSService.formatIPFSUrl(nft.metadata.image),
           attributes: nft.metadata.attributes || [],
         },
         mediaType: nft.mediaType,
@@ -214,17 +214,17 @@ class NFTService {
 
       await newNFT.save();
 
-      // Cập nhật NFT count của user
+      // Cập nhật NFT count của user - sử dụng mongoose v6 syntax
       await User.findOneAndUpdate(
         { walletAddress: walletAddress.toLowerCase() },
-        { $inc: { "socialStats.nftCount": 1 } }
+        { $inc: { "socialStats.nftCount": 1 } },
+        { new: true }
       );
 
       return {
         tokenId: mintResult.tokenId,
         name,
         description,
-        imageUrl: IPFSService.ipfsUriToGatewayUrl(`ipfs://${imageCID}`),
         mediaType,
         royaltyPercent: royaltyPercentValue,
         txHash: mintResult.transactionHash,
@@ -241,24 +241,40 @@ class NFTService {
   async listNFTForSale(tokenId, price, walletAddress) {
     try {
       if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
-        throw new Error("Giá không hợp lệ");
+        return {
+          success: false,
+          status: 404,
+          message: "Giá không hợp lệ",
+        };
       }
 
       // Kiểm tra NFT có tồn tại không
       const nft = await NFTCache.findOne({ tokenId });
 
       if (!nft) {
-        throw new Error("NFT không tồn tại");
+        return {
+          success: false,
+          status: 404,
+          message: "NFT không tồn tại",
+        };
       }
 
       // Kiểm tra người dùng có phải là chủ sở hữu không
       if (nft.owner.toLowerCase() !== walletAddress.toLowerCase()) {
-        throw new Error("Bạn không phải là chủ sở hữu của NFT này");
+        return {
+          success: false,
+          status: 404,
+          message: "Bạn không phải là chủ sở hữu của NFT này",
+        };
       }
 
       // Kiểm tra NFT đã đăng bán chưa
       if (nft.forSale) {
-        throw new Error("NFT đã được đăng bán");
+        return {
+          success: false,
+          status: 404,
+          message: "NFT đã được đăng bán",
+        };
       }
 
       // Đăng bán NFT trên blockchain
@@ -270,7 +286,7 @@ class NFTService {
         );
       }, 3);
 
-      // Cập nhật thông tin trong database
+      // Cập nhật thông tin trong database - sử dụng mongoose v6 syntax
       await NFTCache.findOneAndUpdate(
         { tokenId },
         {
@@ -289,7 +305,8 @@ class NFTService {
               txHash: listingResult.transactionHash,
             },
           },
-        }
+        },
+        { new: true }
       );
 
       return {
@@ -299,7 +316,12 @@ class NFTService {
       };
     } catch (error) {
       console.error("Error listing NFT for sale:", error);
-      throw error;
+
+      return {
+        success: false,
+        status: 500,
+        message: error.message,
+      };
     }
   }
 
@@ -312,17 +334,29 @@ class NFTService {
       const nft = await NFTCache.findOne({ tokenId });
 
       if (!nft) {
-        throw new Error("NFT không tồn tại");
+        return {
+          success: false,
+          status: 404,
+          message: "NFT không tồn tại",
+        };
       }
 
       // Kiểm tra người dùng có phải là chủ sở hữu không
       if (nft.owner.toLowerCase() !== walletAddress.toLowerCase()) {
-        throw new Error("Bạn không phải là chủ sở hữu của NFT này");
+        return {
+          success: false,
+          status: 404,
+          message: "Bạn không phải là chủ sở hữu của NFT này",
+        };
       }
 
       // Kiểm tra NFT có đang được đăng bán không
       if (!nft.forSale) {
-        throw new Error("NFT không được đăng bán");
+        return {
+          success: false,
+          status: 404,
+          message: "NFT không được đăng bán",
+        };
       }
 
       // Hủy đăng bán NFT trên blockchain
@@ -333,7 +367,7 @@ class NFTService {
         );
       }, 3);
 
-      // Cập nhật thông tin trong database
+      // Cập nhật thông tin trong database - sử dụng mongoose v6 syntax
       await NFTCache.findOneAndUpdate(
         { tokenId },
         {
@@ -351,7 +385,8 @@ class NFTService {
               txHash: unlistResult.transactionHash,
             },
           },
-        }
+        },
+        { new: true }
       );
 
       return {
@@ -360,7 +395,11 @@ class NFTService {
       };
     } catch (error) {
       console.error("Error unlisting NFT:", error);
-      throw error;
+      return {
+        success: false,
+        status: 500,
+        message: error.message,
+      };
     }
   }
 
@@ -373,23 +412,39 @@ class NFTService {
       const nft = await NFTCache.findOne({ tokenId });
 
       if (!nft) {
-        throw new Error("NFT không tồn tại");
+        return {
+          success: false,
+          status: 404,
+          message: "NFT không tồn tại",
+        };
       }
 
       // Kiểm tra NFT có đang được đăng bán không
       if (!nft.forSale) {
-        throw new Error("NFT không được đăng bán");
+        return {
+          success: false,
+          status: 404,
+          message: "NFT không được đăng bán",
+        };
       }
 
       // Kiểm tra người dùng không phải là chủ sở hữu
       if (nft.owner.toLowerCase() === walletAddress.toLowerCase()) {
-        throw new Error("Bạn không thể mua NFT của chính mình");
+        return {
+          success: false,
+          status: 404,
+          message: "Bạn không thể mua NFT của chính mình",
+        };
       }
 
       // Kiểm tra balance DX token
       const balance = await blockchainService.getDXBalance(walletAddress);
       if (parseFloat(balance) < parseFloat(nft.price)) {
-        throw new Error("Số dư DX token không đủ");
+        return {
+          success: false,
+          status: 404,
+          message: "Số dư DX token không đủ",
+        };
       }
 
       // Thực hiện mua NFT trên blockchain
@@ -400,7 +455,7 @@ class NFTService {
       // Lưu lại owner cũ để thông báo
       const previousOwner = nft.owner;
 
-      // Cập nhật thông tin trong database
+      // Cập nhật thông tin trong database - sử dụng mongoose v6 syntax
       await NFTCache.findOneAndUpdate(
         { tokenId },
         {
@@ -420,7 +475,8 @@ class NFTService {
               txHash: buyResult.transactionHash,
             },
           },
-        }
+        },
+        { new: true }
       );
 
       // Tạo thông báo cho người bán
@@ -443,7 +499,11 @@ class NFTService {
       };
     } catch (error) {
       console.error("Error buying NFT:", error);
-      throw error;
+      return {
+        success: false,
+        status: 500,
+        message: error.message,
+      };
     }
   }
 
@@ -480,7 +540,7 @@ class NFTService {
       const nfts = await NFTCache.find(query)
         .sort({ lastUpdated: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(parseInt(limit));
 
       // Lấy thông tin chi tiết của chủ sở hữu
       const ownerAddresses = [...new Set(nfts.map((nft) => nft.owner))];
@@ -501,7 +561,7 @@ class NFTService {
         ownerDetails: ownersMap[nft.owner]
           ? {
               username: ownersMap[nft.owner].username,
-              avatarURI: IPFSService.ipfsUriToGatewayUrl(
+              avatarURI: IPFSService.formatIPFSUrl(
                 ownersMap[nft.owner].avatarURI
               ),
               isVerified: ownersMap[nft.owner].isVerified,
@@ -510,7 +570,7 @@ class NFTService {
         metadata: {
           name: nft.metadata.name,
           description: nft.metadata.description,
-          image: IPFSService.ipfsUriToGatewayUrl(nft.metadata.image),
+          image: IPFSService.formatIPFSUrl(nft.metadata.image),
         },
         mediaType: nft.mediaType,
         price: nft.price,
@@ -535,7 +595,11 @@ class NFTService {
       };
     } catch (error) {
       console.error("Error getting marketplace NFTs:", error);
-      throw error;
+      return {
+        success: false,
+        status: 500,
+        message: error.message,
+      };
     }
   }
 
@@ -560,7 +624,7 @@ class NFTService {
       const nfts = await NFTCache.find({ creator: address.toLowerCase() })
         .sort({ mintedAt: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(parseInt(limit));
 
       // Format response
       const formattedNFTs = nfts.map((nft) => ({
@@ -570,7 +634,7 @@ class NFTService {
         metadata: {
           name: nft.metadata.name,
           description: nft.metadata.description,
-          image: IPFSService.ipfsUriToGatewayUrl(nft.metadata.image),
+          image: IPFSService.formatIPFSUrl(nft.metadata.image),
         },
         mediaType: nft.mediaType,
         forSale: nft.forSale,
@@ -589,7 +653,7 @@ class NFTService {
         creator: {
           walletAddress: creator.walletAddress,
           username: creator.username,
-          avatarURI: IPFSService.ipfsUriToGatewayUrl(creator.avatarURI),
+          avatarURI: IPFSService.formatIPFSUrl(creator.avatarURI),
           isVerified: creator.isVerified,
         },
         nfts: formattedNFTs,
@@ -602,7 +666,11 @@ class NFTService {
       };
     } catch (error) {
       console.error("Error getting creator NFTs:", error);
-      throw error;
+      return {
+        success: false,
+        status: 500,
+        message: error.message,
+      };
     }
   }
 }

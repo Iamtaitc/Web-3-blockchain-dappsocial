@@ -22,7 +22,10 @@ const PostSchema = new mongoose.Schema({
   
   // Metadata
   tags: [String],
-  mentions: [String],
+  mentions: [{
+    username: String,
+    walletAddress: String
+  }],
   
   // Stats
   likeCount: { type: Number, default: 0 },
