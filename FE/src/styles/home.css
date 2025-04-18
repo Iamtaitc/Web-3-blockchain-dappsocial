@@ -10,13 +10,24 @@
 body {
   font-family: "Poppins", sans-serif;
   background-color: #f0f2f5;
-  color: #333;
+  color: #333333;
   line-height: 1.6;
+  font-size: 14px;
+  font-weight: 400;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  width: 100vw; /* Ensure body takes full viewport width */
+}
+
+/* Ensure html also prevents overflow */
+html {
+  overflow-x: hidden;
 }
 
 button {
   cursor: pointer;
   font-family: "Poppins", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 /* Main container */
@@ -24,9 +35,11 @@ button {
   display: flex;
   justify-content: space-between;
   max-width: 1280px;
+  width: 100%; /* Ensure container doesn't exceed viewport */
   margin: 0 auto;
-  padding: 20px;
+  padding: 20px 10px; /* Reduced padding to avoid overflow */
   gap: 24px;
+  box-sizing: border-box; /* Ensure padding is included in width */
 }
 
 /* Left panel */
@@ -47,10 +60,10 @@ button {
 .discover {
   display: flex;
   gap: 40px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
   padding: 8px 16px;
-  background-color: #fff;
+  background-color: #ffffff;
   border-radius: 30px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
@@ -61,11 +74,12 @@ button {
   position: relative;
   transition: all 0.3s ease;
   border-radius: 20px;
+  color: #333333;
 }
 
 .discover span.active {
-  color: #fff;
-  background-color: #3b82f6;
+  color: #ffffff;
+  background-color: #10b981;
   font-weight: 600;
 }
 
@@ -79,7 +93,7 @@ button {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #fff;
+  background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
@@ -91,13 +105,14 @@ button {
 }
 
 .Status .tl p {
-  color: #666;
-  font-size: 15px;
+  color: #666666;
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .bt button {
-  background: #3b82f6;
-  color: white;
+  background: #10b981;
+  color: #ffffff;
   border: none;
   padding: 8px 20px;
   border-radius: 20px;
@@ -106,7 +121,7 @@ button {
 }
 
 .bt button:hover {
-  background: #2563eb;
+  background: #12d594;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
@@ -119,7 +134,7 @@ button {
 }
 
 .post {
-  background: #fff;
+  background: #ffffff;
   padding: 20px;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -145,12 +160,13 @@ button {
 .username {
   font-weight: 600;
   font-size: 15px;
-  color: #333;
+  color: #333333;
 }
 
 .time {
   font-size: 13px;
-  color: #666;
+  color: #666666;
+  font-weight: 400;
 }
 
 .avatar {
@@ -165,7 +181,8 @@ button {
 .post-title {
   margin-bottom: 16px;
   font-size: 15px;
-  color: #333;
+  color: #333333;
+  font-weight: 400;
 }
 
 /* Image container */
@@ -254,6 +271,7 @@ button {
 .count {
   font-size: 14px;
   color: #6b7280;
+  font-weight: 400;
 }
 
 /* Heart button styles */
@@ -282,11 +300,11 @@ button {
 /* Buy NFT button */
 .buy-nft {
   background: linear-gradient(45deg, #10b981, #14b8a6);
-  color: white;
+  color: #ffffff;
   border: none;
   padding: 8px 16px;
   border-radius: 20px;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 14px;
   text-transform: uppercase;
   transition: all 0.3s ease;
@@ -333,7 +351,6 @@ button {
   max-height: calc(100vh - 40px);
   overflow-y: auto;
   padding-right: 8px;
-  /* Hide scrollbar for Chrome, Safari and Opera */
   scrollbar-width: thin;
   scrollbar-color: #e5e7eb transparent;
 }
@@ -354,7 +371,7 @@ button {
 /* Balance card */
 .balance {
   padding: 16px;
-  background: #fff;
+  background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   display: flex;
@@ -364,9 +381,9 @@ button {
 
 .balance-amount {
   text-align: center;
-  font-size: 24px;
-  font-weight: 700;
-  color: #333;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333333;
   background: linear-gradient(45deg, #10b981, #3b82f6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -384,8 +401,8 @@ button {
 
 .checkin {
   font-size: 14px;
-  font-weight: 600;
-  color: #333;
+  font-weight: 500;
+  color: #333333;
 }
 
 .day14 {
@@ -394,11 +411,12 @@ button {
   background-color: #e5e7eb;
   padding: 3px 6px;
   border-radius: 12px;
+  font-weight: 400;
 }
 
 .claim-checkin {
   background-color: #10b981;
-  color: white;
+  color: #ffffff;
   font-size: 12px;
   padding: 4px 10px;
   border: none;
@@ -410,7 +428,7 @@ button {
 .farming {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: #333333;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -418,8 +436,8 @@ button {
 
 .claim-farming {
   background-color: #10b981;
-  color: white;
-  font-size: 12px;
+  color: #ffffff;
+  font-size: 14px;
   font-weight: 500;
   padding: 8px;
   width: 100%;
@@ -437,7 +455,7 @@ button {
 
 /* Referrals card */
 .referrals {
-  background-color: #fff;
+  background-color: #ffffff;
   padding: 16px;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -446,18 +464,20 @@ button {
 .referrals h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: #333333;
   margin-bottom: 8px;
 }
 
 .referrals p {
-  font-size: 12px;
+  font-size: 14px;
   color: #6b7280;
   margin-bottom: 8px;
+  font-weight: 400;
 }
 
 .total-referrals {
   font-weight: 500;
+  font-size: 14px;
 }
 
 .total-referrals span {
@@ -466,8 +486,8 @@ button {
 }
 
 .invite {
-  background-color: #3b82f6;
-  color: white;
+  background-color: #10b981;
+  color: #ffffff;
   font-size: 14px;
   font-weight: 500;
   padding: 10px;
@@ -476,36 +496,36 @@ button {
   border-radius: 20px;
   transition: all 0.3s ease;
   text-transform: uppercase;
-  margin-top: 8px;
 }
 
 .invite:hover {
-  background-color: #2563eb;
+  background-color: #059669;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 /* NFT ad card */
 .nft-ad-card {
-  background: linear-gradient(135deg, #fff8e1, #fffde7);
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
   padding: 16px;
   border-radius: 16px;
   text-align: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid #ffe082;
+  border: 1px solid #6ee7b7;
 }
 
 .nft-ad-card h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #f59e0b;
+  color: #10b981;
   margin-bottom: 8px;
 }
 
 .nft-ad-card p {
-  font-size: 12px;
-  color: #78350f;
+  font-size: 14px;
+  color: #065f46;
   margin-bottom: 12px;
+  font-weight: 400;
 }
 
 .nft-ad-card img {
@@ -514,7 +534,7 @@ button {
   object-fit: cover;
   border-radius: 12px;
   margin: 0 auto 12px;
-  border: 2px solid #fbbf24;
+  border: 2px solid #10b981;
   transition: transform 0.3s ease;
 }
 
@@ -522,21 +542,22 @@ button {
   transform: scale(1.05);
 }
 
-.explore-btn {
-  background: linear-gradient(45deg, #f59e0b, #fbbf24);
-  color: white;
+.nft-ad-card .explore-btn {
+  background: linear-gradient(45deg, #10b981, #34d399);
+  color: #ffffff;
   padding: 10px 20px;
   border: none;
   border-radius: 20px;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 14px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
 }
 
-.explore-btn:hover {
-  background: linear-gradient(45deg, #d97706, #f59e0b);
+.nft-ad-card .explore-btn:hover {
+  background: linear-gradient(45deg, #059669, #10b981);
   transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(245, 158, 11, 0.4);
+  box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
 }
 
 /* Empty state */
@@ -545,7 +566,7 @@ button {
   justify-content: center;
   align-items: center;
   min-height: 400px;
-  background-color: #fff;
+  background-color: #ffffff;
   border-radius: 16px;
   padding: 40px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -566,24 +587,27 @@ button {
 }
 
 .empty-follow-content h3 {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   margin-bottom: 12px;
-  color: #333;
+  color: #333333;
 }
 
 .empty-follow-content p {
   color: #6b7280;
   margin-bottom: 24px;
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .discover-more-btn {
   background-color: #3b82f6;
-  color: white;
+  color: #ffffff;
   padding: 10px 24px;
   border-radius: 20px;
   border: none;
   font-weight: 500;
+  font-size: 14px;
   transition: all 0.3s ease;
 }
 
@@ -597,6 +621,7 @@ button {
 @media (max-width: 1024px) {
   .container {
     flex-direction: column;
+    padding: 10px; /* Adjust padding for smaller screens */
   }
 
   .left-panel,
@@ -648,3 +673,88 @@ button {
   }
 }
 
+/* Post actions top */
+.user-info {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.post-actions-top {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+}
+
+.action-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.save-btn.active svg {
+  fill: #3b82f6;
+  color: #3b82f6;
+}
+
+.report-btn:hover svg {
+  color: #ef4444;
+}
+
+/* Image styles */
+.post-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.post-image:hover {
+  transform: scale(1.02);
+}
+
+.image-container {
+  margin: 10px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 500px;
+}
+
+.image-container.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.image-container.three {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+}
+
+.image-container.three > *:first-child {
+  grid-row: span 2;
+}
+
+.image-container.four {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+}
