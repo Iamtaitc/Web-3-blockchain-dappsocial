@@ -369,8 +369,8 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
         style={{ maxHeight: "90vh" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-500 to-blue-600">
-          <h2 className="text-xl font-bold text-white">Tạo bài viết mới</h2>
+        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-500 to-teal-500">
+          <h2 className="text-xl  text-white">Tạo bài viết mới</h2>
           <button
             onClick={onClose}
             className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
@@ -380,40 +380,59 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b">
-          <button
-            className={`flex-1 py-3 font-medium transition-colors ${
-              activeTab === "content" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("content")}
-          >
-            Nội dung
-          </button>
-          <button
-            className={`flex-1 py-3 font-medium transition-colors ${
-              activeTab === "tags" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("tags")}
-          >
-            Thẻ
-          </button>
-          <button
-            className={`flex-1 py-3 font-medium transition-colors ${
-              activeTab === "mentions"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("mentions")}
-          >
-            Đề cập
-          </button>
-        </div>
+        <div className="flex border-b ">
+  <button
+    className={`flex-1 py-3  text-center transition-colors rounded-none ${
+      activeTab === "content"
+        ? "text-emerald-500 border-b-emerald-500"
+        : "text-gray-500 hover:text-gray-700"
+    }`}
+    onClick={() => setActiveTab("content")}
+  >
+    Nội dung
+  </button>
+  <button
+    className={`flex-1 py-3  text-center transition-colors rounded-none ${
+      activeTab === "tags"
+        ? "text-emerald-500 border-b-emerald-500"
+        : "text-gray-500 hover:text-gray-700"
+    }`}
+    onClick={() => setActiveTab("tags")}
+  >
+    Thẻ
+  </button>
+  <button
+    className={`flex-1 py-3 text-center transition-colors rounded-none ${
+      activeTab === "mentions"
+        ? "text-emerald-500 border-b-emerald-500"
+        : "text-gray-500 hover:text-gray-700"
+    }`}
+    onClick={() => setActiveTab("mentions")}
+  >
+    Đề cập
+  </button>
+</div>
+
 
         {/* Scrollable content */}
-        <div ref={modalContentRef} className="p-4 overflow-y-auto flex-1">
+        <div
+          ref={modalContentRef}
+          className="p-4 overflow-y-auto flex-1"
+          style={{
+            scrollbarWidth: "none" /* Firefox */,
+            msOverflowStyle: "none" /* IE and Edge */,
+          }}
+        >
+          <style jsx global>{`
+            /* Hide scrollbar for Chrome, Safari and Opera */
+            div::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+
           {/* User info */}
           <div className="flex items-center mb-4">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-blue-500 flex items-center justify-center text-white font-bold">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-green-400 to-green-500 flex items-center justify-center text-white font-bold">
               {user?.username?.charAt(0) || user?.name?.charAt(0) || user?.displayName?.charAt(0) || "U"}
             </div>
             <div className="ml-3">
@@ -431,7 +450,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
                   placeholder="Bạn đang nghĩ gì?"
                   value={content}
                   onChange={handleContentChange}
-                  className="w-full min-h-[120px] p-4 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-800 transition-all"
+                  className="w-full min-h-[120px] p-4 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-800 transition-all"
                   style={{ fontSize: "16px" }}
                 />
               </div>
@@ -441,7 +460,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
                 <div
                   ref={dragAreaRef}
                   className={`border-2 border-dashed rounded-lg p-6 mb-4 text-center transition-colors ${
-                    isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
+                    isDragging ? "border-green-500 bg-green-50" : "border-gray-300 hover:border-gray-400"
                   }`}
                 >
                   <div className="flex flex-col items-center">
@@ -450,7 +469,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
                     <p className="text-gray-500 text-sm mb-3">hoặc</p>
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                       disabled={uploadingMedia}
                     >
                       {uploadingMedia ? (
@@ -471,11 +490,11 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
               {mediaPreviewUrls.length > 0 && (
                 <div className={`grid ${mediaPreviewUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"} gap-3 mb-4`}>
                   {mediaPreviewUrls.map((url, index) => (
-                    <div key={index} className="relative group rounded-lg overflow-hidden">
+                    <div key={index} className="relative group rounded-lg overflow-hidden aspect-square">
                       <img
                         src={url || "/placeholder.svg"}
                         alt={`Xem trước ${index}`}
-                        className="object-cover w-full h-48 rounded-lg transition-transform group-hover:scale-105"
+                        className="object-cover w-full h-full rounded-lg transition-transform group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center">
                         <button
@@ -496,10 +515,13 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
                   {tags.map((tag, index) => (
                     <div
                       key={index}
-                      className="flex items-center px-3 py-1.5 text-sm bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition-colors"
+                      className="flex items-center px-3 py-1.5 text-sm bg-green-100 text-green-800 rounded-full hover:bg-green-200 transition-colors"
                     >
                       #{tag}
-                      <button onClick={() => handleRemoveTag(tag)} className="ml-1.5 text-blue-600 hover:text-blue-800">
+                      <button
+                        onClick={() => handleRemoveTag(tag)}
+                        className="ml-1.5 text-green-600 hover:text-green-800"
+                      >
                         <X size={14} />
                       </button>
                     </div>
@@ -535,8 +557,8 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
               <p className="text-sm text-gray-600">Thẻ giúp người dùng tìm thấy bài viết của bạn dễ dàng hơn</p>
 
               <div className="flex items-center gap-2">
-                <div className="flex items-center flex-1 px-4 py-3 border border-gray-200 rounded-lg bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
-                  <Tag size={18} className="mr-2 text-blue-500" />
+                <div className="flex items-center flex-1 px-4 py-3 border border-gray-200 rounded-lg bg-white focus-within:ring-2 focus-within:ring-green-500 focus-within:border-transparent transition-all">
+                  <Tag size={18} className="mr-2 text-green-500" />
                   <input
                     type="text"
                     placeholder="Nhập thẻ và nhấn Enter"
@@ -548,7 +570,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
                 </div>
                 <button
                   onClick={handleAddTag}
-                  className="px-4 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                  className="px-4 py-3 text-white bg-emerald-500 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
                 >
                   Thêm
                 </button>
@@ -561,12 +583,12 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
                     {tags.map((tag, index) => (
                       <div
                         key={index}
-                        className="flex items-center px-3 py-1.5 text-sm bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition-colors"
+                        className="flex items-center px-3 py-1.5 text-sm bg-green-100 text-green-800 rounded-full hover:bg-green-200 transition-colors"
                       >
                         #{tag}
                         <button
                           onClick={() => handleRemoveTag(tag)}
-                          className="ml-1.5 text-blue-600 hover:text-blue-800"
+                          className="ml-1.5 text-green-600 hover:text-green-800"
                         >
                           <X size={14} />
                         </button>
@@ -592,7 +614,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Hình ảnh đã thêm:</h4>
                   <div className="grid grid-cols-3 gap-2">
                     {mediaPreviewUrls.map((url, index) => (
-                      <div key={index} className="relative rounded-lg overflow-hidden h-20">
+                      <div key={index} className="relative rounded-lg overflow-hidden aspect-square">
                         <img
                           src={url || "/placeholder.svg"}
                           alt={`Preview ${index}`}
@@ -613,8 +635,8 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
 
               {/* Tìm kiếm người dùng */}
               <div className="flex items-center gap-2">
-                <div className="flex items-center flex-1 px-4 py-3 border border-gray-200 rounded-lg bg-white focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent transition-all">
-                  <Search size={18} className="mr-2 text-purple-500" />
+                <div className="flex items-center flex-1 px-4 py-3 border border-gray-200 rounded-lg bg-white focus-within:ring-2 focus-within:ring-green-500 focus-within:border-transparent transition-all">
+                  <Search size={18} className="mr-2 text-green-500" />
                   <input
                     type="text"
                     placeholder="Tìm kiếm người dùng..."
@@ -623,7 +645,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
                     onKeyDown={(e) => handleKeyDown(e, "mention")}
                     className="flex-1 focus:outline-none text-gray-800 bg-white"
                   />
-                  {isSearching && <Loader2 size={18} className="animate-spin text-purple-500" />}
+                  {isSearching && <Loader2 size={18} className="animate-spin text-green-500" />}
                 </div>
               </div>
 
@@ -636,7 +658,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
                       className="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
                       onClick={() => handleAddMention(user)}
                     >
-                      <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-medium">
+                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-medium">
                         {user.username.charAt(0).toUpperCase()}
                       </div>
                       <div className="ml-3">
@@ -687,7 +709,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Hình ảnh đã thêm:</h4>
                   <div className="grid grid-cols-3 gap-2">
                     {mediaPreviewUrls.map((url, index) => (
-                      <div key={index} className="relative rounded-lg overflow-hidden h-20">
+                      <div key={index} className="relative rounded-lg overflow-hidden aspect-square">
                         <img
                           src={url || "/placeholder.svg"}
                           alt={`Preview ${index}`}
@@ -722,9 +744,9 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
               title={mediaFiles.length >= 3 ? "Đã đạt giới hạn 3 hình ảnh" : "Thêm hình ảnh"}
             >
               {uploadingMedia ? (
-                <Loader2 size={18} className="animate-spin text-blue-500" />
+                <Loader2 size={18} className="animate-spin text-green-500" />
               ) : (
-                <Camera size={18} className="text-blue-500" />
+                <Camera size={18} className="text-green-500" />
               )}
               <span>Thêm ảnh</span>
             </button>
@@ -749,8 +771,8 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
             disabled={isSubmitting || !isAuthenticated || uploadingMedia}
             className={`flex items-center gap-2 px-5 py-2.5 text-white rounded-lg shadow-md transition-all ${
               isSubmitting || !isAuthenticated || uploadingMedia
-                ? "bg-blue-400 opacity-70 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 transform hover:scale-105"
+                ? "bg-emerald-500 opacity-70 cursor-not-allowed"
+                : "bg-emerald-500 hover:bg-emerald-700 transform hover:scale-105"
             }`}
           >
             {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
