@@ -1,8 +1,14 @@
-const ReportService = require("../services/ReportService");
-const { Report, Post, Comment, User, NFTCache } = require("../models/index");
+const ReportService = require("../../src/services/ReportService");
+const {
+  Report,
+  Post,
+  Comment,
+  User,
+  NFTCache,
+} = require("../../src/models/index");
 
 // Mock the dependencies
-jest.mock("../models/index");
+jest.mock("../../src/models/index");
 
 describe("ReportService", () => {
   // Reset all mocks before each test

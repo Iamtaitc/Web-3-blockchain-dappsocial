@@ -1,4 +1,4 @@
-const { User, Post, NFTCache, Comment } = require("../models/index");
+const { User, Post, NFTCache, Comment, Follow } = require("../models/index");
 const AddressUtils = require("../utils/address.utils");
 const FormatUtils = require("../utils/format.utils");
 
@@ -6,6 +6,69 @@ const FormatUtils = require("../utils/format.utils");
  * Service xử lý các chức năng tìm kiếm
  */
 class SearchService {
+  /**
+   * Tạo query cơ bản cho tìm kiếm user
+   * @param {String} query - Chuỗi tìm kiếm
+   * @returns {Object} Query object cho MongoDB
+   * @private
+   */
+  _createUserSearchQuery(query) {
+    return {
+      $or: [
+        { username: { $regex: query, $options: "i" } },
+        { ensName: { $regex: query, $options: "i" } },
+        { bio: { $regex: query, $options: "i" } },
+      ],
+      status: "active",
+    };
+  }
+
+  /**
+   * Xác định cách sắp xếp dựa trên sortBy
+   * @param {String} sortBy - Loại sắp xếp
+   * @param {String} entityType - Loại entity (users, posts, nfts)
+   * @returns {Object} Sort object cho MongoDB
+   * @private
+   */
+  _getSortOptions(sortBy, entityType = "users") {
+    const sortOptions = {
+      users: {
+        default: { followerCount: -1 },
+        newest: { createdAt: -1 },
+        points: { points: -1 },
+      },
+      posts: {
+        default: { createdAt: -1 },
+        trending: { trendScore: -1 },
+        popular: { "stats.likeCount": -1 },
+      },
+      nfts: {
+        default: { mintedAt: -1 },
+        trending: { trendScore: -1 },
+        "price-asc": { price: 1 },
+        "price-desc": { price: -1 },
+      },
+    };
+
+    return sortOptions[entityType][sortBy] || sortOptions[entityType].default;
+  }
+
+  /**
+   * Xử lý lỗi chung cho các hàm trong service
+   * @param {Error} error - Lỗi gặp phải
+   * @param {String} operation - Tên hoạt động
+   * @returns {Object} Response error chuẩn hóa
+   * @private
+   */
+  _handleError(error, operation) {
+    console.error(`${operation} error:`, error);
+    return {
+      success: false,
+      status: error.status || 500,
+      message: `Lỗi khi ${operation}`,
+      error: error.message,
+    };
+  }
   /**
    * Tìm kiếm tổng hợp (users, posts, NFTs, tags)
    * @param {String} query - Chuỗi tìm kiếm
@@ -19,19 +82,12 @@ class SearchService {
     try {
       const skip = (page - 1) * limit;
       const searchLimit = limit;
-
       const results = {};
 
       // Tìm kiếm người dùng
       if (!type || type === "users") {
-        const users = await User.find({
-          $or: [
-            { username: { $regex: query, $options: "i" } },
-            { ensName: { $regex: query, $options: "i" } },
-            { bio: { $regex: query, $options: "i" } },
-          ],
-          status: "active",
-        })
+        const userQuery = this._createUserSearchQuery(query);
+        const users = await User.find(userQuery)
           .select(
             "walletAddress username ensName avatarURI bio isVerified followerCount"
           )
@@ -39,14 +95,7 @@ class SearchService {
           .skip(skip)
           .limit(searchLimit);
 
-        const totalUsers = await User.countDocuments({
-          $or: [
-            { username: { $regex: query, $options: "i" } },
-            { ensName: { $regex: query, $options: "i" } },
-            { bio: { $regex: query, $options: "i" } },
-          ],
-          status: "active",
-        });
+        const totalUsers = await User.countDocuments(userQuery);
 
         results.users = {
           items: users.map((user) => FormatUtils.formatUserData(user)),
@@ -60,26 +109,20 @@ class SearchService {
 
       // Tìm kiếm bài viết
       if (!type || type === "posts") {
-        const posts = await Post.find({
+        const postQuery = {
           $or: [
             { content: { $regex: query, $options: "i" } },
             { tags: { $regex: query, $options: "i" } },
           ],
           status: "active",
-        })
+        };
+
+        const posts = await Post.find(postQuery)
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(searchLimit);
 
-        const totalPosts = await Post.countDocuments({
-          $or: [
-            { content: { $regex: query, $options: "i" } },
-            { tags: { $regex: query, $options: "i" } },
-          ],
-          status: "active",
-        });
-
-        // Lấy thông tin author cho mỗi post
+        const totalPosts = await Post.countDocuments(postQuery);
         const postResults = await FormatUtils.formatPostsWithAuthor(
           posts,
           currentUser
@@ -228,24 +271,10 @@ class SearchService {
   async searchUsers(query, limit, page, sortBy, currentUser) {
     try {
       const skip = (page - 1) * limit;
+      const searchQuery = this._createUserSearchQuery(query);
+      const sort = this._getSortOptions(sortBy, "users");
 
-      // Xác định cách sắp xếp
-      let sort = { followerCount: -1 };
-      if (sortBy === "newest") {
-        sort = { createdAt: -1 };
-      } else if (sortBy === "points") {
-        sort = { points: -1 };
-      }
-
-      // Tìm kiếm người dùng
-      const users = await User.find({
-        $or: [
-          { username: { $regex: query, $options: "i" } },
-          { ensName: { $regex: query, $options: "i" } },
-          { bio: { $regex: query, $options: "i" } },
-        ],
-        status: "active",
-      })
+      const users = await User.find(searchQuery)
         .select(
           "walletAddress username ensName avatarURI bio isVerified followerCount followingCount subscription.level createdAt"
         )
@@ -253,16 +282,7 @@ class SearchService {
         .skip(skip)
         .limit(limit);
 
-      const totalUsers = await User.countDocuments({
-        $or: [
-          { username: { $regex: query, $options: "i" } },
-          { ensName: { $regex: query, $options: "i" } },
-          { bio: { $regex: query, $options: "i" } },
-        ],
-        status: "active",
-      });
-
-      // Kiểm tra xem người dùng hiện tại có follow những users này không
+      const totalUsers = await User.countDocuments(searchQuery);
       const formattedUsers = FormatUtils.formatUserListWithFollow(
         users,
         currentUser
@@ -278,13 +298,131 @@ class SearchService {
         },
       };
     } catch (error) {
-      console.error("User search error:", error);
-      return {
-        success: false,
-        status: 500,
-        message: "Lỗi khi tìm kiếm người dùng",
-        error: error.message,
+      return this._handleError(error, "tìm kiếm người dùng");
+    }
+  }
+
+  /**
+   * Tìm kiếm người dùng cho tính năng mention
+   * @param {String} keyword - Từ khóa tìm kiếm (không bao gồm @)
+   * @param {Number} limit - Giới hạn kết quả (mặc định 5)
+   * @param {Object} currentUser - Thông tin user hiện tại
+   * @returns {Object} Danh sách gợi ý người dùng
+   */
+  async searchUserForMention(keyword, limit = 5, currentUser) {
+    try {
+      // Truy vấn optimized cho prefix search
+      // Gợi ý chỉ lấy username bắt đầu bằng keyword
+      const query = {
+        username: { $regex: `^${keyword}`, $options: "i" },
+        status: "active",
       };
+
+      // Chỉ select các trường cần thiết tối thiểu
+      const users = await User.find(query)
+        .select("_id walletAddress username avatarURI isVerified")
+        .limit(limit * 2); // Lấy nhiều hơn để có đủ sau khi sắp xếp ưu tiên
+
+      let prioritizedUsers = [...users];
+
+      // Nếu có current user, thêm logic ưu tiên người dùng đang follow
+      if (currentUser && currentUser.walletAddress) {
+        // 1. Tìm danh sách người dùng mà currentUser đang follow
+        const followingList = await Follow.find({
+          follower: currentUser.walletAddress.toLowerCase(),
+        }).select("following");
+
+        // Tạo set các địa chỉ ví đang follow để tìm kiếm nhanh
+        const followingSet = new Set(followingList.map((f) => f.following));
+
+        // Sắp xếp lại danh sách user: ưu tiên người đang follow lên đầu
+        prioritizedUsers.sort((a, b) => {
+          const aIsFollowing = followingSet.has(a.walletAddress.toLowerCase());
+          const bIsFollowing = followingSet.has(b.walletAddress.toLowerCase());
+
+          if (aIsFollowing && !bIsFollowing) return -1;
+          if (!aIsFollowing && bIsFollowing) return 1;
+          return 0;
+        });
+
+        // Giới hạn lại theo limit ban đầu
+        prioritizedUsers = prioritizedUsers.slice(0, limit);
+      }
+
+      return {
+        success: true,
+        status: 200,
+        message: "Tìm kiếm mention thành công",
+        data: prioritizedUsers.map((user) => ({
+          _id: user._id,
+          walletAddress: user.walletAddress,
+          username: user.username,
+          avatarURI: user.avatarURI,
+          isVerified: user.isVerified,
+          // Thêm flag để frontend biết đây là người dùng đang follow
+          isFollowing:
+            currentUser && currentUser.walletAddress
+              ? prioritizedUsers.findIndex(
+                  (u) =>
+                    u.walletAddress.toLowerCase() ===
+                    user.walletAddress.toLowerCase()
+                ) <
+                prioritizedUsers.length / 2
+              : false,
+        })),
+      };
+    } catch (error) {
+      return this._handleError(error, "tìm kiếm mention");
+    }
+  }
+
+  /**
+   * Xử lý mentions trong nội dung
+   * @param {String} content - Nội dung có chứa mentions
+   * @returns {Object} Nội dung đã xử lý và danh sách mentions
+   */
+  async processMentions(content) {
+    try {
+      // Regex để tìm các mentions trong nội dung
+      const mentionRegex = /@(\w+)/g;
+      const mentions = [];
+      let match;
+
+      // Tìm tất cả mentions trong nội dung
+      while ((match = mentionRegex.exec(content)) !== null) {
+        const username = match[1];
+        mentions.push(username);
+      }
+
+      // Tìm thông tin người dùng cho mỗi mention
+      const userMentions = [];
+
+      for (const username of mentions) {
+        const user = await User.findOne({ username, status: "active" }).select(
+          "_id walletAddress username"
+        );
+
+        if (user) {
+          userMentions.push({
+            _id: user._id,
+            walletAddress: user.walletAddress,
+            username: user.username,
+            mentionText: `@${username}`,
+          });
+        }
+      }
+
+      return {
+        success: true,
+        status: 200,
+        message: "Xử lý mentions thành công",
+        data: {
+          processedContent: content,
+          mentions: userMentions,
+        },
+      };
+    } catch (error) {
+      return this._handleError(error, "xử lý mentions");
     }
   }
 

@@ -122,7 +122,7 @@ class SubscriptionService {
           message: "Không tìm thấy thông tin thanh toán",
         };
       }
-  
+
       if (payment.paymentStatus !== "pending") {
         return {
           success: false,
@@ -130,10 +130,10 @@ class SubscriptionService {
           message: `Thanh toán đã được xử lý trước đó (${payment.paymentStatus})`,
         };
       }
-  
+
       const provider = getProvider();
       const txReceipt = await provider.getTransactionReceipt(transactionHash);
-  
+
       if (!txReceipt || txReceipt.status !== 1) {
         return {
           success: false,
@@ -141,10 +141,10 @@ class SubscriptionService {
           message: "Giao dịch không tồn tại hoặc thất bại trên blockchain",
         };
       }
-  
+
       const tx = await provider.getTransaction(transactionHash);
       const adminAddresses = config.ADMIN_ADDRESSES;
-  
+
       if (!adminAddresses || !adminAddresses.includes(tx.to.toLowerCase())) {
         return {
           success: false,
@@ -152,19 +152,19 @@ class SubscriptionService {
           message: "Giao dịch không gửi đến đúng ví admin",
         };
       }
-  
-      const txValue = Number(ethers.formatEther(tx.value));
-const requiredValue = payment.totalPrice;
-const tolerance = 0.000000001;
 
-if (txValue < (requiredValue - tolerance)) {
-  return {
-    success: false,
-    status: 400,
-    message: `Số tiền thanh toán (${txValue} ETH) nhỏ hơn yêu cầu (${requiredValue} ETH)`,
-  };
-}
-  
+      const txValue = Number(ethers.formatEther(tx.value));
+      const requiredValue = payment.totalPrice;
+      const tolerance = 0.000000001;
+
+      if (txValue < requiredValue - tolerance) {
+        return {
+          success: false,
+          status: 400,
+          message: `Số tiền thanh toán (${txValue} ETH) nhỏ hơn yêu cầu (${requiredValue} ETH)`,
+        };
+      }
+
       const privateKey = config.PRIVATE_KEY;
       if (!privateKey) {
         return {
@@ -173,7 +173,7 @@ if (txValue < (requiredValue - tolerance)) {
           message: "Không tìm thấy private key từ cấu hình",
         };
       }
-  
+
       const { subscription } = getSignedContracts(privateKey);
       const activateTx = await subscription.activateSubscription(
         payment.user,
@@ -181,13 +181,13 @@ if (txValue < (requiredValue - tolerance)) {
         payment.months
       );
       const receipt = await activateTx.wait();
-  
+
       payment.paymentStatus = "completed";
       payment.transactionHash = transactionHash;
       payment.confirmationDate = new Date();
       payment.subscriptionTransactionHash = receipt.transactionHash;
       await payment.save();
-  
+
       const expirationDate = new Date(
         Date.now() + payment.months * 30 * 24 * 60 * 60 * 1000
       );
@@ -198,7 +198,7 @@ if (txValue < (requiredValue - tolerance)) {
           subscriptionExpireDate: expirationDate,
         }
       );
-  
+
       return {
         success: true,
         status: 200,

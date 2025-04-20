@@ -57,7 +57,25 @@ class SearchController {
       'Tìm kiếm người dùng thành công'
     );
   }
-
+  async searchUserForMention(req, res) {
+    const { keyword, limit } = req.query;
+    
+    if (!keyword) {
+      return ApiResponse.badRequest(res, 'Vui lòng cung cấp từ khóa tìm kiếm');
+    }
+    
+    const result = await SearchService.searchUserForMention(
+      keyword, 
+      parseInt(limit) || 5, 
+      req.user
+    );
+    
+    if (!result.success) {
+      return ApiResponse.error(res, result.message, result.status || 500, result.error);
+    }
+    
+    return ApiResponse.success(res, result.data, result.message);
+  }
   /**
    * Tìm kiếm posts
    * @param {Object} req - Request object
