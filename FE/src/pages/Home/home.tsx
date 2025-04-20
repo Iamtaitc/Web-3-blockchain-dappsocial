@@ -474,7 +474,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Bảng bên phải */}
+      {/* Bảng bên phải - đã được cập nhật để sticky khi cuộn */}
       <div className="right-panel">
         <div className="balance">
           <p className="balance-amount">189.331.433 Dx</p>

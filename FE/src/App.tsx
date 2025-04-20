@@ -29,8 +29,10 @@ const AppContent = () => {
           <Navbar />
         </div>
         {/* Nội dung chính */}
-        <div className="flex-1 p-4 bg-white ml-[200px] overflow-x-hidden">
-          <AppRoutes />
+        <div className="flex-1 p-4 bg-white ml-[200px] min-h-screen overflow-x-hidden flex flex-col">
+          <div className="flex-1">
+            <AppRoutes />
+          </div>
         </div>
       </div>
     </ThemeProvider>
