@@ -103,32 +103,6 @@ const postApi = {
   getAllPosts: async (page = 1, limit = 20): Promise<PostResponse> => {
     try {
       const response = await instance.get(`/post/all?page=${page}&limit=${limit}`)
-
-      // Nếu người dùng đã đăng nhập, kiểm tra trạng thái like và save cho mỗi bài viết
-      if (response.data.success && response.data.data) {
-        const posts = Array.isArray(response.data.data) ? response.data.data : response.data.data.posts || []
-
-        // Kiểm tra xem token có tồn tại không (người dùng đã đăng nhập)
-        const token = localStorage.getItem("token")
-        if (token) {
-          // Lấy trạng thái like và save cho mỗi bài viết
-          for (const post of posts) {
-            try {
-              const statusResponse = await instance.get(`/post/${post._id}/status`)
-              if (statusResponse.data.success) {
-                post.isLiked = statusResponse.data.data.isLiked
-                post.isSaved = statusResponse.data.data.isSaved
-              }
-            } catch (err) {
-              console.error(`Không thể lấy trạng thái cho bài viết ${post._id}:`, err)
-              // Mặc định là false nếu có lỗi
-              post.isLiked = false
-              post.isSaved = false
-            }
-          }
-        }
-      }
-
       return response.data
     } catch (error: any) {
       throw error.response?.data || { success: false, message: "Lỗi khi tải bài viết" }
@@ -216,15 +190,15 @@ const postApi = {
   },
 
   // Kiểm tra trạng thái thích và lưu của bài viết
-  getPostStatus: async (postId: string): Promise<{ isLiked: boolean; isSaved: boolean }> => {
-    try {
-      const response = await instance.get(`/post/${postId}/status`)
-      return response.data.data || { isLiked: false, isSaved: false }
-    } catch (error: any) {
-      console.error("Lỗi khi kiểm tra trạng thái bài viết:", error)
-      return { isLiked: false, isSaved: false }
-    }
-  },
+  // getPostStatus: async (postId: string): Promise<{ isLiked: boolean; isSaved: boolean }> => {
+  //   try {
+  //     const response = await instance.get(`/post/${postId}/status`)
+  //     return response.data.data || { isLiked: false, isSaved: false }
+  //   } catch (error: any) {
+  //     console.error("Lỗi khi kiểm tra trạng thái bài viết:", error)
+  //     return { isLiked: false, isSaved: false }  
+  //   }
+  // },
 
   // Báo cáo bài viết
   reportPost: async (postId: string, reason: string): Promise<PostResponse> => {
