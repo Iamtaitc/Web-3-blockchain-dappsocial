@@ -5,13 +5,13 @@ import avtImage from "../../assets/default-avatar-profile-image-vector-social-me
 import Nfttuimu from "../../assets/NFTtuimu.avif"
 import { useState, useEffect } from "react"
 import "yet-another-react-lightbox/styles.css"
-import HeartButton from "../../components/UI/HeartButton"
-import CommentModal, { type Comment } from "../../components/UI/CommentModal"
+import HeartButton from "../../Components/UI/HeartButton"
+import CommentModal, { type Comment } from "../../Components/UI/CommentModal"
 import { MessageCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { posts } from "../../data/posts"
-import InfiniteScroll from "../../components/infinite-scroll"
-import PostSkeleton from "../../components/post-skeleton"
+import InfiniteScroll from "../../Components/infinite-scroll"
+import PostSkeleton from "../../Components/post-skeleton"
 
 const Home = () => {
   const navigate = useNavigate()

@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -14,103 +14,189 @@ import {
   Heart,
   ImageIcon,
   FileText,
-} from "lucide-react"
+  Save,
+  Eye as ViewIcon,
+} from "lucide-react";
+import AdminApi from "../../services/AdminApi";
 
-// Mock content data
-const mockContent = Array.from({ length: 100 }, (_, i) => {
-  // Only text or image content types (no video)
-  const contentTypes = ["text", "image", "image", "image"]
-  const contentType = contentTypes[Math.floor(Math.random() * contentTypes.length)]
-
-  // Generate different placeholder images
-  const imageNumber = Math.floor(Math.random() * 10) + 1
-  const mediaUrl = contentType === "image" ? `/placeholder.svg?height=300&width=500&text=Image+${imageNumber}` : null
-
-  return {
-    id: i + 1,
-    content: `This is a sample ${contentType} post #${i + 1}. ${
-      Math.random() > 0.5
-        ? "Check out this amazing content! #crypto #web3 #nft"
-        : "Just sharing my thoughts on the latest blockchain developments."
-    }`,
-    author: {
-      id: Math.floor(Math.random() * 100) + 1,
-      username: `user_${Math.floor(Math.random() * 100) + 1}`,
-      avatar: `/placeholder.svg?height=40&width=40`,
-      verified: Math.random() > 0.8,
-    },
-    mediaType: contentType !== "text" ? contentType : null,
-    mediaUrl: contentType !== "text" ? mediaUrl : null,
-    status: Math.random() > 0.9 ? "deleted" : Math.random() > 0.8 ? "hidden" : "active",
-    likes: Math.floor(Math.random() * 1000),
-    comments: Math.floor(Math.random() * 100),
-    createdAt: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString(),
-  }
-})
+// Interface for content
+interface Content {
+  id: string;
+  content: string;
+  author: {
+    id: string; // walletAddress
+    username: string;
+    avatar: string | null;
+    verified: boolean;
+  };
+  mediaType: "image" | null;
+  mediaUrl: string | null;
+  status: "active" | "hidden" | "deleted";
+  likes: number;
+  comments: number;
+  saves: number;
+  views: number;
+  createdAt: string;
+}
 
 const ContentModeration = () => {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [selectedContent, setSelectedContent] = useState<any>(null)
-  const [showContentModal, setShowContentModal] = useState(false)
-  const [showActionModal, setShowActionModal] = useState(false)
-  const [actionType, setActionType] = useState<"hide" | "delete" | "activate" | null>(null)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedContent, setSelectedContent] = useState<Content | null>(null);
+  const [showContentModal, setShowContentModal] = useState(false);
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [actionType, setActionType] = useState<"hide" | "delete" | "activate" | null>(null);
+  const [contentList, setContentList] = useState<Content[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const itemsPerPage = 20
+  const itemsPerPage = 20;
 
-  // Filter content based on search term and status
-  const filteredContent = mockContent.filter((content) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      content.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      content.author.username.toLowerCase().includes(searchTerm.toLowerCase())
+  // Map actionType to Content status
+  const mapActionToStatus = (action: "hide" | "delete" | "activate"): "hidden" | "deleted" | "active" => {
+    switch (action) {
+      case "hide":
+        return "hidden";
+      case "delete":
+        return "deleted";
+      case "activate":
+        return "active";
+      default:
+        throw new Error(`Invalid action type: ${action}`);
+    }
+  };
 
-    const matchesStatus = statusFilter === "all" || content.status === statusFilter
+  // Fetch content from API
+  const fetchContent = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const queryParams = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        ...(searchTerm && { search: searchTerm }),
+        ...(statusFilter !== "all" && { status: statusFilter }),
+      });
 
-    return matchesSearch && matchesStatus
-  })
+      const response = await AdminApi.getModerationPosts(queryParams);
+      console.log("Moderation API response:", response);
 
-  // Paginate content
-  const totalPages = Math.ceil(filteredContent.length / itemsPerPage)
-  const paginatedContent = filteredContent.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+      if (response.success && response.data) {
+        const { posts, pagination } = response.data;
+
+        // Map API data to Content interface
+        const mappedContent: Content[] = posts.map((post: any) => ({
+          id: post._id,
+          content: post.content,
+          author: {
+            id: post.author, // walletAddress
+            username: post.authorDetails?.username || "Unknown",
+            avatar: post.authorDetails?.avatarURI || null,
+            verified: post.authorDetails?.isVerified || false,
+          },
+          mediaType: post.media?.[0]?.type || null,
+          mediaUrl: post.media?.[0]?.uri || null,
+          status: post.status,
+          likes: post.likeCount || 0,
+          comments: post.commentCount || 0,
+          saves: post.saveCount || 0,
+          views: post.viewCount || 0,
+          createdAt: post.createdAt,
+        }));
+
+        setContentList(mappedContent);
+        setTotalPages(pagination.pages || 1);
+        setTotalItems(pagination.total || 0);
+      } else {
+        console.warn("API response unsuccessful or missing data:", response);
+        setError(response.message || "Failed to fetch content");
+      }
+    } catch (err: any) {
+      console.error("Error fetching content:", err);
+      setError(err.message || "Failed to fetch content");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch content when page, search term, or status filter changes
+  useEffect(() => {
+    fetchContent();
+  }, [currentPage, searchTerm, statusFilter]);
 
   // Handle content action
-  const handleContentAction = (content: any, action: "hide" | "delete" | "activate") => {
-    setSelectedContent(content)
-    setActionType(action)
-    setShowActionModal(true)
-  }
+  const handleContentAction = async (content: Content, action: "hide" | "delete" | "activate") => {
+    setSelectedContent(content);
+    setActionType(action);
+    setShowActionModal(true);
+  };
+
+  // Confirm content action
+  const confirmContentAction = async () => {
+    if (!selectedContent || !actionType) return;
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Map actionType to API status before sending
+      const apiStatus = mapActionToStatus(actionType);
+      const response = await AdminApi.updatePostStatus(selectedContent.id, apiStatus);
+      console.log("Update status response:", response);
+
+      if (response.success) {
+        // Update content list with mapped status
+        const newStatus = mapActionToStatus(actionType);
+        setContentList((prev) =>
+          prev.map((item) =>
+            item.id === selectedContent.id ? { ...item, status: newStatus } : item
+          )
+        );
+        setShowActionModal(false);
+        setShowContentModal(false);
+      } else {
+        console.warn("Failed to update post status:", response);
+        setError(response.message || "Failed to update post status");
+      }
+    } catch (err: any) {
+      console.error("Error updating post status:", err);
+      setError(err.message || "Failed to update post status");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // View content details
-  const viewContentDetails = (content: any) => {
-    setSelectedContent(content)
-    setShowContentModal(true)
-  }
+  const viewContentDetails = (content: Content) => {
+    setSelectedContent(content);
+    setShowContentModal(true);
+  };
 
   // Get status badge color
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
       case "hidden":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
       case "deleted":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
     }
-  }
+  };
 
   // Get media icon
   const getMediaIcon = (mediaType: string | null) => {
     switch (mediaType) {
       case "image":
-        return <ImageIcon className="h-5 w-5 text-blue-500" />
+        return <ImageIcon className="h-5 w-5 text-blue-500" />;
       default:
-        return <FileText className="h-5 w-5 text-gray-500" />
+        return <FileText className="h-5 w-5 text-gray-500" />;
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -118,9 +204,35 @@ const ContentModeration = () => {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Content Moderation</h1>
         <div className="flex items-center space-x-2">
           <span className="text-sm text-gray-500 dark:text-gray-400">Total Content:</span>
-          <span className="text-sm font-medium">{mockContent.length}</span>
+          <span className="text-sm font-medium">{totalItems}</span>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="rounded-md bg-red-50 dark:bg-red-900/30 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400 dark:text-red-500"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-300">{error}</h3>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters and Search */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -132,9 +244,13 @@ const ContentModeration = () => {
             <input
               type="text"
               className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5"
-              placeholder="Search content..."
+              placeholder="Search content or username..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1); // Reset to first page on search
+              }}
+              disabled={isLoading}
             />
           </div>
         </div>
@@ -147,7 +263,11 @@ const ContentModeration = () => {
             <select
               className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5 pr-8"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1); // Reset to first page on filter change
+              }}
+              disabled={isLoading}
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -164,194 +284,222 @@ const ContentModeration = () => {
       {/* Content Table */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  ID
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Content
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Author
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Media
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Stats
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Created
-                </th>
-                <th scope="col" className="px-6 py-3 text-right">
-                  <span className="sr-only">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {paginatedContent.map((content) => (
-                <tr key={content.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    #{content.id}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900 dark:text-white line-clamp-2">{content.content}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-8 w-8 relative">
-                        <img
-                          className="h-8 w-8 rounded-full"
-                          src={content.author.avatar || "/placeholder.svg"}
-                          alt={content.author.username}
-                        />
-                        {content.author.verified && (
-                          <div className="absolute bottom-0 right-0 h-3 w-3 bg-blue-500 rounded-full border-2 border-white dark:border-gray-800"></div>
-                        )}
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+            </div>
+          ) : contentList.length === 0 ? (
+            <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+              No content available
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
+                    ID
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
+                    Content
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
+                    Author
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
+                    Media
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
+                    Stats
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
+                    Status
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
+                    Created
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {contentList.map((content) => (
+                  <tr key={content.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      #{content.id.slice(-6)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 dark:text-white line-clamp-2">
+                        {content.content}
                       </div>
-                      <div className="ml-3">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {content.author.username}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-8 w-8 relative">
+                          <img
+                            className="h-8 w-8 rounded-full"
+                            src={content.author.avatar || "/placeholder.svg?height=40&width=40"}
+                            alt={content.author.username}
+                          />
+                          {content.author.verified && (
+                            <div className="absolute bottom-0 right-0 h-3 w-3 bg-blue-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                          )}
+                        </div>
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {content.author.username}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {content.mediaType ? (
-                      <div className="flex items-center">
-                        {getMediaIcon(content.mediaType)}
-                        <span className="ml-1 text-sm text-gray-500 dark:text-gray-400 capitalize">
-                          {content.mediaType}
-                        </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {content.mediaType ? (
+                        <div className="flex items-center">
+                          {getMediaIcon(content.mediaType)}
+                          <span className="ml-1 text-sm text-gray-500 dark:text-gray-400 capitalize">
+                            {content.mediaType}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500 dark:text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                          <Heart className="h-4 w-4 text-red-500 mr-1" />
+                          {content.likes}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                          <MessageSquare className="h-4 w-4 text-blue-500 mr-1" />
+                          {content.comments}
+                        </div>
                       </div>
-                    ) : (
-                      <span className="text-sm text-gray-500 dark:text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center space-x-2">
-                      <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                        <Heart className="h-4 w-4 text-red-500 mr-1" />
-                        {content.likes}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                        <MessageSquare className="h-4 w-4 text-blue-500 mr-1" />
-                        {content.comments}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(
-                        content.status,
-                      )}`}
-                    >
-                      {content.status.charAt(0).toUpperCase() + content.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(content.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      className="text-emerald-600 dark:text-emerald-500 hover:text-emerald-900 dark:hover:text-emerald-400"
-                      onClick={() => viewContentDetails(content)}
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(
+                          content.status
+                        )}`}
+                      >
+                        {content.status.charAt(0).toUpperCase() + content.status.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {new Date(content.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        className="text-emerald-600 dark:text-emerald-500 hover:text-emerald-900 dark:hover:text-emerald-400"
+                        onClick={() => viewContentDetails(content)}
+                        disabled={isLoading}
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Pagination */}
-        <div className="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700 dark:text-gray-400">
-                Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
-                <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredContent.length)}</span> of{" "}
-                <span className="font-medium">{filteredContent.length}</span> results
-              </p>
-            </div>
-            <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        {!isLoading && contentList.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700 dark:text-gray-400">
+                  Showing{" "}
+                  <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
+                  <span className="font-medium">
+                    {Math.min(currentPage * itemsPerPage, totalItems)}
+                  </span>{" "}
+                  of <span className="font-medium">{totalItems}</span> results
+                </p>
+              </div>
+              <div>
+                <nav
+                  className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                  aria-label="Pagination"
                 >
-                  <span className="sr-only">Previous</span>
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                {/* Page numbers */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const pageNumber = currentPage <= 3 ? i + 1 : currentPage - 2 + i
-                  if (pageNumber <= totalPages) {
-                    return (
-                      <button
-                        key={pageNumber}
-                        onClick={() => setCurrentPage(pageNumber)}
-                        className={`relative inline-flex items-center px-4 py-2 border ${
-                          currentPage === pageNumber
-                            ? "z-10 bg-emerald-50 dark:bg-emerald-900 border-emerald-500 dark:border-emerald-600 text-emerald-600 dark:text-emerald-300"
-                            : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-                        } text-sm font-medium`}
-                      >
-                        {pageNumber}
-                      </button>
-                    )
-                  }
-                  return null
-                })}
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span className="sr-only">Next</span>
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </nav>
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1 || isLoading}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Previous</span>
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNumber =
+                      currentPage <= 3 ? i + 1 : currentPage - 2 + i;
+                    if (pageNumber <= totalPages) {
+                      return (
+                        <button
+                          key={pageNumber}
+                          onClick={() => setCurrentPage(pageNumber)}
+                          className={`relative inline-flex items-center px-4 py-2 border ${
+                            currentPage === pageNumber
+                              ? "z-10 bg-emerald-50 dark:bg-emerald-900 border-emerald-500 dark:border-emerald-600 text-emerald-600 dark:text-emerald-300"
+                              : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          } text-sm font-medium`}
+                          disabled={isLoading}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    }
+                    return null;
+                  })}
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages || isLoading}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Next</span>
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </nav>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Content Details Modal */}
       {showContentModal && selectedContent && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" onClick={() => setShowContentModal(false)}>
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto"
+          onClick={() => setShowContentModal(false)}
+        >
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-              &#8203;
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              ​
             </span>
             <div
               className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
@@ -360,11 +508,16 @@ const ContentModeration = () => {
               <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="sm:flex sm:items-start">
                   <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Content Details</h3>
+                    <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+                      Content Details
+                    </h3>
                     <div className="mt-4 space-y-4">
                       <div className="flex items-center">
                         <img
-                          src={selectedContent.author.avatar || "/placeholder.svg"}
+                          src={
+                            selectedContent.author.avatar ||
+                            "/placeholder.svg?height=40&width=40"
+                          }
                           alt={selectedContent.author.username}
                           className="h-10 w-10 rounded-full mr-3"
                         />
@@ -378,13 +531,20 @@ const ContentModeration = () => {
                         </div>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-900 dark:text-white">{selectedContent.content}</p>
+                        <p className="text-sm text-gray-900 dark:text-white">
+                          {selectedContent.content}
+                        </p>
                       </div>
                       {selectedContent.mediaType === "image" && (
                         <div className="mt-4">
-                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Image:</h4>
+                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Image:
+                          </h4>
                           <img
-                            src={selectedContent.mediaUrl || "/placeholder.svg?height=300&width=500"}
+                            src={
+                              selectedContent.mediaUrl ||
+                              "/placeholder.svg?height=300&width=500"
+                            }
                             alt="Content"
                             className="w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700"
                           />
@@ -400,13 +560,22 @@ const ContentModeration = () => {
                             <MessageSquare className="h-4 w-4 text-blue-500 mr-1" />
                             {selectedContent.comments}
                           </div>
+                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                            <Save className="h-4 w-4 text-purple-500 mr-1" />
+                            {selectedContent.saves}
+                          </div>
+                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                            <ViewIcon className="h-4 w-4 text-green-500 mr-1" />
+                            {selectedContent.views}
+                          </div>
                         </div>
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(
-                            selectedContent.status,
+                            selectedContent.status
                           )}`}
                         >
-                          {selectedContent.status.charAt(0).toUpperCase() + selectedContent.status.slice(1)}
+                          {selectedContent.status.charAt(0).toUpperCase() +
+                            selectedContent.status.slice(1)}
                         </span>
                       </div>
                     </div>
@@ -420,6 +589,7 @@ const ContentModeration = () => {
                       type="button"
                       className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:ml-3 sm:w-auto sm:text-sm"
                       onClick={() => handleContentAction(selectedContent, "hide")}
+                      disabled={isLoading}
                     >
                       <EyeOff className="h-4 w-4 mr-2" />
                       Hide Content
@@ -428,6 +598,7 @@ const ContentModeration = () => {
                       type="button"
                       className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                       onClick={() => handleContentAction(selectedContent, "delete")}
+                      disabled={isLoading}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete Content
@@ -440,6 +611,7 @@ const ContentModeration = () => {
                       type="button"
                       className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:ml-3 sm:w-auto sm:text-sm"
                       onClick={() => handleContentAction(selectedContent, "activate")}
+                      disabled={isLoading}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Restore Content
@@ -448,6 +620,7 @@ const ContentModeration = () => {
                       type="button"
                       className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                       onClick={() => handleContentAction(selectedContent, "delete")}
+                      disabled={isLoading}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete Content
@@ -459,6 +632,7 @@ const ContentModeration = () => {
                     type="button"
                     className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:ml-3 sm:w-auto sm:text-sm"
                     onClick={() => handleContentAction(selectedContent, "activate")}
+                    disabled={isLoading}
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     Restore Content
@@ -468,6 +642,7 @@ const ContentModeration = () => {
                   type="button"
                   className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:mt-0 sm:w-auto sm:text-sm"
                   onClick={() => setShowContentModal(false)}
+                  disabled={isLoading}
                 >
                   Close
                 </button>
@@ -479,10 +654,16 @@ const ContentModeration = () => {
 
       {/* Action Confirmation Modal */}
       {showActionModal && selectedContent && actionType && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" onClick={() => setShowActionModal(false)}>
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto"
+          onClick={() => setShowActionModal(false)}
+        >
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-              &#8203;
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              ​
             </span>
             <div
               className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
@@ -495,8 +676,8 @@ const ContentModeration = () => {
                       actionType === "delete"
                         ? "bg-red-100 dark:bg-red-900"
                         : actionType === "hide"
-                          ? "bg-yellow-100 dark:bg-yellow-900"
-                          : "bg-emerald-100 dark:bg-emerald-900"
+                        ? "bg-yellow-100 dark:bg-yellow-900"
+                        : "bg-emerald-100 dark:bg-emerald-900"
                     }`}
                   >
                     {actionType === "delete" ? (
@@ -512,16 +693,16 @@ const ContentModeration = () => {
                       {actionType === "delete"
                         ? "Delete Content"
                         : actionType === "hide"
-                          ? "Hide Content"
-                          : "Restore Content"}
+                        ? "Hide Content"
+                        : "Restore Content"}
                     </h3>
                     <div className="mt-2">
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {actionType === "delete"
                           ? "Are you sure you want to delete this content? This action cannot be undone."
                           : actionType === "hide"
-                            ? "Are you sure you want to hide this content? It will no longer be visible to users."
-                            : "Are you sure you want to restore this content? It will be visible to users again."}
+                          ? "Are you sure you want to hide this content? It will no longer be visible to users."
+                          : "Are you sure you want to restore this content? It will be visible to users again."}
                       </p>
                     </div>
                   </div>
@@ -534,14 +715,11 @@ const ContentModeration = () => {
                     actionType === "delete"
                       ? "bg-red-600 hover:bg-red-700 focus:ring-red-500"
                       : actionType === "hide"
-                        ? "bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500"
-                        : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"
+                      ? "bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500"
+                      : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"
                   }`}
-                  onClick={() => {
-                    // In a real app, you would update the content status here
-                    setShowActionModal(false)
-                    setShowContentModal(false)
-                  }}
+                  onClick={confirmContentAction}
+                  disabled={isLoading}
                 >
                   Confirm
                 </button>
@@ -549,6 +727,7 @@ const ContentModeration = () => {
                   type="button"
                   className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                   onClick={() => setShowActionModal(false)}
+                  disabled={isLoading}
                 >
                   Cancel
                 </button>
@@ -558,7 +737,7 @@ const ContentModeration = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ContentModeration
+export default ContentModeration;

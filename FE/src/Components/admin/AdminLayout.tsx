@@ -18,6 +18,8 @@ import {
   Menu,
   X,
 } from "lucide-react"
+import { useSelector } from "react-redux"
+import { RootState } from "../../store"
 
 const AdminLayout = () => {
   const [darkMode, setDarkMode] = useState(false)
@@ -25,6 +27,14 @@ const AdminLayout = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+
+  const { walletAddress } = useSelector((state: RootState) => state.auth)
+  
+  // Function to shorten wallet address
+  const shortenAddress = (address: string) => {
+    if (!address) return "";
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
 
   // Toggle dark mode
   const toggleDarkMode = () => {
@@ -72,12 +82,12 @@ const AdminLayout = () => {
         <aside
           className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto lg:z-auto ${
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-          } lg:${sidebarOpen ? "w-64" : "w-20"}`}
+          } lg:w-64`}
         >
           <div className="flex items-center justify-between h-16 px-4 border-b dark:border-gray-700">
             <Link to="/admin" className="flex items-center">
               <span className="text-xl font-bold text-emerald-600 dark:text-emerald-500">DIGIX</span>
-              <span className={`ml-2 font-semibold ${sidebarOpen ? "lg:block" : "lg:hidden"} hidden lg:block`}>Admin</span>
+              <span className="ml-2 font-semibold">Admin</span>
             </Link>
             <button
               onClick={() => setMobileMenuOpen(false)}
@@ -100,7 +110,7 @@ const AdminLayout = () => {
                     }`}
                   >
                     <span className="mr-3">{item.icon}</span>
-                    <span className={`${sidebarOpen ? "lg:block" : "lg:hidden"} hidden lg:block`}>{item.label}</span>
+                    <span>{item.label}</span>
                   </Link>
                 </li>
               ))}
@@ -120,7 +130,7 @@ const AdminLayout = () => {
                 className="flex items-center text-red-500 hover:text-red-700 dark:hover:text-red-400"
               >
                 <LogOut size={20} className="mr-2" />
-                <span className={`${sidebarOpen ? "lg:block" : "lg:hidden"} hidden lg:block`}>Return</span>
+                <span>Return</span>
               </button>
             </div>
           </div>
@@ -131,26 +141,18 @@ const AdminLayout = () => {
           {/* Header */}
           <header className="flex items-center justify-between h-16 px-6 bg-white dark:bg-gray-800 shadow z-10">
             <div className="flex items-center">
-              {/* Hamburger menu button for mobile */}
+              {/* Hamburger menu button for mobile only */}
               <button
                 onClick={toggleMobileMenu}
-                className="p-2 rounded-md lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mr-2"
+                className="p-2 rounded-md md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mr-2"
               >
                 <Menu size={24} />
-              </button>
-              
-              {/* Toggle sidebar button for desktop */}
-              <button
-                onClick={toggleSidebar}
-                className="hidden lg:block p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                <Menu size={20} />
               </button>
             </div>
             <div className="flex items-center">
               <div className="mr-4 text-sm">
                 <span className="text-gray-500 dark:text-gray-400">Connected as:</span>
-                <span className="ml-2 font-medium">0x7F3c...N5O6P7Q</span>
+                <span className="ml-2 font-medium">{shortenAddress(walletAddress)}</span>
               </div>
               <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold">
                 A

@@ -80,7 +80,7 @@ const AdminRoutes = () => {
       >
         <Route path="/admin" element={<Dashboard />} />
         <Route path="/admin/users" element={<UserManagement />} />
-        <Route path="/admin/moderation" element={<ContentModeration />} />
+        <Route path="/admin/content" element={<ContentModeration />} />
         <Route path="/admin/tasks" element={<TaskManagement />} />
         <Route path="/admin/tokens" element={<TokenManagement />} />
         <Route path="/admin/notifications" element={<SystemNotifications />} />

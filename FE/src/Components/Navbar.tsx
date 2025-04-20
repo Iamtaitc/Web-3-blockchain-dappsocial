@@ -19,6 +19,7 @@ import {
   LogOut,
   ChevronDown,
   Shield,
+  X
 } from "lucide-react"
 import { WalletLoginModal } from "./Login/wallet-login-modal"
 import { useSelector, useDispatch } from "react-redux"
@@ -28,6 +29,7 @@ import { refreshToken as refreshTokenAction } from "../store/slices/authSlice"
 import api from "../services/api"
 import { store } from "../store" // Import store trực tiếp
 import NotificationButton from "../Components/NotificationButton"
+
 // Utility function to format wallet address
 const formatAddress = (address: string): string => {
   if (!address) return ""
@@ -39,6 +41,7 @@ const Navbar = () => {
   const navigate = useNavigate()
   const currentPath = location.pathname
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const dispatch = useDispatch<AppDispatch>()
@@ -133,8 +136,6 @@ const Navbar = () => {
     checkAndRefreshToken()
   }, [dispatch, token])
 
-
-
   // Kiểm tra xem token có hết hạn không
   const isTokenExpired = (token: string): boolean => {
     try {
@@ -160,6 +161,11 @@ const Navbar = () => {
     }
   }, [])
 
+  // Close mobile nav when route changes
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [location])
+
   // Kiểm tra nếu đang ở trang add-nft và chưa đăng nhập thì hiện modal đăng nhập
   useEffect(() => {
     if (currentPath === "/add-nft" && !isAuthenticated) {
@@ -171,6 +177,11 @@ const Navbar = () => {
   const toggleMenu = (e: React.MouseEvent) => {
     e.stopPropagation()
     setMenuOpen(!menuOpen)
+  }
+
+  // Toggle mobile navigation
+  const toggleMobileNav = () => {
+    setMobileNavOpen(!mobileNavOpen)
   }
 
   // Handle successful wallet connection
@@ -216,16 +227,30 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="w-[200px] h-screen bg-white text-gray-700 fixed top-0 left-0 flex flex-col border-r border-gray-200 font-mono shadow-lg z-50">
-        <div className="p-6 border-b border-gray-100">
+      {/* Mobile menu toggle button */}
+      <button
+        onClick={toggleMobileNav}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-white shadow-md text-gray-700 hover:text-emerald-500"
+      >
+        {mobileNavOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Navbar */}
+      <nav className={`w-[200px] h-screen bg-white text-gray-700 fixed top-0 left-0 flex flex-col border-r border-gray-200 font-mono shadow-lg z-40 transform transition-transform duration-300 ease-in-out ${
+        mobileNavOpen ? "translate-x-0" : "-translate-x-full"
+      } md:translate-x-0`}>
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <div className="text-2xl font-bold">
             <span className="text-gray-800">DIGI</span>
             <span className="text-emerald-500">X</span>
           </div>
+          <button
+            onClick={toggleMobileNav}
+            className="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-700"
+          >
+            <X size={20} />
+          </button>
         </div>
-
-        {/* Bỏ phần hiển thị thông tin người dùng ở đầu sidebar */}
-        {/* Chỉ giữ lại trong dropdown menu */}
 
         <ul className="flex-1 py-4 px-2">
           <NavItem to="/" icon={<Home size={18} />} label="Home" isActive={currentPath === "/"} />
@@ -269,7 +294,7 @@ const Navbar = () => {
                 </div>
 
                 {menuOpen && (
-                  <div className="absolute left-0 bottom-full mb-2 w-400 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
+                  <div className="absolute left-0 bottom-full mb-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
                     {isAuthenticated && walletAddress ? (
                       // Show wallet info when connected
                       <>
@@ -356,6 +381,11 @@ const Navbar = () => {
           </div>
         </div>
       </nav>
+
+      {/* Main content wrapper with padding for the navbar */}
+      <div className="md:ml-[200px] transition-all duration-300">
+        {/* Your page content goes here */}
+      </div>
 
       {/* Wallet login modal */}
       {isWalletModalOpen && (

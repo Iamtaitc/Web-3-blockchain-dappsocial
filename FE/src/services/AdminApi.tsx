@@ -130,12 +130,22 @@ const AdminApi = {
   },
 
   updatePostStatus: async (postId: string, status: string) => {
+    // Validate status value
+    const validStatuses = ['active', 'hidden', 'deleted'] as const;
+    if (!validStatuses.includes(status as any)) {
+      const errorMsg = `Invalid status value: ${status}. Must be one of ${validStatuses.join(', ')}.`;
+      console.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+
     try {
-      const response = await instance.patch(`/admin/post/status/${postId}`, { status })
-      return response.data
-    } catch (error) {
-      console.error('Error updating post status:', error)
-      throw error
+      console.log(`Sending PATCH request to /admin/post/status/${postId} with status: ${status}`);
+      const response = await instance.patch(`/admin/post/status/${postId}`, { status });
+      console.log(`Update status response for post ${postId}:`, response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error(`Error updating post status for post ${postId}:`, error.response?.data || error.message);
+      throw error;
     }
   },
 

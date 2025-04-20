@@ -4,7 +4,7 @@ import { store } from "../store";
 import { logout, refreshToken } from "../store/slices/authSlice";
 
 const instance = axios.create({
-  baseURL: "https://c9f2-2402-800-620e-7d98-55b6-5b92-a72d-f8c7.ngrok-free.app/v1/",
+  baseURL: "https://ecdc-2402-800-620e-51e0-3961-c24d-4cbf-488b.ngrok-free.app/v1/",
   headers: {
     "Content-Type": "application/json",
     // Thêm header để bypass kiểm tra ngrok
