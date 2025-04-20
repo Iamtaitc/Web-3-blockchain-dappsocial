@@ -1,103 +1,98 @@
-import axios from 'axios';
+import instance from "./api"
 
-// Create an axios instance with default config
-const api = axios.create({
-  baseURL: "http://localhost:3001/v1",
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+interface Task {
+  _id: string
+  name: string
+  description: string
+  type: "daily" | "weekly" | "special"
+  rewardPoints: number
+  rewardTokens: number
+  requirements: { count: number }
+  isCompleted: boolean
+  completedAt?: string
+}
 
-// Add a request interceptor to include auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+interface TaskResponse {
+  success: boolean
+  message: string
+  data: {
+    tasks: {
+      daily: Task[]
+      weekly: Task[]
+      special: Task[]
     }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+    completedCount: number
+    totalTasks: number
+  }
+  timestamp: string
+}
 
-// Task API service
+interface CompleteTaskResponse {
+  success: boolean
+  message: string
+  data: {
+    taskId: string
+    rewardPoints: number
+    rewardTokens: number
+    userPoints: number
+    userTokens: number
+  }
+  timestamp: string
+}
+
 export const TaskService = {
-  // Get all tasks
-  getAllTasks: async () => {
-    try { 
-      const response = await api.get('/tasks');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-      throw error;
-    }
-  },
-
-  // Get user tasks
-  getUserTasks: async () => {
+  getAllTasks: async (): Promise<TaskResponse> => {
     try {
-      const response = await api.get('/tasks/user');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching user tasks:', error);
-      throw error;
+      const response = await instance.get("/tasks")
+      console.log("getAllTasks response:", response.data)
+      return response.data
+    } catch (error: any) {
+      console.error("getAllTasks error:", error.message)
+      throw error
     }
   },
 
-  // Complete a task
-  completeTask: async (taskId: string) => {
+  getUserTasks: async (): Promise<TaskResponse> => {
     try {
-      const response = await api.post(`/tasks/complete/${taskId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error completing task:', error);
-      throw error;
+      const response = await instance.get("/tasks/user")
+      console.log("getUserTasks response:", response.data)
+      return response.data
+    } catch (error: any) {
+      console.error("getUserTasks error:", error.message)
+      throw error
     }
   },
 
-  // Daily check-in
-  checkIn: async () => {
-    try {
-      const response = await api.post('/tasks/checkin');
-      return response.data;
-    } catch (error) {
-      console.error('Error checking in:', error);
-      throw error;
-    }
-  },
-
-  // Get user subscription info
   getUserSubscription: async () => {
     try {
-      const response = await api.get('/tasks/subscription');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching subscription:', error);
-      throw error;
+      const response = await instance.get("/tasks/subscription")
+      console.log("getUserSubscription response:", response.data)
+      return response.data
+    } catch (error: any) {
+      console.error("getUserSubscription error:", error.message)
+      throw error
     }
   },
 
-  // Get user points
-  getUserPoints: async () => {
+  completeTask: async (taskId: string): Promise<CompleteTaskResponse> => {
     try {
-      const response = await api.get('/tasks/points');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching points:', error);
-      throw error;
+      const response = await instance.post(`/reward/task/${taskId}`)
+      console.log("completeTask response:", response.data)
+      return response.data
+    } catch (error: any) {
+      console.error("completeTask error:", error.message)
+      throw error
     }
   },
 
-  // Claim tokens
-  claimTokens: async () => {
+  checkIn: async () => {
     try {
-      const response = await api.post('/tasks/claim');
-      return response.data;
-    } catch (error) {
-      console.error('Error claiming tokens:', error);
-      throw error;
+      const response = await instance.post("/reward/check-in")
+      console.log("checkIn response:", response.data)
+      return response.data
+    } catch (error: any) {
+      console.error("checkIn error:", error.message)
+      throw error
     }
-  }
-};
-
-export default api;
+  },
+}

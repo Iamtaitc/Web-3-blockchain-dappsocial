@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Outlet, Link, useLocation } from "react-router-dom"
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom"
 import {
   LayoutDashboard,
   Users,
@@ -24,6 +24,7 @@ const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
 
   // Toggle dark mode
   const toggleDarkMode = () => {
@@ -36,10 +37,20 @@ const AdminLayout = () => {
     setSidebarOpen(!sidebarOpen)
   }
 
+  // Toggle mobile menu
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen)
+  }
+
   // Close mobile menu when route changes
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [location])
+
+  // Handle return to home
+  const handleReturn = () => {
+    navigate("/home")
+  }
 
   // Navigation items
   const navItems = [
@@ -57,16 +68,16 @@ const AdminLayout = () => {
   return (
     <div className={`min-h-screen ${darkMode ? "dark" : ""}`}>
       <div className="flex h-screen w-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-        {/* Sidebar - Desktop */}
+        {/* Sidebar - Desktop and Mobile */}
         <aside
           className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto lg:z-auto ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"} lg:w-${sidebarOpen ? "64" : "20"}`}
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          } lg:${sidebarOpen ? "w-64" : "w-20"}`}
         >
           <div className="flex items-center justify-between h-16 px-4 border-b dark:border-gray-700">
             <Link to="/admin" className="flex items-center">
               <span className="text-xl font-bold text-emerald-600 dark:text-emerald-500">DIGIX</span>
-              <span className={`ml-2 font-semibold ${sidebarOpen ? "block" : "hidden"} lg:block`}>Admin</span>
+              <span className={`ml-2 font-semibold ${sidebarOpen ? "lg:block" : "lg:hidden"} hidden lg:block`}>Admin</span>
             </Link>
             <button
               onClick={() => setMobileMenuOpen(false)}
@@ -89,7 +100,7 @@ const AdminLayout = () => {
                     }`}
                   >
                     <span className="mr-3">{item.icon}</span>
-                    <span className={`${sidebarOpen ? "block" : "hidden"} lg:block`}>{item.label}</span>
+                    <span className={`${sidebarOpen ? "lg:block" : "lg:hidden"} hidden lg:block`}>{item.label}</span>
                   </Link>
                 </li>
               ))}
@@ -104,9 +115,12 @@ const AdminLayout = () => {
               >
                 {darkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
-              <button className="flex items-center text-red-500 hover:text-red-700 dark:hover:text-red-400">
+              <button 
+                onClick={handleReturn}
+                className="flex items-center text-red-500 hover:text-red-700 dark:hover:text-red-400"
+              >
                 <LogOut size={20} className="mr-2" />
-                <span className={`${sidebarOpen ? "block" : "hidden"} lg:block`}>Logout</span>
+                <span className={`${sidebarOpen ? "lg:block" : "lg:hidden"} hidden lg:block`}>Return</span>
               </button>
             </div>
           </div>
@@ -117,12 +131,15 @@ const AdminLayout = () => {
           {/* Header */}
           <header className="flex items-center justify-between h-16 px-6 bg-white dark:bg-gray-800 shadow z-10">
             <div className="flex items-center">
+              {/* Hamburger menu button for mobile */}
               <button
-                onClick={() => setMobileMenuOpen(true)}
-                className="p-2 rounded-md lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                onClick={toggleMobileMenu}
+                className="p-2 rounded-md lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mr-2"
               >
-                <Menu size={20} />
+                <Menu size={24} />
               </button>
+              
+              {/* Toggle sidebar button for desktop */}
               <button
                 onClick={toggleSidebar}
                 className="hidden lg:block p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"

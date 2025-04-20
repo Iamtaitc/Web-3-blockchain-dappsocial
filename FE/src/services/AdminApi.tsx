@@ -32,14 +32,31 @@ type TaskData = {
 
 // Admin API service
 const AdminApi = {
-  // Dashboard & Statistics
-  getDashboardStats: async () => {
+  checkAdminAccess: async () => {
     try {
-      const response = await instance.get('/admin/dashboard/stats')
-      return response.data
+      const response = await instance.get("/admin/tasks");
+      return {
+        success: response.data.success === true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Lỗi kiểm tra quyền admin",
+        status: error.response?.status || 500,
+      };
+    }
+  },
+  // Dashboard & Statistics
+  getDashboardStats: async ({ timeRange }: { timeRange: "week" | "month" | "year" }) => {
+    try {
+      const response = await instance.get('/admin/dashboard/stats', {
+        params: { timeRange },
+      });
+      return response.data;
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error)
-      throw error
+      console.error('Error fetching dashboard stats:', error);
+      throw error;
     }
   },
 

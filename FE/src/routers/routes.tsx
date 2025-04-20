@@ -17,6 +17,7 @@ import DropGame from "../pages/game/DropGame";
 import Settings from "../pages/Settings";
 import TaskDetail from "../pages/TaskDetail";
 import Notification from "../pages/Notification"
+import CheckAdmin from "../pages/admin/CheckAdmin";
 
 const AppRoutes = () => {
   return (
@@ -39,6 +40,7 @@ const AppRoutes = () => {
       <Route path="/DropGame" element={<DropGame/>} />
       <Route path="/Setting" element={<Settings/>} />
       <Route path="/notifications" element={<Notification />} />
+      <Route path="/check-admin" element={<CheckAdmin />} />
       
     </Routes>
   );

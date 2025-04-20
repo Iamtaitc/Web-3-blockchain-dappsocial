@@ -1,8 +1,6 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   Edit,
@@ -11,216 +9,195 @@ import {
   Award,
   Filter,
   ChevronDown,
-  Search,
   X,
   Save,
   AlertCircle,
   CheckCircle,
-} from "lucide-react"
-// import { taskAPI } from "../../services/api"
+} from "lucide-react";
+import AdminApi from "../../services/AdminApi";
 
+// Định nghĩa interface Task khớp với BE
 interface Task {
-  id: number | string
-  name: string
-  description: string
-  type: string
-  pointsReward: number
-  tokenReward: number
-  requirements: string
-  status: string
+  _id: string;
+  name: string;
+  description: string;
+  type: "daily" | "weekly" | "special";
+  rewardPoints: number;
+  rewardTokens: number;
+  requirements: Record<string, any>;
+  isActive: boolean;
 }
 
 const TaskManagement = () => {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [typeFilter, setTypeFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [showTaskModal, setShowTaskModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [showResetModal, setShowResetModal] = useState(false)
-  const [currentTask, setCurrentTask] = useState<Task | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(false)
-  const [totalTasks, setTotalTasks] = useState(0)
-  const limit = 10
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [currentTask, setCurrentTask] = useState<Task | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Fetch tasks
   const fetchTasks = async () => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await taskAPI.getTasks({
-        page,
-        limit,
-        search: searchTerm,
-        type: typeFilter !== "all" ? typeFilter : undefined,
-        status: statusFilter !== "all" ? statusFilter : undefined,
-      })
-
-      // Assume the API returns { data: Task[], total: number }
-      setTasks(response.data)
-      setTotalTasks(response.total)
-      setHasMore(response.data.length === limit)
+      const response = await AdminApi.getAllTasks();
+      if (response.success) {
+        let filteredTasks = response.data.tasks;
+        if (typeFilter !== "all") {
+          filteredTasks = filteredTasks.filter((task: Task) => task.type === typeFilter);
+        }
+        setTasks(filteredTasks);
+      } else {
+        setError(response.message || "Failed to fetch tasks");
+      }
     } catch (err) {
-      console.error("Error fetching tasks:", err)
-      setError(err instanceof Error ? err.message : "Failed to fetch tasks")
+      console.error("Error fetching tasks:", err);
+      setError("Failed to fetch tasks");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  // Load tasks on component mount and when filters change
+  // Load tasks on component mount and when type filter changes
   useEffect(() => {
-    fetchTasks()
-  }, [page, searchTerm, typeFilter, statusFilter])
+    fetchTasks();
+  }, [typeFilter]);
 
   // Handle task creation/editing
   const handleTaskModal = (task: Task | null = null) => {
     setCurrentTask(
       task || {
-        id: "",
+        _id: "",
         name: "",
         description: "",
         type: "daily",
-        pointsReward: 0,
-        tokenReward: 0,
-        requirements: "",
-        status: "active",
-      },
-    )
-    setIsEditing(!!task)
-    setShowTaskModal(true)
-    setError(null)
-  }
+        rewardPoints: 0,
+        rewardTokens: 0,
+        requirements: { count: 1 },
+        isActive: true,
+      }
+    );
+    setIsEditing(!!task);
+    setShowTaskModal(true);
+    setError(null);
+  };
 
   // Handle task deletion
   const handleDeleteModal = (task: Task) => {
-    setCurrentTask(task)
-    setShowDeleteModal(true)
-    setError(null)
-  }
+    setCurrentTask(task);
+    setShowDeleteModal(true);
+    setError(null);
+  };
 
   // Handle task reset
   const handleResetModal = () => {
-    setShowResetModal(true)
-    setError(null)
-  }
+    setShowResetModal(true);
+    setError(null);
+  };
 
   // Save task
   const handleSaveTask = async () => {
-    if (!currentTask) return
+    if (!currentTask) return;
 
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      if (isEditing) {
-        await taskAPI.updateTask(currentTask.id.toString(), currentTask)
-        setSuccess(`Task "${currentTask.name}" updated successfully`)
-      } else {
-        await taskAPI.createTask(currentTask)
-        setSuccess(`Task "${currentTask.name}" created successfully`)
-      }
-      fetchTasks()
-      setShowTaskModal(false)
+      const taskData = {
+        name: currentTask.name,
+        description: currentTask.description,
+        type: currentTask.type,
+        rewardPoints: currentTask.rewardPoints,
+        rewardTokens: currentTask.rewardTokens,
+        requirements: currentTask.requirements,
+        isActive: currentTask.isActive,
+      };
 
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save task")
+      if (isEditing) {
+        await AdminApi.updateTask(currentTask._id, taskData);
+        setSuccess(`Task "${currentTask.name}" updated successfully`);
+      } else {
+        await AdminApi.createTask(taskData);
+        setSuccess(`Task "${currentTask.name}" created successfully`);
+      }
+      fetchTasks();
+      setShowTaskModal(false);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to save task");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Delete task
   const handleDeleteTask = async () => {
-    if (!currentTask) return
+    if (!currentTask) return;
 
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      await taskAPI.deleteTask(currentTask.id.toString())
-      setSuccess(`Task "${currentTask.name}" deleted successfully`)
-      fetchTasks()
-      setShowDeleteModal(false)
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete task")
+      await AdminApi.deleteTask(currentTask._id);
+      setSuccess(`Task "${currentTask.name}" deleted successfully`);
+      fetchTasks();
+      setShowDeleteModal(false);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to delete task");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Reset daily tasks
   const handleResetTasks = async () => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      await taskAPI.resetDailyTasks()
-      setSuccess("Daily tasks reset successfully")
-      fetchTasks()
-      setShowResetModal(false)
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reset daily tasks")
+      await AdminApi.resetDailyTasks();
+      setSuccess("Daily tasks reset successfully");
+      fetchTasks();
+      setShowResetModal(false);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to reset daily tasks");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  // Handle search input
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-    setPage(1) // Reset to first page on new search
-  }
-
-  // Handle filters
+  // Handle type filter
   const handleTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setTypeFilter(e.target.value)
-    setPage(1) // Reset to first page on filter change
-  }
-
-  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setStatusFilter(e.target.value)
-    setPage(1) // Reset to first page on filter change
-  }
+    setTypeFilter(e.target.value);
+  };
 
   // Get task type badge color
   const getTaskTypeBadgeColor = (type: string) => {
     switch (type) {
       case "daily":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
       case "weekly":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
-      case "onetime":
-        return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
+      case "special":
+        return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
     }
-  }
+  };
 
   // Get task status badge color
-  const getTaskStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-      case "inactive":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-    }
-  }
+  const getTaskStatusBadgeColor = (isActive: boolean) => {
+    return isActive
+      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+      : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+  };
 
   return (
     <div className="space-y-6">
@@ -273,59 +250,24 @@ const TaskManagement = () => {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex items-center space-x-2">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <Search className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-            </div>
-            <input
-              type="text"
-              className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5"
-              placeholder="Search tasks..."
-              value={searchTerm}
-              onChange={handleSearch}
-            />
+      {/* Filter */}
+      <div className="flex items-center space-x-2">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           </div>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-            </div>
-            <select
-              className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5 pr-8"
-              value={typeFilter}
-              onChange={handleTypeFilterChange}
-            >
-              <option value="all">All Types</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="onetime">One-time</option>
-            </select>
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-            </div>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-            </div>
-            <select
-              className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5 pr-8"
-              value={statusFilter}
-              onChange={handleStatusFilterChange}
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-            </div>
+          <select
+            className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5 pr-8"
+            value={typeFilter}
+            onChange={handleTypeFilterChange}
+          >
+            <option value="all">All Types</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="special">Special</option>
+          </select>
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           </div>
         </div>
       </div>
@@ -340,7 +282,7 @@ const TaskManagement = () => {
           <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
             <AlertCircle className="h-12 w-12 mb-4" />
             <p className="text-center">No tasks found</p>
-            <p className="text-center text-sm mt-2">Try adjusting your filters or create a new task</p>
+            <p className="text-center text-sm mt-2">Try adjusting your filter or create a new task</p>
           </div>
         ) : (
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -383,18 +325,17 @@ const TaskManagement = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {tasks.map((task) => (
-                <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr key={task._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <div className="text-sm font-medium text-gray-900 dark:text-white">{task.name}</div>
-
                       <div className="text-sm text-gray-500 dark:text-gray-400">{task.description}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTaskTypeBadgeColor(
-                        task.type,
+                        task.type
                       )}`}
                     >
                       {task.type.charAt(0).toUpperCase() + task.type.slice(1)}
@@ -404,24 +345,26 @@ const TaskManagement = () => {
                     <div className="flex flex-col">
                       <div className="flex items-center text-sm text-gray-900 dark:text-white">
                         <Award className="h-4 w-4 text-amber-500 mr-1" />
-                        {task.pointsReward} Points
+                        {task.rewardPoints} Points
                       </div>
                       <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                         <Award className="h-4 w-4 text-emerald-500 mr-1" />
-                        {task.tokenReward} DX
+                        {task.rewardTokens} DX
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{task.requirements}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {JSON.stringify(task.requirements)}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTaskStatusBadgeColor(
-                        task.status,
+                        task.isActive
                       )}`}
                     >
-                      {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                      {task.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -445,31 +388,6 @@ const TaskManagement = () => {
             </tbody>
           </table>
         )}
-
-        {/* Pagination */}
-        {tasks.length > 0 && (
-          <div className="px-6 py-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              Showing {(page - 1) * limit + 1} to {Math.min(page * limit, totalTasks)} of {totalTasks} tasks
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setPage(page - 1)}
-                disabled={page === 1 || isLoading}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setPage(page + 1)}
-                disabled={!hasMore || isLoading}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Task Modal */}
@@ -477,7 +395,7 @@ const TaskManagement = () => {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-              &#8203;
+              ​
             </span>
             <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
               <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
@@ -526,50 +444,53 @@ const TaskManagement = () => {
                           id="type"
                           className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                           value={currentTask.type}
-                          onChange={(e) => setCurrentTask({ ...currentTask, type: e.target.value })}
+                          onChange={(e) =>
+                            setCurrentTask({ ...currentTask, type: e.target.value as "daily" | "weekly" | "special" })
+                          }
                         >
                           <option value="daily">Daily</option>
                           <option value="weekly">Weekly</option>
-                          <option value="onetime">One-time</option>
+                          <option value="special">Special</option>
                         </select>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label
-                            htmlFor="pointsReward"
+                            htmlFor="rewardPoints"
                             className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                           >
                             Points Reward
                           </label>
                           <input
                             type="number"
-                            name="pointsReward"
-                            id="pointsReward"
+                            name="rewardPoints"
+                            id="rewardPoints"
                             className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                            value={currentTask.pointsReward}
+                            value={currentTask.rewardPoints}
                             onChange={(e) =>
-                              setCurrentTask({ ...currentTask, pointsReward: Number.parseInt(e.target.value) || 0 })
+                              setCurrentTask({ ...currentTask, rewardPoints: Number.parseInt(e.target.value) || 0 })
                             }
                             min="0"
                           />
                         </div>
                         <div>
                           <label
-                            htmlFor="tokenReward"
+                            htmlFor="rewardTokens"
                             className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                           >
                             Token Reward (DX)
                           </label>
                           <input
                             type="number"
-                            name="tokenReward"
-                            id="tokenReward"
+                            name="rewardTokens"
+                            id="rewardTokens"
                             className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                            value={currentTask.tokenReward}
+                            value={currentTask.rewardTokens}
                             onChange={(e) =>
-                              setCurrentTask({ ...currentTask, tokenReward: Number.parseInt(e.target.value) || 0 })
+                              setCurrentTask({ ...currentTask, rewardTokens: Number.parseFloat(e.target.value) || 0 })
                             }
                             min="0"
+                            step="0.01"
                           />
                         </div>
                       </div>
@@ -578,30 +499,42 @@ const TaskManagement = () => {
                           htmlFor="requirements"
                           className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                         >
-                          Requirements
+                          Requirements (JSON)
                         </label>
                         <textarea
                           name="requirements"
                           id="requirements"
                           rows={3}
                           className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                          value={currentTask.requirements}
-                          onChange={(e) => setCurrentTask({ ...currentTask, requirements: e.target.value })}
+                          value={JSON.stringify(currentTask.requirements, null, 2)}
+                          onChange={(e) => {
+                            try {
+                              const parsed = JSON.parse(e.target.value);
+                              setCurrentTask({ ...currentTask, requirements: parsed });
+                            } catch {
+                              // Ignore invalid JSON
+                            }
+                          }}
                         />
                       </div>
                       <div>
-                        <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label
+                          htmlFor="isActive"
+                          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
                           Status
                         </label>
                         <select
-                          name="status"
-                          id="status"
+                          name="isActive"
+                          id="isActive"
                           className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                          value={currentTask.status}
-                          onChange={(e) => setCurrentTask({ ...currentTask, status: e.target.value })}
+                          value={currentTask.isActive.toString()}
+                          onChange={(e) =>
+                            setCurrentTask({ ...currentTask, isActive: e.target.value === "true" })
+                          }
                         >
-                          <option value="active">Active</option>
-                          <option value="inactive">Inactive</option>
+                          <option value="true">Active</option>
+                          <option value="false">Inactive</option>
                         </select>
                       </div>
                     </div>
@@ -646,7 +579,7 @@ const TaskManagement = () => {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-              &#8203;
+              ​
             </span>
             <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
               <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
@@ -698,7 +631,7 @@ const TaskManagement = () => {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-              &#8203;
+              ​
             </span>
             <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
               <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
@@ -746,7 +679,7 @@ const TaskManagement = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default TaskManagement
+export default TaskManagement;
