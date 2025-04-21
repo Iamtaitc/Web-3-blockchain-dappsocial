@@ -13,7 +13,7 @@ class CommentService {
     try {
       const { page = 1, limit = 20, sort = "newest" } = options;
       const skip = (parseInt(page) - 1) * parseInt(limit);
-
+  
       // Tìm bài đăng
       const post = await Post.findById(postId);
       if (!post) {
@@ -23,10 +23,10 @@ class CommentService {
           message: "Bài đăng không tồn tại",
         };
       }
-
+  
       // Xác định cách sắp xếp
-      const sortOption = _getSortOption(sort);
-
+      const sortOption = this._getSortOption(sort);
+  
       // Lấy comments cấp 1
       const comments = await Comment.find({
         postId,
@@ -36,24 +36,38 @@ class CommentService {
         .sort(sortOption)
         .skip(skip)
         .limit(parseInt(limit));
-
-      // Lấy thông tin người dùng và like
-      const [formattedComments, total] = await Promise.all([
-        _formatCommentsWithUserInfo(comments, currentUser),
-        Comment.countDocuments({ postId, parentId: null, status: "active" }),
-      ]);
-
+  
+      console.log("Found comments:", comments.length);
+      
+      let formattedComments = [];
+      try {
+        formattedComments = await this._formatCommentsWithUserInfo(comments, currentUser);
+        console.log("Formatted comments:", formattedComments ? formattedComments.length : "undefined");
+      } catch (formatError) {
+        console.error("Error formatting comments:", formatError);
+        formattedComments = comments.map(comment => ({
+          _id: comment._id,
+          content: comment.content,
+          author: comment.author,
+          createdAt: comment.createdAt
+        }));
+      }
+  
+      const total = await Comment.countDocuments({ postId, parentId: null, status: "active" });
+  
       return {
         success: true,
-        status: 200,
         message: "Lấy danh sách bình luận thành công",
-        data: formattedComments,
+        data: formattedComments || [],
         pagination: {
-          total,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(total / parseInt(limit)),
+          totalItems: total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+          currentPage: parseInt(page),
+          pageSize: parseInt(limit),
+          hasNextPage: parseInt(page) < Math.ceil(total / parseInt(limit)),
+          hasPrevPage: parseInt(page) > 1
         },
+        timestamp: new Date().toISOString()
       };
     } catch (error) {
       console.error("Error in getPostComments:", error);
@@ -61,6 +75,7 @@ class CommentService {
         success: false,
         status: 500,
         message: "Lỗi khi lấy danh sách bình luận",
+        error: error.message
       };
     }
   }
@@ -94,21 +109,23 @@ class CommentService {
 
       // Lấy thông tin người dùng và like
       const [formattedReplies, total] = await Promise.all([
-        _formatCommentsWithUserInfo(replies, currentUser),
+        this._formatCommentsWithUserInfo(replies, currentUser),
         Comment.countDocuments({ parentId: commentId, status: "active" }),
       ]);
 
       return {
         success: true,
-        status: 200,
-        message: "Lấy danh sách phản hồi thành công",
+        message: "Lấy danh sách bình luận thành công",
         data: formattedReplies,
         pagination: {
-          total,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(total / parseInt(limit)),
+          totalItems: total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+          currentPage: parseInt(page),
+          pageSize: parseInt(limit),
+          hasNextPage: parseInt(page) < Math.ceil(total / parseInt(limit)),
+          hasPrevPage: parseInt(page) > 1
         },
+        timestamp: new Date().toISOString()
       };
     } catch (error) {
       console.error("Error in getCommentReplies:", error);
@@ -145,7 +162,7 @@ class CommentService {
       }
 
       // Xử lý media và metadata
-      const mediaResult = await _processMediaAndMetadata(content, mediaFiles);
+      const mediaResult = await this._processMediaAndMetadata(content, mediaFiles);
       if (!mediaResult.success) {
         return mediaResult;
       }
@@ -153,29 +170,37 @@ class CommentService {
       const [mediaObjects, contentURI] = mediaResult.data;
 
       // Tạo comment mới
-      const newComment = await _createCommentObject({
+      const newComment = await this._createCommentObject({
         postId,
         parentId: null,
         depth: 0,
         author: author.toLowerCase(),
         content,
         contentURI,
+        likeCount: 0,
+        replyCount: 0,
         media: mediaObjects,
       });
 
       // Cập nhật số lượng comment của bài đăng
       await Post.findByIdAndUpdate(postId, {
-        $inc: { "stats.commentCount": 1 },
+        $inc: { "commentCount": 1 },
         $set: { updatedAt: new Date() },
       });
 
       // Gửi thông báo cho tác giả bài đăng (nếu không phải chính họ comment)
       if (post.author.toLowerCase() !== author.toLowerCase()) {
-        _sendCommentNotification(post.author, author, content, "post", postId);
+        this._sendCommentNotification(
+          post.author,
+          author,
+          content,
+          "post",
+          postId
+        );
       }
 
       // Lấy thông tin user và format kết quả
-      const formattedComment = await _formatSingleCommentWithUserInfo(
+      const formattedComment = await this._formatSingleCommentWithUserInfo(
         newComment,
         author
       );
@@ -231,7 +256,7 @@ class CommentService {
       }
 
       // Xử lý media và metadata
-      const mediaResult = await _processMediaAndMetadata(content, mediaFiles);
+      const mediaResult = await this._processMediaAndMetadata(content, mediaFiles);
       if (!mediaResult.success) {
         return mediaResult;
       }
@@ -239,7 +264,7 @@ class CommentService {
       const [mediaObjects, contentURI] = mediaResult.data;
 
       // Tạo reply mới
-      const newReply = await _createCommentObject({
+      const newReply = await this._createCommentObject({
         postId: parentComment.postId,
         parentId: commentId,
         depth,
@@ -252,18 +277,18 @@ class CommentService {
       // Cập nhật số lượng reply và comment
       await Promise.all([
         Comment.findByIdAndUpdate(commentId, {
-          $inc: { "stats.replyCount": 1 },
+          $inc: { replyCount: 1 },
           $set: { updatedAt: new Date() },
         }),
         Post.findByIdAndUpdate(parentComment.postId, {
-          $inc: { "stats.commentCount": 1 },
+          $inc: { "commentCount": 1 },
           $set: { updatedAt: new Date() },
         }),
       ]);
 
       // Gửi thông báo cho tác giả comment cha (nếu không phải chính họ reply)
       if (parentComment.author.toLowerCase() !== author.toLowerCase()) {
-        _sendCommentNotification(
+        this._sendCommentNotification(
           parentComment.author,
           author,
           content,
@@ -273,7 +298,7 @@ class CommentService {
       }
 
       // Lấy thông tin user và format kết quả
-      const formattedReply = await _formatSingleCommentWithUserInfo(
+      const formattedReply = await this._formatSingleCommentWithUserInfo(
         newReply,
         author
       );
@@ -398,8 +423,7 @@ class CommentService {
 
       // Kiểm tra quyền
       const isAdmin = user.role === "admin";
-      const isAuthor =
-        comment.author.toLowerCase() === user.address.toLowerCase();
+      const isAuthor = comment.author.toLowerCase() === user.address.toLowerCase();
 
       if (!isAuthor && !isAdmin) {
         return {
@@ -419,14 +443,14 @@ class CommentService {
       // Cập nhật số lượng comments/replies
       const updatePromises = [
         Post.findByIdAndUpdate(comment.postId, {
-          $inc: { "stats.commentCount": -1 },
+          $inc: { "commentCount": -1 },
         }),
       ];
 
       if (comment.parentId) {
         updatePromises.push(
           Comment.findByIdAndUpdate(comment.parentId, {
-            $inc: { "stats.replyCount": -1 },
+            $inc: { "replyCount": -1 },
           })
         );
       }
@@ -481,20 +505,20 @@ class CommentService {
       // Tạo like mới và cập nhật likeCount
       const newLike = new Like({
         user: user.address.toLowerCase(),
-        commentId,
+        postId: commentId,
         createdAt: new Date(),
       });
 
       await Promise.all([
         newLike.save(),
         Comment.findByIdAndUpdate(commentId, {
-          $inc: { "stats.likeCount": 1 },
+          $inc: { "likeCount": 1 },
         }),
       ]);
 
       // Gửi thông báo
       if (comment.author.toLowerCase() !== user.address.toLowerCase()) {
-        _sendCommentNotification(
+        this._sendCommentNotification(
           comment.author,
           user.address,
           "đã thích bình luận của bạn",
@@ -527,7 +551,7 @@ class CommentService {
       // Kiểm tra đã like chưa
       const existingLike = await Like.findOne({
         user: user.address.toLowerCase(),
-        commentId,
+        postId:commentId,
       });
 
       if (!existingLike) {
@@ -542,7 +566,7 @@ class CommentService {
       await Promise.all([
         Like.findByIdAndDelete(existingLike._id),
         Comment.findByIdAndUpdate(commentId, {
-          $inc: { "stats.likeCount": -1 },
+          $inc: { "likeCount": -1 },
         }),
       ]);
 
@@ -561,18 +585,25 @@ class CommentService {
       };
     }
   }
-
-  // Phương thức trợ giúp private
+  /**
+ * Helper methods for CommentService
+ */
+  /**
+   * Xác định tùy chọn sắp xếp
+   */
   _getSortOption(sort) {
     const sortOptions = {
       newest: { createdAt: -1 },
       oldest: { createdAt: 1 },
-      popular: { "stats.likeCount": -1 },
+      popular: { likeCount: -1 },
     };
 
     return sortOptions[sort] || sortOptions["newest"];
   }
 
+  /**
+   * Tạo đối tượng comment mới
+   */
   async _createCommentObject(commentData) {
     try {
       const newComment = new Comment({
@@ -589,36 +620,87 @@ class CommentService {
       return await newComment.save();
     } catch (error) {
       console.error("Error in _createCommentObject:", error);
-      throw error; // Rethrow để xử lý ở hàm gọi
+      throw error;
     }
   }
 
+  /**
+   * Xử lý media và tạo metadata cho comment
+   */
   async _processMediaAndMetadata(content, mediaFiles) {
     try {
       let mediaCIDs = [];
       let mediaObjects = [];
 
+      // Xử lý files media nếu có
       if (mediaFiles) {
         const files = Array.isArray(mediaFiles) ? mediaFiles : [mediaFiles];
 
+        // Giới hạn số lượng media
+        if (files.length > 2) {
+          return {
+            success: false,
+            status: 400,
+            message: "Không thể đính kèm quá 2 file media cho một bình luận",
+          };
+        }
+
         for (const file of files) {
           try {
+            // Giới hạn kích thước file (10MB)
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+              return {
+                success: false,
+                status: 400,
+                message: `File ${file.name} vượt quá kích thước cho phép (10MB)`,
+              };
+            }
+
+            // Kiểm tra loại file
+            const allowedTypes = [
+              "image/jpeg", "image/png", "image/gif", "image/webp",
+              "video/mp4", "video/webm",
+              "audio/mp3", "audio/wav",
+            ];
+
+            if (!allowedTypes.includes(file.mimetype)) {
+              return {
+                success: false,
+                status: 400,
+                message: `Định dạng file ${file.mimetype} không được hỗ trợ`,
+              };
+            }
+
+            // Upload file lên IPFS
             const cid = await IPFSService.uploadFile(file.data, file.name);
             mediaCIDs.push(cid);
+
+            // Xác định loại media
+            let mediaType = "other";
+            if (file.mimetype.startsWith("image/")) {
+              mediaType = "image";
+            } else if (file.mimetype.startsWith("video/")) {
+              mediaType = "video";
+            } else if (file.mimetype.startsWith("audio/")) {
+              mediaType = "audio";
+            }
+
+            // Thêm vào danh sách media
             mediaObjects.push({
-              type: file.mimetype.startsWith("image/")
-                ? "image"
-                : file.mimetype.startsWith("video/")
-                  ? "video"
-                  : "audio",
+              type: mediaType,
               uri: `ipfs://${cid}`,
               mimeType: file.mimetype,
+              name: file.name || null,
+              size: file.size || null,
             });
           } catch (error) {
+            console.error("Error uploading media file:", error);
             return {
               success: false,
               status: 500,
-              message: "Lỗi khi tải lên media",
+              message: `Lỗi khi tải lên file ${file.name}`,
+              error: error.message,
             };
           }
         }
@@ -626,7 +708,14 @@ class CommentService {
 
       // Tạo metadata và upload lên IPFS
       try {
-        const metadata = IPFSService.createCommentMetadata(content, mediaCIDs);
+        // Tạo metadata với format chuẩn
+        const metadata = {
+          content: content,
+          timestamp: new Date().toISOString(),
+          media: mediaCIDs.map((cid) => ({ cid })),
+          version: "1.0",
+        };
+
         const metadataCID = await IPFSService.uploadJSON(metadata);
 
         return {
@@ -634,10 +723,12 @@ class CommentService {
           data: [mediaObjects, `ipfs://${metadataCID}`],
         };
       } catch (error) {
+        console.error("Error creating metadata:", error);
         return {
           success: false,
           status: 500,
-          message: "Lỗi khi tạo metadata",
+          message: "Lỗi khi tạo và lưu trữ metadata",
+          error: error.message,
         };
       }
     } catch (error) {
@@ -645,19 +736,21 @@ class CommentService {
       return {
         success: false,
         status: 500,
-        message: "Lỗi khi xử lý media",
+        message: "Lỗi khi xử lý media và metadata",
+        error: error.message,
       };
     }
   }
 
+  /**
+   * Format danh sách comments với thông tin người dùng
+   */
   async _formatCommentsWithUserInfo(comments, currentUser) {
     try {
       if (!comments.length) return [];
-
+      
       // Lấy thông tin người dùng
-      const userAddresses = [
-        ...new Set(comments.map((comment) => comment.author)),
-      ];
+      const userAddresses = [...new Set(comments.map((comment) => comment.author))];
       const users = await User.find({
         walletAddress: { $in: userAddresses },
       }).select("walletAddress username avatarURI isVerified");
@@ -685,7 +778,7 @@ class CommentService {
 
       // Format kết quả
       return comments.map((comment) =>
-        _formatCommentObject(comment, usersMap, userLikes)
+        this._formatCommentObject(comment, usersMap, userLikes)
       );
     } catch (error) {
       console.error("Error in _formatCommentsWithUserInfo:", error);
@@ -693,80 +786,113 @@ class CommentService {
     }
   }
 
+  /**
+   * Format một comment với thông tin người dùng
+   */
   _formatCommentObject(comment, usersMap, userLikes = {}) {
-    const author = usersMap[comment.author];
-
-    return {
-      _id: comment._id,
-      postId: comment.postId,
-      parentId: comment.parentId,
-      depth: comment.depth,
-      author: comment.author,
-      authorDetails: author
-        ? {
-            username: author.username,
-            avatarURI: author.avatarURI
-              ? IPFSService.ipfsUriToGatewayUrl(author.avatarURI)
-              : null,
-            isVerified: author.isVerified,
-          }
-        : null,
-      content: comment.content,
-      contentURI: comment.contentURI,
-      media: comment.media
-        ? comment.media.map((media) => ({
-            ...media,
-            uri: IPFSService.ipfsUriToGatewayUrl(media.uri),
-          }))
-        : [],
-      stats: comment.stats,
-      isLiked: userLikes[comment._id] || false,
-      hasReplies: comment.stats.replyCount > 0,
-      createdAt: comment.createdAt,
-      updatedAt: comment.updatedAt,
-    };
-  }
-
-  async _formatSingleCommentWithUserInfo(comment, authorAddress) {
     try {
-      const user = await User.findOne({
-        walletAddress: authorAddress.toLowerCase(),
-      });
-      const usersMap = {};
-
-      if (user) {
-        usersMap[user.walletAddress] = user;
-      }
-
-      return _formatCommentObject(comment, usersMap);
+      const authorAddress = (comment.author || '').toLowerCase();
+      const author = usersMap[authorAddress];
+  
+      return {
+        _id: comment._id,
+        postId: comment.postId,
+        parentId: comment.parentId,
+        depth: comment.depth || 0,
+        author: authorAddress,
+        authorDetails: author
+          ? {
+              username: author.username || null,
+              avatarURI: author.avatarURI
+                ? IPFSService.ipfsUriToGatewayUrl(author.avatarURI)
+                : null,
+              isVerified: author.isVerified || false,
+            }
+          : null,
+        content: comment.content || '',
+        contentURI: comment.contentURI || null,
+        media: Array.isArray(comment.media)
+          ? comment.media.map((media) => ({
+              ...media,
+              uri: media.uri ? IPFSService.ipfsUriToGatewayUrl(media.uri) : null,
+            }))
+          : [],
+        stats: {
+          likeCount: comment.likeCount || 0,
+          replyCount: comment.replyCount || 0
+        },
+        isLiked: Boolean(userLikes[comment._id.toString()]),
+        hasReplies: (comment.replyCount || 0) > 0,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt || comment.createdAt,
+      };
     } catch (error) {
-      console.error("Error in _formatSingleCommentWithUserInfo:", error);
-      throw error;
+      console.error("Error in _formatCommentObject:", error);
+      // Trả về đối tượng đơn giản nếu có lỗi
+      return {
+        _id: comment._id,
+        content: comment.content || '',
+        author: comment.author || '',
+        createdAt: comment.createdAt
+      };
     }
   }
 
-  async _sendCommentNotification(
-    recipient,
-    sender,
-    content,
-    targetType,
-    targetId
-  ) {
+  /**
+   * Gửi thông báo về comment
+   */
+  async _sendCommentNotification(recipient, sender, content, targetType, targetId) {
     try {
-      await notificationService.createNotification({
+      // Tạo nội dung thông báo
+      const notificationContent =
+        content.length > 50 ? `${content.substring(0, 50)}...` : content;
+
+      // Tạo thông báo mới
+      return await notificationService.createNotification({
         recipient,
-        type: targetType === "like" ? "like" : "comment",
-        sender: sender.toLowerCase(),
-        content:
-          targetType === "like"
-            ? content
-            : `đã ${targetType === "post" ? "bình luận về bài đăng" : "trả lời bình luận"} của bạn: "${content.substring(0, 50)}${content.length > 50 ? "..." : ""}"`,
-        targetType: targetType === "like" ? "comment" : targetType,
+        type: "comment",
+        sender,
+        content: notificationContent,
+        targetType,
         targetId,
       });
     } catch (error) {
-      console.error("Lỗi khi gửi thông báo:", error);
-      // Không throw lỗi ở đây vì không muốn việc thông báo thất bại ảnh hưởng đến việc tạo comment
+      console.error("Error sending comment notification:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Format một comment với thông tin người dùng chi tiết
+   */
+  async _formatSingleCommentWithUserInfo(comment, currentUser) {
+    try {
+      // Lấy thông tin người dùng từ database
+      const user = await User.findOne({
+        walletAddress: comment.author.toLowerCase(),
+      });
+
+      if (!user) {
+        throw new Error(
+          `Không tìm thấy thông tin người dùng cho địa chỉ: ${comment.author}`
+        );
+      }
+
+      // Tạo đối tượng bình luận với thông tin người dùng
+      return {
+        ...comment.toObject(),
+        author: {
+          walletAddress: user.walletAddress,
+          username: user.username || null,
+          displayName: user.displayName || null,
+          avatar: user.avatar || null,
+          bio: user.bio || null,
+        },
+        isOwn: currentUser.toLowerCase() === comment.author.toLowerCase(),
+      };
+    } catch (error) {
+      console.error("Error formatting comment with user info:", error);
+      return comment;
     }
   }
 }

@@ -1,6 +1,6 @@
 // src/services/LeaderboardService.js
 const { User, Post, NFTCache } = require("../models/index");
-const IPFSService = require("./IPFSService");
+const IPFSService = require("./ipfs.services");
 
 /**
  * Service xử lý các chức năng bảng xếp hạng

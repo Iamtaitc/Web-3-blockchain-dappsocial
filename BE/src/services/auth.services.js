@@ -67,12 +67,11 @@ class AuthService {
           status: 400,
         };
       }
-
-      // Tìm user và nonce
+  
       const user = await User.findOne({
         walletAddress: walletAddress.toLowerCase(),
       });
-
+  
       if (!user || !user.nonce || !user.nonceExpiry) {
         return {
           success: false,
@@ -80,8 +79,7 @@ class AuthService {
           status: 400,
         };
       }
-
-      // Kiểm tra nonce có hết hạn không
+  
       if (user.nonceExpiry < new Date()) {
         return {
           success: false,
@@ -89,13 +87,11 @@ class AuthService {
           status: 400,
         };
       }
-
-      // Tái tạo message đã ký
+  
       const message = `Chào mừng đến với DeSo Social!`;
-      // Xác thực chữ ký
+  
       try {
         const recoveredAddress = verifyMessage(message, signature);
-
         if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
           return {
             success: false,
@@ -110,32 +106,32 @@ class AuthService {
           status: 401,
         };
       }
-      // Tạo JWT token
+  
+      // 🔽 Tạo token
       const token = jwt.sign(
-        {
-          address: walletAddress.toLowerCase(),
-          userId: user._id,
-        },
+        { address: walletAddress.toLowerCase(), userId: user._id },
         config.JWT_SECRET,
         { expiresIn: config.JWT_EXPIRES_IN || "24h" }
       );
-      // Tạo refresh token
+  
       const refreshToken = jwt.sign(
-        {
-          address: walletAddress.toLowerCase(),
-          userId: user._id,
-        },
+        { address: walletAddress.toLowerCase(), userId: user._id },
         config.JWT_REFRESH_SECRET,
         { expiresIn: config.JWT_REFRESH_EXPIRES_IN || "7d" }
       );
-      console.log("Refresh Token:", refreshToken);
-      // Xóa nonce sau khi xác thực thành công
+  
+      // 🔽 Gán username nếu chưa có
+      if (!user.username || user.username.trim() === "") {
+        user.username = `user_${walletAddress.toLowerCase().slice(2, 8)}`;
+      }
+  
       user.nonce = null;
       user.nonceExpiry = null;
       user.refreshToken = refreshToken;
       user.lastLogin = new Date();
+  
       await user.save();
-
+  
       return {
         success: true,
         data: {
@@ -145,8 +141,7 @@ class AuthService {
           user: {
             id: user._id,
             walletAddress: user.walletAddress,
-            username:
-              user.username || `user_${user.walletAddress.substring(2, 8)}`,
+            username: user.username,
             avatarURI: user.avatarURI,
             isVerified: user.isVerified,
           },
@@ -161,6 +156,7 @@ class AuthService {
       };
     }
   }
+  
 
   /**
    * Refresh token

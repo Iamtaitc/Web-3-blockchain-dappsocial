@@ -10,7 +10,7 @@ const TaskSchema = new mongoose.Schema({
   
   type: {
     type: String,
-    enum: ['daily', 'weekly', 'special'],
+    enum: ['daily', 'weekly', 'special', 'event' ],
     default: 'daily'
   },
   

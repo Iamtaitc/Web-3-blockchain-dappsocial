@@ -4,27 +4,24 @@ const router = express.Router();
 const NftController = require("../../controllers/nft.controller");
 
 // Lấy danh sách tất cả NFTs
-router.get("/", NftController.getAllNFTs);
+router.get("/nft/all", NftController.getAllNFTs);
 
 // Lấy thông tin chi tiết của một NFT
-router.get("/:tokenId", NftController.getNFTById);
-
-// Mint NFT mới (yêu cầu xác thực)
-router.post("/mint", NftController.mintNFT);
-
-// Đăng bán NFT (yêu cầu xác thực)
-router.post("/:tokenId/list", NftController.listNFTForSale);
+router.get("/nft/id/:tokenId", NftController.getNFTById);
 
 // Hủy đăng bán NFT (yêu cầu xác thực)
-router.post("/:tokenId/unlist", NftController.unlistNFT);
+router.post("/nft/:tokenId/unlist", NftController.unlistNFT);
 
 // Mua NFT (yêu cầu xác thực)
-router.post("/:tokenId/buy", NftController.buyNFT);
+router.post("/nft/:tokenId/buy", NftController.buyNFT);
+
+// Xác nhận hoàn tất giao dịch mua NFT
+router.post("/nft/purchase-complete", NftController.purchaseComplete);
 
 // Lấy danh sách NFT trên marketplace
-router.get("/marketplace", NftController.getMarketplaceNFTs);
+router.get("/nft/marketplace", NftController.getMarketplaceNFTs);
 
 // Lấy danh sách NFT của một creator
-router.get("/creator/:address", NftController.getCreatorNFTs);
+router.get("/nft/creator/:address", NftController.getCreatorNFTs);
 
 module.exports = router;
