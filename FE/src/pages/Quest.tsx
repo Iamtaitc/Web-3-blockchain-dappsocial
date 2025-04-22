@@ -5,6 +5,16 @@ import { useNavigate } from "react-router-dom"
 import { FaTwitter, FaYoutube, FaDiscord, FaTelegram, FaCheckCircle, FaTrophy } from "react-icons/fa"
 import { TaskService } from "../services/TaskApi"
 
+// Định nghĩa interface cho response của completeTask
+interface CompleteTaskResponse {
+  success: boolean;
+  data: {
+    rewardPoints: number;
+    rewardTokens: number;
+  };
+  message?: string; // Thêm trường message để xử lý lỗi
+}
+
 interface Quest {
   _id: string
   name: string
@@ -29,14 +39,35 @@ const Quest = () => {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null) // Thêm state cho thông báo thành công
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [stats, setStats] = useState({
     completedCount: 0,
     totalTasks: 0,
   })
+  const [taskTimers, setTaskTimers] = useState<{ [key: string]: { timeLeft: number; started: boolean } }>({})
+  const [canClaim, setCanClaim] = useState<{ [key: string]: boolean }>({})
 
   useEffect(() => {
     fetchUserTasks()
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTaskTimers((prev) => {
+        const updatedTimers = { ...prev }
+        Object.keys(updatedTimers).forEach((taskId) => {
+          if (updatedTimers[taskId].started && updatedTimers[taskId].timeLeft > 0) {
+            updatedTimers[taskId].timeLeft -= 1
+            if (updatedTimers[taskId].timeLeft <= 0) {
+              setCanClaim((prev) => ({ ...prev, [taskId]: true }))
+            }
+          }
+        })
+        return updatedTimers
+      })
+    }, 1000)
+
+    return () => clearInterval(interval)
   }, [])
 
   const fetchUserTasks = async () => {
@@ -84,8 +115,21 @@ const Quest = () => {
     return "twitter"
   }
 
+  const parseDescription = (description: string): { cleanDescription: string; postUrl?: string } => {
+    const markdownLinkRegex = /\[(.*?)\]\((.*?)\)/
+    const match = description.match(markdownLinkRegex)
+    if (match) {
+      const cleanDescription = description.replace(markdownLinkRegex, "").trim()
+      const postUrl = match[2]
+      return { cleanDescription, postUrl }
+    }
+    return { cleanDescription: description }
+  }
+
   const handleQuestAction = (quest: Quest) => {
     if (quest.isCompleted) return
+
+    const { postUrl } = parseDescription(quest.description)
 
     if (
       quest.name.toLowerCase().includes("twitter") ||
@@ -97,38 +141,80 @@ const Quest = () => {
       quest.name.toLowerCase().includes("bài học")
     ) {
       navigate(`/task/${quest._id}`)
+    } else if (postUrl) {
+      window.open(postUrl, "_blank")
+      setTaskTimers((prev) => ({
+        ...prev,
+        [quest._id]: { timeLeft: 30, started: true },
+      }))
     } else {
       handleDirectCompletion(quest)
     }
   }
 
+  const handleClaimReward = async (quest: Quest) => {
+    try {
+      setSuccessMessage(null);
+      setError(null);
+
+      // Kiểm tra taskId trước khi gọi API
+      if (!quest._id) {
+        setError("Task ID không hợp lệ. Vui lòng thử lại.");
+        return;
+      }
+
+      console.log("Calling completeTask with taskId:", quest._id); // Debug taskId
+      const response = await TaskService.completeTask(quest._id);
+
+      // Kiểm tra cấu trúc response
+      if (response.success) {
+        const { rewardPoints, rewardTokens } = response.data || {};
+        setSuccessMessage(
+          `Nhiệm vụ "${quest.name}" hoàn thành! Bạn nhận được ${rewardPoints || 0} điểm${
+            rewardTokens > 0 ? ` và ${rewardTokens} tokens` : ""
+          }.`
+        );
+        fetchUserTasks();
+        setCanClaim((prev) => ({ ...prev, [quest._id]: false }));
+        setTaskTimers((prev) => ({ ...prev, [quest._id]: { timeLeft: 0, started: false } }));
+      } else {
+        setError(response.message || "Không thể nhận phần thưởng. Vui lòng thử lại.");
+      }
+    } catch (error: any) {
+      console.error("Error in handleClaimReward:", error);
+      setError(error.message || "Lỗi khi nhận phần thưởng. Vui lòng thử lại sau.");
+    }
+  };
+
   const handleDirectCompletion = async (quest: Quest) => {
     try {
-      setSuccessMessage(null) // Reset thông báo thành công
+      setSuccessMessage(null)
       if (quest.name.toLowerCase().includes("điểm danh")) {
         const response = await TaskService.checkIn()
         if (response.success) {
           setSuccessMessage("Điểm danh thành công! Bạn nhận được phần thưởng.")
-          fetchUserTasks() // Làm mới danh sách nhiệm vụ
+          fetchUserTasks()
         } else {
           setError("Không thể điểm danh. Vui lòng thử lại.")
         }
       } else {
+        console.log("Calling completeTask for direct completion with taskId:", quest._id); // Debug taskId
         const response = await TaskService.completeTask(quest._id)
         if (response.success) {
+          const { rewardPoints, rewardTokens } = response.data || {};
           setSuccessMessage(
-            `Nhiệm vụ "${quest.name}" hoàn thành! Bạn nhận được ${response.data.rewardPoints} điểm${
-              response.data.rewardTokens > 0 ? ` và ${response.data.rewardTokens} tokens` : ""
+            `Nhiệm vụ "${quest.name}" hoàn thành! Bạn nhận được ${rewardPoints || 0} điểm${
+              rewardTokens > 0 ? ` và ${rewardTokens} tokens` : ""
             }.`
           )
-          fetchUserTasks() // Làm mới danh sách nhiệm vụ
+          fetchUserTasks()
         } else {
-          setError("Không thể hoàn thành nhiệm vụ. Vui lòng thử lại.")
+          setError(response.message || "Không thể hoàn thành nhiệm vụ. Vui lòng thử lại.")
         }
       }
     } catch (error: any) {
-      console.error("Failed to complete task:", error)
-      setError("Lỗi khi hoàn thành nhiệm vụ. Vui lòng thử lại sau.")
+      console.error("Error in handleDirectCompletion:", error)
+      setError(error.message || "Lỗi khi hoàn thành nhiệm vụ. Vui lòng thử lại sau.")
     }
   }
 
@@ -235,48 +321,67 @@ const Quest = () => {
       </div>
 
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {quests[activeCategory].map((quest) => (
-          <div
-            key={quest._id}
-            className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-md transition-all duration-300 hover:shadow-lg"
-          >
-            <div className="p-5">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center mr-3 shadow-sm">
-                    {getQuestIcon(quest.icon!)}
+        {quests[activeCategory].map((quest) => {
+          const { cleanDescription } = parseDescription(quest.description)
+          const timer = taskTimers[quest._id] || { timeLeft: 0, started: false }
+          const canClaimTask = canClaim[quest._id] || false
+
+          return (
+            <div
+              key={quest._id}
+              className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-md transition-all duration-300 hover:shadow-lg"
+            >
+              <div className="p-5">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center">
+                    <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                      {getQuestIcon(quest.icon!)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-800">{quest.name}</h3>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-800">{quest.name}</h3>
-                  </div>
+                  {quest.isCompleted && (
+                    <div className="bg-emerald-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-sm">
+                      Đã Hoàn Thành
+                    </div>
+                  )}
                 </div>
-                {quest.isCompleted && (
-                  <div className="bg-emerald-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-sm">
-                    Đã Hoàn Thành
+                <p className="text-gray-600 text-sm mb-4">{cleanDescription}</p>
+                <div className="flex justify-between items-center">
+                  <div className="font-bold text-emerald-600">
+                    {quest.rewardPoints} Điểm{" "}
+                    {quest.rewardTokens > 0 ? `+ ${quest.rewardTokens} Tokens` : ""}
                   </div>
-                )}
-              </div>
-              <p className="text-gray-600 text-sm mb-4">{quest.description}</p>
-              <div className="flex justify-between items-center">
-                <div className="font-bold text-emerald-600">
-                  {quest.rewardPoints} Điểm{" "}
-                  {quest.rewardTokens > 0 ? `+ ${quest.rewardTokens} Tokens` : ""}
+                  {timer.started && timer.timeLeft > 0 ? (
+                    <div className="text-gray-600 text-sm">
+                      Đợi {timer.timeLeft} giây...
+                    </div>
+                  ) : canClaimTask ? (
+                    <button
+                      onClick={() => handleClaimReward(quest)}
+                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 bg-yellow-500 text-white hover:bg-yellow-600 shadow-sm"
+                    >
+                      Nhận Thưởng
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleQuestAction(quest)}
+                      disabled={quest.isCompleted}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm ${
+                        quest.isCompleted
+                          ? "bg-gray-200 text-gray-700 cursor-not-allowed"
+                          : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600"
+                      }`}
+                    >
+                      {quest.isCompleted ? "Đã Hoàn Thành" : "Bắt Đầu"}
+                    </button>
+                  )}
                 </div>
-                <button
-                  onClick={() => handleQuestAction(quest)}
-                  disabled={quest.isCompleted}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm ${
-                    quest.isCompleted
-                      ? "bg-gray-200 text-gray-700 cursor-not-allowed"
-                      : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600"
-                  }`}
-                >
-                  {quest.isCompleted ? "Đã Hoàn Thành" : "Bắt Đầu"}
-                </button>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {quests[activeCategory].length === 0 && !error && (

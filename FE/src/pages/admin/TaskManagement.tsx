@@ -15,21 +15,34 @@ import {
   CheckCircle,
 } from "lucide-react";
 import AdminApi from "../../services/AdminApi";
+import postApi from "../../services/post.api";
 
 // Định nghĩa interface Task khớp với BE
 interface Task {
   _id: string;
   name: string;
   description: string;
-  type: "daily" | "weekly" | "special";
+  type: "daily" | "weekly" | "special" | "event";
   rewardPoints: number;
   rewardTokens: number;
-  requirements: Record<string, any>;
+  requirements: {
+    action: "like" | "comment" | "follow";
+    count: number;
+  };
   isActive: boolean;
+}
+
+// Định nghĩa interface Post
+interface Post {
+  _id: string;
+  content: string;
+  title?: string;
 }
 
 const TaskManagement = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [selectedPostId, setSelectedPostId] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -40,7 +53,6 @@ const TaskManagement = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Fetch tasks
   const fetchTasks = async () => {
     setIsLoading(true);
     setError(null);
@@ -63,12 +75,25 @@ const TaskManagement = () => {
     }
   };
 
-  // Load tasks on component mount and when type filter changes
+  const fetchPosts = async () => {
+    try {
+      const response = await postApi.getAllPosts();
+      if (response.success) {
+        setPosts(response.data.posts || []);
+      } else {
+        setError("Failed to fetch posts");
+      }
+    } catch (err) {
+      console.error("Error fetching posts:", err);
+      setError("Failed to fetch posts");
+    }
+  };
+
   useEffect(() => {
     fetchTasks();
+    fetchPosts();
   }, [typeFilter]);
 
-  // Handle task creation/editing
   const handleTaskModal = (task: Task | null = null) => {
     setCurrentTask(
       task || {
@@ -78,29 +103,63 @@ const TaskManagement = () => {
         type: "daily",
         rewardPoints: 0,
         rewardTokens: 0,
-        requirements: { count: 1 },
+        requirements: { action: "like", count: 1 },
         isActive: true,
       }
     );
     setIsEditing(!!task);
+    setSelectedPostId("");
     setShowTaskModal(true);
     setError(null);
   };
 
-  // Handle task deletion
+  // Cập nhật hàm handlePostSelection
+  const handlePostSelection = async (postId: string) => {
+    setSelectedPostId(postId);
+    if (!postId || !currentTask) return;
+
+    try {
+      const response = await postApi.getPostById(postId);
+      console.log("Response from getPostById:", response); // Debug response
+
+      if (response.success && response.data) {
+        const post = response.data;
+        console.log("Post data:", post); // Debug post data
+
+        // Kiểm tra xem post có _id hay không, nếu không thì thử lấy từ selectedPostId
+        const postIdToUse = post._id || post.id || postId; // Thử các trường khác nhau
+        if (!postIdToUse) {
+          setError("Post ID not found in response");
+          return;
+        }
+
+        const postTitle = post.title || post.content?.substring(0, 30) || "Post";
+        const postUrl = `/post/${postIdToUse}`;
+        const postLink = `[${postTitle}](${postUrl}) `;
+        setCurrentTask({
+          ...currentTask,
+          description: postLink + (currentTask.description || ""),
+        });
+      } else {
+        setError("Failed to fetch post details");
+      }
+    } catch (err) {
+      console.error("Error fetching post by ID:", err);
+      setError("Failed to fetch post details");
+    }
+  };
+
   const handleDeleteModal = (task: Task) => {
     setCurrentTask(task);
     setShowDeleteModal(true);
     setError(null);
   };
 
-  // Handle task reset
   const handleResetModal = () => {
     setShowResetModal(true);
     setError(null);
   };
 
-  // Save task
   const handleSaveTask = async () => {
     if (!currentTask) return;
 
@@ -135,7 +194,6 @@ const TaskManagement = () => {
     }
   };
 
-  // Delete task
   const handleDeleteTask = async () => {
     if (!currentTask) return;
 
@@ -155,7 +213,6 @@ const TaskManagement = () => {
     }
   };
 
-  // Reset daily tasks
   const handleResetTasks = async () => {
     setIsLoading(true);
     setError(null);
@@ -173,12 +230,10 @@ const TaskManagement = () => {
     }
   };
 
-  // Handle type filter
   const handleTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setTypeFilter(e.target.value);
   };
 
-  // Get task type badge color
   const getTaskTypeBadgeColor = (type: string) => {
     switch (type) {
       case "daily":
@@ -192,7 +247,6 @@ const TaskManagement = () => {
     }
   };
 
-  // Get task status badge color
   const getTaskStatusBadgeColor = (isActive: boolean) => {
     return isActive
       ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
@@ -223,7 +277,6 @@ const TaskManagement = () => {
         </div>
       </div>
 
-      {/* Success/Error Messages */}
       {error && (
         <div className="rounded-md bg-red-50 dark:bg-red-900/30 p-4">
           <div className="flex">
@@ -250,7 +303,6 @@ const TaskManagement = () => {
         </div>
       )}
 
-      {/* Filter */}
       <div className="flex items-center space-x-2">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -272,7 +324,6 @@ const TaskManagement = () => {
         </div>
       </div>
 
-      {/* Tasks Table */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         {isLoading && tasks.length === 0 ? (
           <div className="flex items-center justify-center h-64">
@@ -355,7 +406,7 @@ const TaskManagement = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {JSON.stringify(task.requirements)}
+                      {task.requirements.action}: {task.requirements.count}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -390,7 +441,6 @@ const TaskManagement = () => {
         )}
       </div>
 
-      {/* Task Modal */}
       {showTaskModal && currentTask && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -418,6 +468,25 @@ const TaskManagement = () => {
                           onChange={(e) => setCurrentTask({ ...currentTask, name: e.target.value })}
                           required
                         />
+                      </div>
+                      <div>
+                        <label htmlFor="post" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Select Post
+                        </label>
+                        <select
+                          name="post"
+                          id="post"
+                          className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          value={selectedPostId}
+                          onChange={(e) => handlePostSelection(e.target.value)}
+                        >
+                          <option value="">Select a post</option>
+                          {posts.map((post) => (
+                            <option key={post._id} value={post._id}>
+                              {post.title || post.content?.substring(0, 30) || "Untitled Post"}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <div>
                         <label
@@ -451,6 +520,7 @@ const TaskManagement = () => {
                           <option value="daily">Daily</option>
                           <option value="weekly">Weekly</option>
                           <option value="special">Special</option>
+                          <option value="event">Event</option>
                         </select>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
@@ -496,25 +566,54 @@ const TaskManagement = () => {
                       </div>
                       <div>
                         <label
-                          htmlFor="requirements"
+                          htmlFor="requirements-action"
                           className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                         >
-                          Requirements (JSON)
+                          Requirement Action
                         </label>
-                        <textarea
-                          name="requirements"
-                          id="requirements"
-                          rows={3}
+                        <select
+                          name="requirements-action"
+                          id="requirements-action"
                           className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                          value={JSON.stringify(currentTask.requirements, null, 2)}
-                          onChange={(e) => {
-                            try {
-                              const parsed = JSON.parse(e.target.value);
-                              setCurrentTask({ ...currentTask, requirements: parsed });
-                            } catch {
-                              // Ignore invalid JSON
-                            }
-                          }}
+                          value={currentTask.requirements.action}
+                          onChange={(e) =>
+                            setCurrentTask({
+                              ...currentTask,
+                              requirements: {
+                                ...currentTask.requirements,
+                                action: e.target.value as "like" | "comment" | "follow",
+                              },
+                            })
+                          }
+                        >
+                          <option value="like">Like</option>
+                          <option value="comment">Comment</option>
+                          <option value="follow">Follow</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="requirements-count"
+                          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
+                          Requirement Count
+                        </label>
+                        <input
+                          type="number"
+                          name="requirements-count"
+                          id="requirements-count"
+                          className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          value={currentTask.requirements.count}
+                          onChange={(e) =>
+                            setCurrentTask({
+                              ...currentTask,
+                              requirements: {
+                                ...currentTask.requirements,
+                                count: Number.parseInt(e.target.value) || 1,
+                              },
+                            })
+                          }
+                          min="1"
                         />
                       </div>
                       <div>
@@ -574,7 +673,6 @@ const TaskManagement = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && currentTask && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -626,7 +724,6 @@ const TaskManagement = () => {
         </div>
       )}
 
-      {/* Reset Confirmation Modal */}
       {showResetModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">

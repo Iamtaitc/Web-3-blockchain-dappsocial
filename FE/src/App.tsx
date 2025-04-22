@@ -1,52 +1,56 @@
-import { Provider } from "react-redux"
-import { BrowserRouter, useLocation } from "react-router-dom"
-import Navbar from "./Components/Navbar"
-import AppRoutes from "./routers/routes"
-import AdminRoutes from "./routers/admin-routes"
-import { ThemeProvider } from "./context/theme-context"
-import { store } from "./store"
-import { useAuthCheck } from "./hooks/useAuthCheck"
+// src/App.tsx
+import { Provider } from "react-redux";
+import { BrowserRouter, useLocation } from "react-router-dom";
+import Navbar from "./Components/Navbar";
+import AppRoutes from "./routers/routes";
+import AdminRoutes from "./routers/admin-routes";
+import { ThemeProvider } from "./context/theme-context";
+import { store } from "./store";
+import { useAuthCheck } from "./hooks/useAuthCheck";
 
-// Layout wrapper component to conditionally render the navbar
+// Layout wrapper component cho user routes (có Navbar)
 const MainLayout = ({ children }) => {
   return (
     <div className="flex w-screen min-h-screen bg-white">
-      <div className="w-[200px] h-screen fixed">
+      <div className="w-[200px] min-h-screen fixed top-0 left-0 bg-gray-50 shadow-md">
         <Navbar />
       </div>
-      <div className="flex-1 p-4 bg-white ml-[200px]">{children}</div>
+      <div className="flex-1 p-4 bg-white ml-[200px] min-h-screen overflow-x-hidden flex flex-col">
+        <div className="flex-1">{children}</div>
+      </div>
     </div>
-  )
-}
+  );
+};
 
-// Router component to handle conditional rendering
+// Router component để tách biệt user và admin routes
 const AppRouter = () => {
-  const location = useLocation()
-  const isAdminRoute = location.pathname.startsWith("/admin")
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin") || location.pathname === "/check-admin";
 
-  return isAdminRoute ? <AdminRoutes /> : <MainLayout><AppRoutes /></MainLayout>
-}
+  return isAdminRoute ? <AdminRoutes /> : <MainLayout><AppRoutes /></MainLayout>;
+};
 
-// Component con để sử dụng hooks
+// Component chính
 const AppContent = () => {
-  const { isChecking } = useAuthCheck()
+  const { isChecking } = useAuthCheck();
 
   if (isChecking) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Đang kiểm tra xác thực...</h2>
+          <p className="text-gray-500">Vui lòng đợi trong giây lát...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <ThemeProvider>
       <AppRouter />
     </ThemeProvider>
-  )
-}
+  );
+};
 
 const App = () => {
   return (
@@ -55,7 +59,7 @@ const App = () => {
         <AppContent />
       </BrowserRouter>
     </Provider>
-  )
-}
+  );
+};
 
-export default App
+export default App;

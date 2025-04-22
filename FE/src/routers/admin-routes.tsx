@@ -18,8 +18,6 @@ const useAdminAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-
-
   useEffect(() => {
     const checkAdminAuth = async () => {
       try {
@@ -32,6 +30,7 @@ const useAdminAuth = () => {
           setIsAuthenticated(false);
         }
       } catch (error) {
+        console.error("Error checking admin access:", error);
         localStorage.removeItem("adminAuth");
         setIsAuthenticated(false);
       } finally {
@@ -54,13 +53,12 @@ const useAdminAuth = () => {
 const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAdminAuth();
 
-
-
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
   if (!isAuthenticated) {
+    console.log("Not authenticated, redirecting to /check-admin");
     return <Navigate to="/check-admin" replace />;
   }
 
@@ -87,7 +85,6 @@ const AdminRoutes = () => {
         <Route path="/admin/config" element={<SystemConfiguration />} />
         <Route path="/admin/logs" element={<LogManagement />} />
         <Route path="/admin/blockchain" element={<BlockchainSync />} />
-        
       </Route>
     </Routes>
   );
