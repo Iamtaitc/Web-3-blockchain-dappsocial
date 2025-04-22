@@ -39,7 +39,7 @@ class CommentInteractionService extends BaseCommentService {
       // Tạo like mới và cập nhật likeCount
       const newLike = new Like({
         user: user.address.toLowerCase(),
-        postId: commentId,
+        commentId: commentId, // Sửa lỗi: postId -> commentId
         createdAt: new Date(),
       });
 
@@ -85,7 +85,7 @@ class CommentInteractionService extends BaseCommentService {
       // Kiểm tra đã like chưa
       const existingLike = await Like.findOne({
         user: user.address.toLowerCase(),
-        postId: commentId,
+        commentId: commentId, // Sửa lỗi: postId -> commentId
       });
 
       if (!existingLike) {

@@ -9,19 +9,18 @@ const interactionService = require("./interaction.service");
 class CommentService {
   constructor() {
     // Đăng ký các phương thức từ read service
-    this.getPostComments = readService.getPostComments.bind(readService);
-    this.getCommentReplies = readService.getCommentReplies.bind(readService);
+    this.getPostComments = readService.getPostComments;
+    this.getCommentReplies = readService.getCommentReplies;
 
     // Đăng ký các phương thức từ write service
-    this.createComment = writeService.createComment.bind(writeService);
-    this.replyToComment = writeService.replyToComment.bind(writeService);
-    this.updateComment = writeService.updateComment.bind(writeService);
-    this.deleteComment = writeService.deleteComment.bind(writeService);
+    this.createComment = writeService.createComment;
+    this.replyToComment = writeService.replyToComment;
+    this.updateComment = writeService.updateComment;
+    this.deleteComment = writeService.deleteComment;
 
     // Đăng ký các phương thức từ interaction service
-    this.likeComment = interactionService.likeComment.bind(interactionService);
-    this.unlikeComment =
-      interactionService.unlikeComment.bind(interactionService);
+    this.likeComment = interactionService.likeComment;
+    this.unlikeComment = interactionService.unlikeComment;
   }
 }
 
