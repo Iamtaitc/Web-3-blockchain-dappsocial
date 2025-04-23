@@ -547,7 +547,6 @@ button {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 750px; ;
   min-height: 400px;
   background-color: #ffffff;
   border-radius: 16px;

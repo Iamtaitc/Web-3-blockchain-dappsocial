@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 // import Collections from "../pages/Collections";
-import ProfileNFT from "../pages/ProfileNFT";
+import ProfileNFT from "../pages/Profileuser";
 import Home from "../pages/Home/home";
 // import HomeNFT from "../pages/NFT/HomeNFT";
 import CreateNFT from "../pages/NFT/CreateNFT";
@@ -15,7 +15,8 @@ import Farm from "../pages/NFT/Farm";
 import SnakeGame from "../pages/game/SnakeGame";
 import DropGame from "../pages/game/DropGame";
 import Settings from "../pages/Settings";
-
+import Profileuser from "../pages/Profileuser";
+import PostDetail from "../pages/PostDetail";
 
 const AppRoutes = () => {
   return (
@@ -30,12 +31,13 @@ const AppRoutes = () => {
       <Route path="/quest" element={<Quest/>} />
       <Route path="/wallet" element={ <Wallet/>} />
       {/* <Route path="/collections" element={<Collections/>} /> */}
-      <Route path="/profile" element={<ProfileNFT />} />
+      <Route path="/user/:address" element={<Profileuser />} />
       <Route path="/create" element={<CreateNFT />} />
       <Route path="/nft" element={<NFTDetail />} />
       <Route path="/SnakeGame" element={<SnakeGame/>} />
       <Route path="/DropGame" element={<DropGame/>} />
       <Route path="/Setting" element={<Settings/>} />
+      <Route path="/post/:postId" element={<PostDetail />} />
     </Routes>
   );
 };

@@ -1,14 +1,15 @@
-import { Provider } from "react-redux";
-import { BrowserRouter } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import AppRoutes from "./routers/routes";
-import { ThemeProvider } from "./context/theme-context";
-import { store } from "./store";
-import { useAuthCheck } from "./hooks/useAuthCheck";
+import { Provider } from "react-redux"
+import { BrowserRouter } from "react-router-dom"
+import Navbar from "./components/Navbar"
+import AppRoutes from "./routers/routes"
+import { ThemeProvider } from "./context/theme-context"
+import { store } from "./store"
+import { useAuthCheck } from "./hooks/useAuthCheck"
+import { Toaster } from "react-hot-toast"
 
 // Component con để sử dụng hooks
 const AppContent = () => {
-  const { isChecking } = useAuthCheck();
+  const { isChecking } = useAuthCheck()
 
   if (isChecking) {
     return (
@@ -18,35 +19,48 @@ const AppContent = () => {
           <p className="text-gray-500">Vui lòng đợi trong giây lát...</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
     <ThemeProvider>
-      <div className="flex w-full min-h-screen bg-white">
+      {/* Sử dụng grid để layout chính xác hơn */}
+      <div className="grid grid-cols-[200px_1fr] min-h-screen bg-white">
         {/* Navbar cố định bên trái */}
-        <div className="w-[200px] min-h-screen fixed top-0 left-0 bg-gray-50 shadow-md">
+        <div className="fixed top-0 left-0 w-[200px] h-screen bg-gray-50 shadow-md z-10 overflow-y-auto">
           <Navbar />
         </div>
-        {/* Nội dung chính */}
-        <div className="flex-1 p-4 bg-white ml-[200px] min-h-screen overflow-x-hidden flex flex-col">
-          <div className="flex-1">
+
+        {/* Nội dung chính - sử dụng left margin để tránh đè lên navbar */}
+        <div className="col-start-2 col-end-3 bg-white">
+          <div className="w-full px-6 py-4">
             <AppRoutes />
           </div>
         </div>
       </div>
     </ThemeProvider>
-  );
-};
+  )
+}
 
 const App = () => {
   return (
     <Provider store={store}>
       <BrowserRouter>
         <AppContent />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: "#363636",
+              color: "#fff",
+              borderRadius: "8px",
+            },
+          }}
+        />
       </BrowserRouter>
     </Provider>
-  );
-};
+  )
+}
 
-export default App;
+export default App

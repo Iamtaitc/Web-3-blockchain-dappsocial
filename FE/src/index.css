@@ -1,6 +1,21 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* Thêm vào file CSS của bạn (thường là index.css hoặc App.css) */
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* Reset CSS để đảm bảo không có margin hoặc padding gây ra vấn đề */
+* {
+  box-sizing: border-box;
+}
 
 @layer base {
 :root {

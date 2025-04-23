@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { Wallet } from "lucide-react"
+import TestReduxData from "../components/TestReduxData"
 
 
 export default function Dashboard() {
@@ -199,6 +200,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+        <TestReduxData />
       </div>
     </div>
   )

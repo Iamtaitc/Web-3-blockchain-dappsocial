@@ -6,7 +6,7 @@ import { X, Tag, Send, Loader2, Camera, Smile, ImageIcon, AlertCircle, Search } 
 import { useSelector } from "react-redux"
 import type { RootState } from "../../store"
 import postApi from "../../services/post.api"
-// import userApi from "../../services/user.api" // Thêm import API người dùng
+import userApi from "../../services/user.api" // Thêm import API người dùng
 import { isValidImage } from "../../utils/image-utils"
 import { toast } from "react-hot-toast"
 
@@ -155,8 +155,6 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
           response.data.map((user) => ({
             username: user.username,
             walletAddress: user.walletAddress,
-            displayName: user.displayName,
-            avatarUrl: user.avatarUrl,
           })),
         )
       }
@@ -303,7 +301,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
 
     try {
       // Lấy thông tin người dùng từ Redux store
-      const authorName = user?.username || user?.name || user?.displayName || user?.address || "Người dùng ẩn danh"
+      const authorName = user?.username || "Người dùng ẩn danh"
 
       // Tạo FormData
       const formData = new FormData()
@@ -321,13 +319,11 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
         formData.append("tags", JSON.stringify(tags))
       }
 
-      // Thêm mentions nếu có - bây giờ bao gồm cả username và walletAddress
+      // Thêm mentions nếu có - chuyển đổi thành mảng các username
       if (mentions.length > 0) {
-        // Chuyển đổi mảng mentions thành định dạng phù hợp để lưu trữ
-        const mentionsData = mentions.map((mention) => ({
-          username: mention.username,
-          walletAddress: mention.walletAddress,
-        }))
+        // Chỉ lấy username từ mỗi đối tượng mention
+        const mentionsData = mentions.map((mention) => mention.username)
+        console.log("mentions:", mentionsData)
         formData.append("mentions", JSON.stringify(mentionsData))
       }
 
@@ -336,6 +332,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
         formData.append("media", file)
       })
 
+      console.log("fromdata", formData)
       // Gọi API để tạo bài viết với FormData
       const response = await postApi.createPost(formData)
 
@@ -381,38 +378,31 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
 
         {/* Tabs */}
         <div className="flex border-b ">
-  <button
-    className={`flex-1 py-3  text-center transition-colors rounded-none ${
-      activeTab === "content"
-        ? "text-emerald-500 border-b-emerald-500"
-        : "text-gray-500 hover:text-gray-700"
-    }`}
-    onClick={() => setActiveTab("content")}
-  >
-    Nội dung
-  </button>
-  <button
-    className={`flex-1 py-3  text-center transition-colors rounded-none ${
-      activeTab === "tags"
-        ? "text-emerald-500 border-b-emerald-500"
-        : "text-gray-500 hover:text-gray-700"
-    }`}
-    onClick={() => setActiveTab("tags")}
-  >
-    Thẻ
-  </button>
-  <button
-    className={`flex-1 py-3 text-center transition-colors rounded-none ${
-      activeTab === "mentions"
-        ? "text-emerald-500 border-b-emerald-500"
-        : "text-gray-500 hover:text-gray-700"
-    }`}
-    onClick={() => setActiveTab("mentions")}
-  >
-    Đề cập
-  </button>
-</div>
-
+          <button
+            className={`flex-1 py-3  text-center transition-colors rounded-none ${
+              activeTab === "content" ? "text-emerald-500 border-b-emerald-500" : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("content")}
+          >
+            Nội dung
+          </button>
+          <button
+            className={`flex-1 py-3  text-center transition-colors rounded-none ${
+              activeTab === "tags" ? "text-emerald-500 border-b-emerald-500" : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("tags")}
+          >
+            Thẻ
+          </button>
+          <button
+            className={`flex-1 py-3 text-center transition-colors rounded-none ${
+              activeTab === "mentions" ? "text-emerald-500 border-b-emerald-500" : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("mentions")}
+          >
+            Đề cập
+          </button>
+        </div>
 
         {/* Scrollable content */}
         <div
@@ -433,10 +423,10 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
           {/* User info */}
           <div className="flex items-center mb-4">
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-green-400 to-green-500 flex items-center justify-center text-white font-bold">
-              {user?.username?.charAt(0) || user?.name?.charAt(0) || user?.displayName?.charAt(0) || "U"}
+              {user?.username?.charAt(0) || "U"}
             </div>
             <div className="ml-3">
-              <p className="font-medium">{user?.username || user?.name || user?.displayName || "Người dùng"}</p>
+              <p className="font-medium">{user?.username || "Người dùng"}</p>
               <p className="text-xs text-gray-500">Đang đăng bài công khai</p>
             </div>
           </div>
@@ -538,6 +528,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }: CreatePostModalProp
                       className="flex items-center px-3 py-1.5 text-sm bg-purple-100 text-purple-800 rounded-full hover:bg-purple-200 transition-colors"
                     >
                       @{mention.username}
+                      {mention.walletAddress}
                       <button
                         onClick={() => handleRemoveMention(mention.walletAddress)}
                         className="ml-1.5 text-purple-600 hover:text-purple-800"

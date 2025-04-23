@@ -14,10 +14,12 @@ import InfiniteScroll from "../../components/infinite-scroll"
 import PostSkeleton from "../../components/post-skeleton"
 import { useSelector } from "react-redux"
 import type { RootState } from "../../store"
-import postApi, { type Post } from "../../services/post.api"
+import postApi, { type Post ,type PostMention } from "../../services/post.api"
 import IPFSImage from "../../components/UI/IPFSImage"
 import BookmarkButton from "../../components/UI/BookmarkButton"
 import { toast } from "react-hot-toast"
+import { WalletLoginModal } from "../../components/Login/wallet-login-modal"
+
 
 const Home = () => {
   const navigate = useNavigate()
@@ -36,6 +38,8 @@ const Home = () => {
   const [page, setPage] = useState(1)
   const [selectedPostAuthorAvatar, setSelectedPostAuthorAvatar] = useState<string>("")
   const [selectedPostTime, setSelectedPostTime] = useState<string>("")
+  // State cho WalletLoginModal
+const [WalletLoginModalOpen, setWalletLoginModalOpen] = useState(false);
 
   // Kiểm tra trạng thái đăng nhập từ Redux store
   const isAuthenticated = useSelector((state: RootState) => !!state.auth.token)
@@ -154,12 +158,16 @@ const Home = () => {
     toast.success("Đăng bài thành công!")
     handleRefresh()
   }
+   // Xử lý khi click vào mention
+     const handleMentionClick = (mention: PostMention) => {
+       navigate(`/user/${mention.walletAddress}`)
+     }
 
   // Xử lý khi nhấn nút đăng bài
   const handlePostButtonClick = () => {
     if (!isAuthenticated) {
       toast.error("Vui lòng đăng nhập để đăng bài")
-      navigate("/login")
+      setWalletLoginModalOpen(true);
     } else {
       setCreatePostModalOpen(true)
     }
@@ -373,12 +381,13 @@ const Home = () => {
                       {post.mentions &&
                         post.mentions.length > 0 &&
                         post.mentions.map((mention, index) => (
-                          <span
-                            key={`mention-${index}`}
-                            className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full hover:bg-green-200 cursor-pointer transition-colors"
-                          >
-                            @{mention}
-                          </span>
+                          <button
+                          key={`mention-${index}`}
+                          onClick={() => handleMentionClick(mention)}
+                          className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm hover:bg-green-200 transition-colors"
+                        >
+                          @{mention.username}
+                        </button>
                         ))}
                     </div>
                   )}
@@ -524,7 +533,14 @@ const Home = () => {
         onClose={() => setCreatePostModalOpen(false)}
         onPostCreated={handlePostCreated}
       />
+        {WalletLoginModalOpen && (
+      <WalletLoginModal
+        isOpen={WalletLoginModalOpen}
+        onClose={() => setWalletLoginModalOpen(false)}
+      />
+    )}
     </div>
+    
   )
 }
 
