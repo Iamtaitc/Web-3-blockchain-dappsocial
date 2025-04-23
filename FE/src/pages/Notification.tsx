@@ -4,71 +4,80 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Bell, Check, CheckCheck, ExternalLink } from "lucide-react"
 import { Link } from "react-router-dom"
-import instance from "../services/api" // Import axios instance từ api.ts
+import NotificationApi from "../services/NotificationApi"
+import { useDispatch } from "react-redux"
+import { setUnreadCount } from "../store/slices/notificationSlice"
 
 // Define notification types
 interface Notification {
-  _id: string
-  type: string
-  content: string
-  read: boolean
-  createdAt: string
-  targetType?: string
-  targetId?: string
-  sender?: string
+  _id: string;
+  type: string;
+  content: string; // Trường content giờ chứa cả title và content
+  read: boolean;
+  createdAt: string;
+  targetType?: string | null;
+  targetId?: string | null;
+  sender?: string;
+  recipient?: string;
 }
 
 interface PaginationInfo {
-  total: number
-  page: number
-  limit: number
-  pages: number
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
 }
 
 interface NotificationResponse {
-  success: boolean
-  message: string
-  data: {
-    notifications: Notification[]
-    pagination: PaginationInfo
-    unreadCount: number
-  }
-  timestamp: string
+  notifications: Notification[];
+  pagination: PaginationInfo;
+  unreadCount: number;
+}
+
+interface ApiResponse<T> {
+  status: number;
+  data: T;
+}
+
+interface MarkAsReadResponse {
+  message?: string;
+  error?: string;
 }
 
 const NotificationPage: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null) // Thêm thông báo thành công
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [pagination, setPagination] = useState<PaginationInfo>({
     total: 0,
     page: 1,
-    limit: 10,
+    limit: 20,
     pages: 0,
   })
-  const [unreadCount, setUnreadCount] = useState<number>(0)
+  const [unreadCount, setLocalUnreadCount] = useState<number>(0)
   const [showUnreadOnly, setShowUnreadOnly] = useState<boolean>(false)
+  const dispatch = useDispatch()
 
   // Fetch notifications
   const fetchNotifications = async (page = 1, unreadOnly = false) => {
     setLoading(true)
     try {
-      const response = await instance.get<NotificationResponse>("/notifications", {
-        params: {
-          page,
-          limit: 10,
-          unread: unreadOnly,
-        },
+      const response: ApiResponse<NotificationResponse> = await NotificationApi.getNotifications({
+        page,
+        limit: 20,
+        unread: unreadOnly,
       })
+      console.log("Fetched notifications:", response)
 
-      if (response.data.success) {
-        setNotifications(response.data.data.notifications)
-        setPagination(response.data.data.pagination)
-        setUnreadCount(response.data.data.unreadCount)
+      if (response.status === 200) {
+        setNotifications(response.data.notifications || [])
+        setPagination(response.data.pagination || { total: 0, page: 1, limit: 20, pages: 0 })
+        setLocalUnreadCount(response.data.unreadCount || 0)
+        dispatch(setUnreadCount(response.data.unreadCount || 0))
         setError(null)
       } else {
-        setError(response.data.message || "Không thể tải thông báo. Vui lòng thử lại.")
+        setError("Không thể tải thông báo. Vui lòng thử lại.")
       }
     } catch (err: any) {
       console.error("Error fetching notifications:", err)
@@ -80,41 +89,50 @@ const NotificationPage: React.FC = () => {
 
   // Mark notification as read
   const markAsRead = async (notificationId: string) => {
+    console.log("Marking notification as read:", notificationId)
     try {
-      const response = await instance.patch(`/notifications/${notificationId}/read`, {})
-      if (response.data.success) {
+      const response: ApiResponse<MarkAsReadResponse> = await NotificationApi.markAsRead(notificationId)
+      console.log("Mark as read response:", response)
+
+      if (response.status === 200 && !response.data.error) {
         setNotifications((prev) =>
           prev.map((notification) =>
-            notification._id === notificationId ? { ...notification, read: true } : notification,
-          ),
+            notification._id === notificationId ? { ...notification, read: true } : notification
+          )
         )
-        setUnreadCount((prev) => Math.max(0, prev - 1))
+        const newUnreadCount = Math.max(0, unreadCount - 1)
+        setLocalUnreadCount(newUnreadCount)
+        dispatch(setUnreadCount(newUnreadCount))
         setSuccessMessage("Đã đánh dấu thông báo là đã đọc.")
-        setTimeout(() => setSuccessMessage(null), 3000) // Ẩn thông báo sau 3s
+        setTimeout(() => setSuccessMessage(null), 3000)
       } else {
-        setError(response.data.message || "Không thể đánh dấu đã đọc. Vui lòng thử lại.")
+        setError(response.data.error || "Không thể đánh dấu đã đọc. Vui lòng thử lại.")
       }
     } catch (err: any) {
       console.error("Error marking notification as read:", err)
-      setError(err.response?.data?.message || "Lỗi khi đánh dấu đã đọc. Vui lòng thử lại.")
+      setError(err.response?.data?.error || "Lỗi khi đánh dấu đã đọc. Vui lòng thử lại.")
     }
   }
 
   // Mark all notifications as read
   const markAllAsRead = async () => {
+    console.log("Marking all notifications as read")
     try {
-      const response = await instance.patch("/notifications/read/all", {})
-      if (response.data.success) {
+      const response: ApiResponse<MarkAsReadResponse> = await NotificationApi.markAllAsRead()
+      console.log("Mark all as read response:", response)
+
+      if (response.status === 200 && !response.data.error) {
         setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })))
-        setUnreadCount(0)
+        setLocalUnreadCount(0)
+        dispatch(setUnreadCount(0))
         setSuccessMessage("Đã đánh dấu tất cả thông báo là đã đọc.")
         setTimeout(() => setSuccessMessage(null), 3000)
       } else {
-        setError(response.data.message || "Không thể đánh dấu tất cả đã đọc. Vui lòng thử lại.")
+        setError(response.data.error || "Không thể đánh dấu tất cả đã đọc. Vui lòng thử lại.")
       }
     } catch (err: any) {
       console.error("Error marking all notifications as read:", err)
-      setError(err.response?.data?.message || "Lỗi khi đánh dấu tất cả đã đọc. Vui lòng thử lại.")
+      setError(err.response?.data?.error || "Lỗi khi đánh dấu tất cả đã đọc. Vui lòng thử lại.")
     }
   }
 
@@ -131,8 +149,9 @@ const NotificationPage: React.FC = () => {
     }
   }
 
-  // Initial fetch
+  // Initial fetch and reset successMessage on page load
   useEffect(() => {
+    setSuccessMessage(null)
     fetchNotifications(1, showUnreadOnly)
   }, [])
 
@@ -170,6 +189,17 @@ const NotificationPage: React.FC = () => {
     }
   }
 
+  // Tách title và content từ trường content
+  const parseNotificationContent = (content: string): { title?: string; message: string } => {
+    const separatorIndex = content.indexOf(": ")
+    if (separatorIndex !== -1) {
+      const title = content.substring(0, separatorIndex).trim();
+      const message = content.substring(separatorIndex + 2).trim();
+      return { title, message };
+    }
+    return { message: content };
+  }
+
   return (
     <div className="p-6 ml-[200px] max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -195,11 +225,11 @@ const NotificationPage: React.FC = () => {
       </div>
 
       {successMessage && (
-        <div className="mb-6 bg-green-100 text-green-700 p-4 rounded-lg shadow-md flex justify-between items-center">
-          <span>{successMessage}</span>
+        <div className="mb-6 bg-green-100 text-green-800 p-4 rounded-lg shadow-md flex justify-between items-center border border-green-300">
+          <span className="text-sm font-medium">{successMessage}</span>
           <button
             onClick={() => setSuccessMessage(null)}
-            className="text-green-700 hover:text-green-900"
+            className="text-green-800 hover:text-green-600 transition-colors"
           >
             ✕
           </button>
@@ -207,14 +237,22 @@ const NotificationPage: React.FC = () => {
       )}
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-          <button
-            onClick={() => fetchNotifications(1, showUnreadOnly)}
-            className="ml-4 bg-blue-500 text-white px-4 py-1 rounded-md text-sm"
-          >
-            Thử lại
-          </button>
+        <div className="mb-6 bg-red-100 text-red-800 p-4 rounded-lg shadow-md flex justify-between items-center border border-red-300">
+          <span className="text-sm font-medium">{error}</span>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => fetchNotifications(1, showUnreadOnly)}
+              className="bg-blue-500 text-white px-4 py-1 rounded-md text-sm hover:bg-blue-600 transition-colors"
+            >
+              Thử lại
+            </button>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-800 hover:text-red-600 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
 
@@ -233,47 +271,62 @@ const NotificationPage: React.FC = () => {
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <ul className="divide-y divide-gray-200">
-            {notifications.map((notification) => (
-              <li
-                key={notification._id}
-                className={`p-4 hover:bg-gray-50 transition-colors ${!notification.read ? "bg-emerald-50" : ""}`}
-              >
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 pt-1">{getNotificationIcon(notification.type)}</div>
-                  <div className="ml-3 flex-1">
-                    <div className="flex items-center justify-between">
-                      <p className={`text-sm ${!notification.read ? "font-medium text-gray-900" : "text-gray-700"}`}>
-                        {notification.content}
-                      </p>
-                      {!notification.read && (
-                        <button
-                          onClick={() => markAsRead(notification._id)}
-                          className="ml-2 p-1 text-gray-400 hover:text-emerald-500 rounded-full hover:bg-emerald-50"
-                          title="Đánh dấu đã đọc"
+            {notifications.map((notification) => {
+              const { title, message } = parseNotificationContent(notification.content);
+              return (
+                <li
+                  key={notification._id}
+                  className={`p-4 hover:bg-gray-50 transition-colors ${!notification.read ? "bg-emerald-50" : ""}`}
+                >
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 pt-1">{getNotificationIcon(notification.type)}</div>
+                    <div className="ml-3 flex-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          {title ? (
+                            <>
+                              <p className={`text-sm font-bold ${!notification.read ? "text-gray-900" : "text-gray-700"}`}>
+                                {title}
+                              </p>
+                              <p className={`text-sm ${!notification.read ? "text-gray-900" : "text-gray-700"}`}>
+                                {message}
+                              </p>
+                            </>
+                          ) : (
+                            <p className={`text-sm ${!notification.read ? "font-medium text-gray-900" : "text-gray-700"}`}>
+                              {message}
+                            </p>
+                          )}
+                        </div>
+                        {!notification.read && (
+                          <button
+                            onClick={() => markAsRead(notification._id)}
+                            className="ml-2 p-1 text-gray-400 hover:text-emerald-500 rounded-full hover:bg-emerald-50"
+                            title="Đánh dấu đã đọc"
+                          >
+                            <Check size={16} />
+                          </button>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">{formatDate(notification.createdAt)}</p>
+                      {notification.targetType && notification.targetId && (
+                        <Link
+                          to={`/${notification.targetType}/${notification.targetId}`}
+                          className="mt-2 inline-flex items-center text-xs font-medium text-emerald-500 hover:text-emerald-600"
                         >
-                          <Check size={16} />
-                        </button>
+                          Xem chi tiết
+                          <ExternalLink size={12} className="ml-1" />
+                        </Link>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">{formatDate(notification.createdAt)}</p>
-                    {notification.targetType && notification.targetId && (
-                      <Link
-                        to={`/${notification.targetType}/${notification.targetId}`}
-                        className="mt-2 inline-flex items-center text-xs font-medium text-emerald-500 hover:text-emerald-600"
-                      >
-                        Xem chi tiết
-                        <ExternalLink size={12} className="ml-1" />
-                      </Link>
-                    )}
                   </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
 
-      {/* Pagination */}
       {pagination.pages > 1 && (
         <div className="flex justify-center mt-6">
           <nav className="flex items-center space-x-2">

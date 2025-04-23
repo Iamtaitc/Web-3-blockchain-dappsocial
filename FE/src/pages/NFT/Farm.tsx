@@ -68,6 +68,7 @@ const Farm = () => {
     totalPoints: 0,
   });
   const [nextCheckInTime, setNextCheckInTime] = useState<string | null>(null);
+  const [timeToNextCheckIn, setTimeToNextCheckIn] = useState<string>("");
   const [nextClaimTime, setNextClaimTime] = useState<Date | null>(null);
   const [timeToNextClaim, setTimeToNextClaim] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -106,15 +107,24 @@ const Farm = () => {
           });
 
           const lastCheckIn = response.data.lastCheckIn;
+          const timestamp = response.timestamp; // Thời gian hiện tại từ API
           if (lastCheckIn) {
             const lastCheckInDate = new Date(lastCheckIn);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            if (lastCheckInDate >= today) {
+            const currentTime = new Date(timestamp);
+
+            // Tính thời gian điểm danh tiếp theo (cộng 24 giờ từ lastCheckIn)
+            const nextCheckIn = new Date(lastCheckInDate);
+            nextCheckIn.setHours(nextCheckIn.getHours() + 24);
+
+            // So sánh với thời gian hiện tại từ timestamp
+            if (currentTime < nextCheckIn) {
+              // Nếu chưa đến thời gian điểm danh tiếp theo
               setClaimed(true);
-              const nextCheckIn = new Date(lastCheckInDate);
-              nextCheckIn.setDate(lastCheckInDate.getDate() + 1);
               setNextCheckInTime(nextCheckIn.toISOString());
+            } else {
+              // Nếu đã qua thời gian điểm danh tiếp theo
+              setClaimed(false);
+              setNextCheckInTime(null);
             }
           }
         } else {
@@ -229,6 +239,12 @@ const Farm = () => {
         if (timeDiff <= 0) {
           setClaimed(false);
           setNextCheckInTime(null);
+          setTimeToNextCheckIn("");
+        } else {
+          const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+          const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+          setTimeToNextCheckIn(`${hours}h ${minutes}m ${seconds}s`);
         }
       }
     }, 1000);
@@ -281,9 +297,9 @@ const Farm = () => {
             totalPoints: pointsResponse.data.totalPoints,
           });
 
-          const nextCheckIn = new Date();
-          nextCheckIn.setDate(nextCheckIn.getDate() + 1);
-          nextCheckIn.setHours(0, 0, 0, 0);
+          const lastCheckInDate = new Date(pointsResponse.data.lastCheckIn);
+          const nextCheckIn = new Date(lastCheckInDate);
+          nextCheckIn.setHours(nextCheckIn.getHours() + 24);
           setNextCheckInTime(nextCheckIn.toISOString());
         }
       } else {
@@ -299,7 +315,7 @@ const Farm = () => {
       setError(null);
       setSuccessMessage(null);
 
-      const response = await RewardPointsService.claimReward();
+      const response = await RewardPointsService.claimTokens(); // Thay claimReward bằng claimTokens
       if (response.success) {
         if (response.data.canClaimNow) {
           setUserPoints({
@@ -312,16 +328,19 @@ const Farm = () => {
 
           setFarmingProgress(0);
           setShowReward(false);
-          const newNextClaimTime = new Date(response.data.nextClaimTime);
+          const newNextClaimTime = new Date();
+          newNextClaimTime.setHours(newNextClaimTime.getHours() + 8); // Đặt lại thời gian chờ 8 tiếng
           setNextClaimTime(newNextClaimTime);
           localStorage.setItem("nextClaimTime", newNextClaimTime.toISOString());
 
-          setSuccessMessage("Reward claimed successfully! +40 Dx added to your balance.");
+          setSuccessMessage(`Reward claimed successfully! +${response.data.pendingTokens || 40} Dx added to your balance.`);
         } else {
           setError("Chưa đủ thời gian để claim. Vui lòng chờ thêm.");
-          const newNextClaimTime = new Date(response.data.nextClaimTime);
-          setNextClaimTime(newNextClaimTime);
-          localStorage.setItem("nextClaimTime", newNextClaimTime.toISOString());
+          if (response.data.nextClaimTime) {
+            const newNextClaimTime = new Date(response.data.nextClaimTime);
+            setNextClaimTime(newNextClaimTime);
+            localStorage.setItem("nextClaimTime", newNextClaimTime.toISOString());
+          }
         }
       } else {
         setError(response.message || "Không thể claim phần thưởng. Vui lòng thử lại.");
@@ -570,9 +589,7 @@ const Farm = () => {
                     <div>
                       <p className="text-gray-500 text-sm">Next Check In</p>
                       <p className="font-bold text-gray-800">
-                        {nextCheckInTime
-                          ? new Date(nextCheckInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                          : "Now"}
+                        {timeToNextCheckIn || (nextCheckInTime ? new Date(nextCheckInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Now")}
                       </p>
                     </div>
                     <div className="text-center">
