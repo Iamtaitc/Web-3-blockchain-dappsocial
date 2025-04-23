@@ -10,6 +10,9 @@ instance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
 
+    
+    config.headers["ngrok-skip-browser-warning"] = "true" 
+
     console.log("API Request:", {
       url: config.url,
       method: config.method,
@@ -101,7 +104,6 @@ export const authAPI = {
       throw error
     }
   },
-
   login: async (walletAddress: string, signature: string) => {
     try {
       const formattedAddress = walletAddress.toLowerCase()

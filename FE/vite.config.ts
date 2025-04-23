@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    allowedHosts: true, // Cho phép tất cả host
+  },
   css: {
     postcss: './postcss.config.js'
   }

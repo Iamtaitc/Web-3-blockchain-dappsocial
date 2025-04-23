@@ -19,14 +19,37 @@ import {
   LogOut,
   ChevronDown,
   Shield,
+  X,
+  Bell
 } from "lucide-react"
 import { WalletLoginModal } from "./Login/wallet-login-modal"
 import { useSelector, useDispatch } from "react-redux"
 import type { RootState, AppDispatch } from "../store"
 import { useAuth } from "../hooks/useAuth"
 import { refreshToken as refreshTokenAction } from "../store/slices/authSlice"
+import { setUnreadCount } from "../store/slices/notificationSlice"
 import api from "../services/api"
-import { store } from "../store" // Import store trực tiếp
+import { store } from "../store"
+import NotificationApi from "../services/NotificationApi"
+
+// Define types for notification response
+interface PaginationInfo {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+interface NotificationResponse {
+  notifications: any[];
+  pagination: PaginationInfo;
+  unreadCount: number;
+}
+
+interface ApiResponse<T> {
+  status: number;
+  data: T;
+}
 
 // Utility function to format wallet address
 const formatAddress = (address: string): string => {
@@ -39,11 +62,12 @@ const Navbar = () => {
   const navigate = useNavigate()
   const currentPath = location.pathname
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const dispatch = useDispatch<AppDispatch>()
 
-  // Lấy thông tin xác thực từ Redux store
+  // Lấy thông tin xác thực và unreadCount từ Redux store
   const {
     isAuthenticated,
     walletAddress,
@@ -52,21 +76,48 @@ const Navbar = () => {
     token,
     refreshToken: refreshTokenValue,
   } = useSelector((state: RootState) => state.auth)
+  const unreadCount = useSelector((state: RootState) => state.notification.unreadCount)
   const { logout: handleLogout, connectWallet, authenticate } = useAuth()
+
+  // Lấy unreadCount từ API và cập nhật vào Redux
+  const fetchUnreadCount = async () => {
+    try {
+      const response: ApiResponse<NotificationResponse> = await NotificationApi.getNotifications({
+        page: 1,
+        limit: 1,
+        unread: false,
+      })
+      if (response.status === 200) {
+        dispatch(setUnreadCount(response.data.unreadCount || 0))
+      }
+    } catch (err: any) {
+      console.error("Error fetching unread count:", err)
+    }
+  }
+
+  // Polling để cập nhật unreadCount mỗi 10 giây
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    fetchUnreadCount(); // Gọi ngay lần đầu
+
+    const interval = setInterval(() => {
+      fetchUnreadCount();
+    }, 10000); // Mỗi 10 giây
+
+    return () => clearInterval(interval); // Dọn dẹp interval khi component unmount
+  }, [isAuthenticated, dispatch])
 
   // Kiểm tra và làm mới token khi component mount
   useEffect(() => {
     const checkAndRefreshToken = async () => {
-      // Kiểm tra xem có token trong localStorage nhưng không có trong Redux store không
       const localToken = localStorage.getItem("token")
       const localRefreshToken = localStorage.getItem("refreshToken")
       const localUser = localStorage.getItem("user")
 
-      // Nếu có dữ liệu trong localStorage nhưng không có trong Redux store
       if (localToken && localRefreshToken && localUser && !token) {
         console.log("Phát hiện token trong localStorage nhưng không có trong Redux store, đang khôi phục...")
 
-        // Kiểm tra Redux store trực tiếp
         const authState = store.getState().auth
         console.log("Redux store hiện tại:", {
           isAuthenticated: authState.isAuthenticated,
@@ -75,32 +126,26 @@ const Navbar = () => {
           user: authState.user,
         })
 
-        // Nếu token hết hạn, làm mới token
         if (isTokenExpired(localToken) && localRefreshToken) {
           try {
-            // Gọi API để làm mới token
             const response = await api.post("/refresh-token", { refreshToken: localRefreshToken })
 
             if (response.data.success) {
-              // Cập nhật token mới vào Redux store
               dispatch(
                 refreshTokenAction({
                   token: response.data.data.token,
                   refreshToken: response.data.data.refreshToken,
                 }),
               )
-
               console.log("Token đã được làm mới thành công")
             }
           } catch (error) {
             console.error("Lỗi khi làm mới token:", error)
-            // Xóa dữ liệu đăng nhập nếu có lỗi
             localStorage.removeItem("token")
             localStorage.removeItem("refreshToken")
             localStorage.removeItem("user")
           }
         } else {
-          // Nếu token còn hạn, khôi phục trạng thái đăng nhập
           try {
             dispatch({
               type: "auth/setAuthData",
@@ -110,10 +155,7 @@ const Navbar = () => {
                 user: JSON.parse(localUser),
               },
             })
-
             console.log("Đã khôi phục trạng thái đăng nhập từ localStorage")
-
-            // Kiểm tra Redux store sau khi dispatch
             setTimeout(() => {
               const updatedAuthState = store.getState().auth
               console.log("Redux store sau khi khôi phục:", {
@@ -137,10 +179,10 @@ const Navbar = () => {
   const isTokenExpired = (token: string): boolean => {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]))
-      const expiry = payload.exp * 1000 // Chuyển đổi thành milliseconds
+      const expiry = payload.exp * 1000
       return Date.now() > expiry
     } catch (error) {
-      return true // Nếu có lỗi khi parse token, coi như token đã hết hạn
+      return true
     }
   }
 
@@ -158,6 +200,11 @@ const Navbar = () => {
     }
   }, [])
 
+  // Close mobile nav when route changes
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [location])
+
   // Kiểm tra nếu đang ở trang add-nft và chưa đăng nhập thì hiện modal đăng nhập
   useEffect(() => {
     if (currentPath === "/add-nft" && !isAuthenticated) {
@@ -171,11 +218,14 @@ const Navbar = () => {
     setMenuOpen(!menuOpen)
   }
 
+  // Toggle mobile navigation
+  const toggleMobileNav = () => {
+    setMobileNavOpen(!mobileNavOpen)
+  }
+
   // Handle successful wallet connection
   const handleWalletSuccess = () => {
     setIsWalletModalOpen(false)
-
-    // Kiểm tra Redux store sau khi đăng nhập thành công
     setTimeout(() => {
       const authState = store.getState().auth
       console.log("Redux store sau khi đăng nhập thành công:", {
@@ -192,8 +242,8 @@ const Navbar = () => {
     try {
       await handleLogout()
       setMenuOpen(false)
+      dispatch(setUnreadCount(0)) // Reset unreadCount khi đăng xuất
 
-      // Nếu đang ở trang yêu cầu đăng nhập, chuyển hướng về trang chủ
       if (currentPath === "/add-nft" || currentPath === "/profile") {
         navigate("/")
       }
@@ -214,16 +264,30 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="w-[200px] h-screen bg-white text-gray-700 fixed top-0 left-0 flex flex-col border-r border-gray-200 font-mono shadow-lg z-50">
-        <div className="p-6 border-b border-gray-100">
+      {/* Mobile menu toggle button */}
+      <button
+        onClick={toggleMobileNav}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-white shadow-md text-gray-700 hover:text-emerald-500"
+      >
+        {mobileNavOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Navbar */}
+      <nav className={`w-[200px] h-screen bg-white text-gray-700 fixed top-0 left-0 flex flex-col border-r border-gray-200 font-mono shadow-lg z-40 transform transition-transform duration-300 ease-in-out ${
+        mobileNavOpen ? "translate-x-0" : "-translate-x-full"
+      } md:translate-x-0`}>
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <div className="text-2xl font-bold">
             <span className="text-gray-800">DIGI</span>
             <span className="text-emerald-500">X</span>
           </div>
+          <button
+            onClick={toggleMobileNav}
+            className="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-700"
+          >
+            <X size={20} />
+          </button>
         </div>
-
-        {/* Bỏ phần hiển thị thông tin người dùng ở đầu sidebar */}
-        {/* Chỉ giữ lại trong dropdown menu */}
 
         <ul className="flex-1 py-4 px-2">
           <NavItem to="/" icon={<Home size={18} />} label="Home" isActive={currentPath === "/"} />
@@ -243,107 +307,124 @@ const Navbar = () => {
           <NavItem to="/premium" icon={<Crown size={18} />} label="Premium" isActive={currentPath === "/premium"} />
           <NavItem to="/quest" icon={<Target size={18} />} label="Quest" isActive={currentPath === "/quest"} />
           <NavItem to="/wallet" icon={<Wallet size={18} />} label="Wallet" isActive={currentPath === "/wallet"} />
+          <NavItem
+            to="/notifications"
+            icon={<Bell size={18} />}
+            label="Notifications"
+            isActive={currentPath === "/notifications"}
+            badge={unreadCount > 0 ? unreadCount : undefined}
+          />
         </ul>
-
-        <div ref={menuRef} className="relative">
-          <div
-            className={`p-4 mt-auto border-t border-gray-200 flex items-center justify-between cursor-pointer ${
-              menuOpen ? "bg-gray-100 text-gray-800" : "text-gray-600 hover:bg-gray-50"
-            }`}
-            onClick={toggleMenu}
-          >
+        <div className="mt-auto border-t border-gray-200">
+          <div className="p-4 flex items-center justify-between">
             <div className="flex items-center">
               <Menu size={18} className="mr-3" />
               <span>Menu</span>
             </div>
-            <ChevronDown size={16} className={`transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`} />
-          </div>
 
-          {menuOpen && (
-            <div className="absolute left-0 bottom-full mb-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
-              {isAuthenticated && walletAddress ? (
-                // Show wallet info when connected
-                <>
-                  <div className="p-3 border-b border-gray-200">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
-                        <Wallet className="text-white" size={10} />
-                      </div>
-                      <span className="text-gray-800 text-sm font-medium">{walletType || "Wallet"}</span>
-                      {isAdmin && (
-                        <div className="bg-blue-100 text-blue-800 text-xs px-1.5 py-0.5 rounded-full flex items-center">
-                          <Shield size={10} className="mr-1" />
-                          Admin
+            <div className="flex items-center">
+              <div ref={menuRef} className="relative ml-2">
+                <div
+                  className={`cursor-pointer ${menuOpen ? "text-gray-800" : "text-gray-600 hover:text-gray-800"}`}
+                  onClick={toggleMenu}
+                >
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`}
+                  />
+                </div>
+
+                {menuOpen && (
+                  <div className="absolute left-0 bottom-full mb-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
+                    {isAuthenticated && walletAddress ? (
+                      <>
+                        <div className="p-3 border-b border-gray-200">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
+                              <Wallet className="text-white" size={10} />
+                            </div>
+                            <span className="text-gray-800 text-sm font-medium">{walletType || "Wallet"}</span>
+                            {isAdmin && (
+                              <div className="bg-blue-100 text-blue-800 text-xs px-1.5 py-0.5 rounded-full flex items-center">
+                                <Shield size={10} className="mr-1" />
+                                Admin
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-gray-500 text-xs truncate">{formatAddress(walletAddress)}</div>
+                          {user?.username && <div className="text-gray-700 text-sm font-medium mt-1">@{user.username}</div>}
                         </div>
-                      )}
-                    </div>
-                    <div className="text-gray-500 text-xs truncate">{formatAddress(walletAddress)}</div>
-                    {user?.username && <div className="text-gray-700 text-sm font-medium mt-1">@{user.username}</div>}
+
+                        <Link
+                          to={`https://etherscan.io/address/${walletAddress}`}
+                          target="_blank"
+                          className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink size={16} className="text-gray-500" />
+                          <span className="text-gray-700">View on Etherscan</span>
+                        </Link>
+
+                        <Link
+                          to="/profile"
+                          className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <User size={16} className="text-gray-500" />
+                          <span className="text-gray-700">Profile</span>
+                        </Link>
+
+                        <Link
+                          to="/Setting"
+                          className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Settings size={16} className="text-gray-500" />
+                          <span className="text-gray-700">Settings</span>
+                        </Link>
+
+                        <div
+                          className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors border-t border-gray-200"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDisconnect()
+                          }}
+                        >
+                          <LogOut size={16} className="text-red-500" />
+                          <span className="text-red-500">Disconnect</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div
+                          className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={openWalletModal}
+                        >
+                          <LogIn size={16} className="text-emerald-500" />
+                          <span className="text-gray-700">Login</span>
+                        </div>
+                        <Link
+                          to="/Setting"
+                          className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Settings size={16} className="text-emerald-500" />
+                          <span className="text-gray-700">Settings</span>
+                        </Link>
+                      </>
+                    )}
                   </div>
-
-                  <Link
-                    to={`https://etherscan.io/address/${walletAddress}`}
-                    target="_blank"
-                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink size={16} className="text-gray-500" />
-                    <span className="text-gray-700">View on Etherscan</span>
-                  </Link>
-
-                  <Link
-                    to="/profile"
-                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <User size={16} className="text-gray-500" />
-                    <span className="text-gray-700">Profile</span>
-                  </Link>
-
-                  <Link
-                    to="/Setting"
-                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Settings size={16} className="text-gray-500" />
-                    <span className="text-gray-700">Settings</span>
-                  </Link>
-
-                  <div
-                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors border-t border-gray-200"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDisconnect()
-                    }}
-                  >
-                    <LogOut size={16} className="text-red-500" />
-                    <span className="text-red-500">Disconnect</span>
-                  </div>
-                </>
-              ) : (
-                // Show login options when not connected
-                <>
-                  <div
-                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={openWalletModal}
-                  >
-                    <LogIn size={16} className="text-emerald-500" />
-                    <span className="text-gray-700">Login</span>
-                  </div>
-                  <Link
-                    to="/Setting"
-                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Settings size={16} className="text-emerald-500" />
-                    <span className="text-gray-700">Settings</span>
-                  </Link>
-                </>
-              )}
+                )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </nav>
+
+      {/* Main content wrapper with padding for the navbar */}
+      <div className="md:ml-[200px] transition-all duration-300">
+        {/* Your page content goes here */}
+      </div>
 
       {/* Wallet login modal */}
       {isWalletModalOpen && (
@@ -366,12 +447,13 @@ interface NavItemProps {
   icon: React.ReactNode
   label: string
   isActive: boolean
+  badge?: number
 }
 
-const NavItem = ({ to, icon, label, isActive }: NavItemProps) => {
+const NavItem = ({ to, icon, label, isActive, badge }: NavItemProps) => {
   return (
     <li
-      className={`my-1 px-2 py-2 rounded-lg transition-all duration-200 ${
+      className={`my-1 px-2 py-2 rounded-lg transition-all duration-200 relative ${
         isActive
           ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md"
           : "hover:bg-gray-50 text-gray-600"
@@ -380,6 +462,11 @@ const NavItem = ({ to, icon, label, isActive }: NavItemProps) => {
       <Link to={to} className="flex items-center">
         <span className={`mr-3 ${isActive ? "text-white" : "text-emerald-500"}`}>{icon}</span>
         <span className={isActive ? "text-white" : "text-gray-700"}>{label}</span>
+        {badge !== undefined && badge > 0 && (
+          <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-medium rounded-full w-5 h-5 flex items-center justify-center">
+            {badge}
+          </span>
+        )}
       </Link>
     </li>
   )

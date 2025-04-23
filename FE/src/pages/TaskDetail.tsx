@@ -1,31 +1,67 @@
 "use client"
 
-import type React from "react"
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { FaTwitter, FaYoutube, FaArrowLeft, FaCheckCircle } from "react-icons/fa"
+import { TaskService } from "../services/TaskApi"
 
-const TaskDetail: React.FC = () => {
+interface Task {
+  _id: string
+  name: string
+  description: string
+  type: string
+  rewardPoints: number
+  rewardTokens: number
+  requirements?: string[]
+}
+
+const TaskDetail = () => {
   const { taskId } = useParams<{ taskId: string }>()
   const navigate = useNavigate()
   const [timeLeft, setTimeLeft] = useState(20)
   const [taskCompleted, setTaskCompleted] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [task, setTask] = useState<Task | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  // Mock task data - in a real app, you would fetch this based on taskId
-  const task = {
-    id: Number.parseInt(taskId || "1"),
-    icon: taskId === "1" ? "twitter" : "youtube",
-    title: taskId === "1" ? "Follow X" : "Watching Youtube",
-    reward: "3.000Dx",
-    description:
-      taskId === "1"
-        ? "Follow our official Twitter account to earn Dx tokens."
-        : "Watch our promotional video for at least 20 seconds to earn Dx tokens.",
-    url: taskId === "1" ? "https://twitter.com/example" : "https://youtube.com/watch?v=example",
-  }
-
+  // Fetch task details
   useEffect(() => {
-    // Start the countdown timer
+    const fetchTaskDetails = async () => {
+      if (!taskId) return
+      
+      try {
+        setLoading(true)
+        const response = await TaskService.getAllTasks()
+        if (response.success) {
+          // Find the task by id among all tasks
+          const allTasks = [
+            ...response.data.tasks.daily, 
+            ...response.data.tasks.weekly, 
+            ...response.data.tasks.special
+          ]
+          const foundTask = allTasks.find(t => t._id === taskId)
+          
+          if (foundTask) {
+            setTask(foundTask)
+          } else {
+            setError("Task not found")
+          }
+        } else {
+          setError("Failed to load task")
+        }
+      } catch (err) {
+        setError("An error occurred while loading the task")
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTaskDetails()
+  }, [taskId])
+
+  // Start countdown timer
+  useEffect(() => {
     if (timeLeft > 0 && !taskCompleted) {
       const timer = setTimeout(() => {
         setTimeLeft(timeLeft - 1)
@@ -37,22 +73,58 @@ const TaskDetail: React.FC = () => {
     }
   }, [timeLeft, taskCompleted])
 
-  const handleClaim = () => {
-    // Here you would handle the claim logic
-    console.log(`Claimed reward for task ${taskId}`)
-    // Navigate back to the quest page
-    navigate("/quest")
+  const handleClaim = async () => {
+    if (!taskId) return
+    
+    try {
+      // Call API to complete the task
+      const response = await TaskService.completeTask(taskId)
+      
+      if (response.success) {
+        // Navigate back to the quest page
+        navigate("/quest")
+      } else {
+        setError("Failed to claim reward")
+      }
+    } catch (err) {
+      setError("An error occurred while claiming reward")
+      console.error(err)
+    }
   }
 
   const handleBack = () => {
     navigate("/quest")
   }
 
-  const TaskIcon = () => {
-    return task.icon === "twitter" ? (
-      <FaTwitter className="w-12 h-12" />
-    ) : (
-      <FaYoutube className="w-12 h-12 text-red-600" />
+  const getTaskIcon = () => {
+    if (!task) return <FaTwitter className="w-12 h-12" />
+    
+    if (task.name.toLowerCase().includes("youtube") || task.name.toLowerCase().includes("video")) {
+      return <FaYoutube className="w-12 h-12 text-red-600" />
+    }
+    
+    return <FaTwitter className="w-12 h-12" />
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black text-white">
+        Loading task details...
+      </div>
+    )
+  }
+
+  if (error || !task) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
+        <p className="text-red-500 mb-4">{error || "Task not found"}</p>
+        <button 
+          onClick={handleBack}
+          className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700"
+        >
+          Back to Quests
+        </button>
+      </div>
     )
   }
 
@@ -69,11 +141,13 @@ const TaskDetail: React.FC = () => {
         <div className="bg-gray-900 rounded-xl p-8">
           <div className="flex items-center gap-4 mb-8">
             <div className="w-16 h-16 bg-gray-800 rounded-lg flex items-center justify-center">
-              <TaskIcon />
+              {getTaskIcon()}
             </div>
             <div>
-              <h1 className="text-2xl font-bold">{task.title}</h1>
-              <p className="text-green-500 font-bold">{task.reward}</p>
+              <h1 className="text-2xl font-bold">{task.name}</h1>
+              <p className="text-green-500 font-bold">
+                {task.rewardPoints} Points {task.rewardTokens > 0 ? `+ ${task.rewardTokens} Tokens` : ''}
+              </p>
             </div>
           </div>
 
@@ -82,9 +156,17 @@ const TaskDetail: React.FC = () => {
           <div className="bg-gray-800 p-6 rounded-lg mb-8">
             <h2 className="text-xl mb-4">Task Requirements:</h2>
             <ul className="list-disc list-inside space-y-2 text-gray-300">
-              <li>{task.icon === "twitter" ? "Follow our official Twitter account" : "Watch the entire video"}</li>
-              <li>Stay on this page for at least 20 seconds</li>
-              <li>Click the claim button when it appears</li>
+              {task.requirements && task.requirements.length > 0 ? (
+                task.requirements.map((req, index) => (
+                  <li key={index}>{req}</li>
+                ))
+              ) : (
+                <>
+                  <li>{task.name.toLowerCase().includes("youtube") ? "Watch the entire video" : "Complete the social media action"}</li>
+                  <li>Stay on this page for at least 20 seconds</li>
+                  <li>Click the claim button when it appears</li>
+                </>
+              )}
             </ul>
           </div>
 
@@ -118,4 +200,3 @@ const TaskDetail: React.FC = () => {
 }
 
 export default TaskDetail
-

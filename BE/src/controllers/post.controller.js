@@ -82,6 +82,9 @@ class PostController {
         address,
         mediaObjects
       );
+      if (!newPost) {
+        return ApiResponse.badRequest(res, "Failed to create post:", newPost);
+      }
 
       if (!newPost || !newPost.success) {
         return ApiResponse.badRequest(
@@ -309,6 +312,7 @@ class PostController {
         ApiResponse.error(res, "Error listing NFT for sale", error);
       });
   }
+  
 }
 
 module.exports = new PostController();

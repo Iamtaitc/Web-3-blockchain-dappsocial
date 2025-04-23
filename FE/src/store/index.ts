@@ -5,6 +5,7 @@ import gameReducer from "./slices/gameSlice"
 import questReducer from "./slices/questSlice"
 import dashboardReducer from "./slices/dashboardSlice"
 import userReducer from "./slices/userSlice"
+import notificationReducer from "./slices/notificationSlice"
 
 // Middleware để đồng bộ localStorage với Redux
 const localStorageMiddleware = (store) => (next) => (action) => {
@@ -65,6 +66,7 @@ export const store = configureStore({
     quest: questReducer,
     dashboard: dashboardReducer,
     user: userReducer, // Thêm user reducer
+    notification: notificationReducer, // Thêm notificationReducer vào store
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
