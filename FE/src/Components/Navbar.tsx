@@ -366,7 +366,7 @@ const Navbar = () => {
                         </Link>
 
                         <Link
-                          to="/profile"
+                          to={`/user/${walletAddress}`}
                           className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
                           onClick={(e) => e.stopPropagation()}
                         >

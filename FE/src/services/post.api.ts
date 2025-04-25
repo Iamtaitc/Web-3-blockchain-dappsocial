@@ -25,6 +25,7 @@ interface PostResponse {
 
 // Interface cho bài viết
 export interface Post {
+  nfts: any
   _id: string
   author: string
   username?: string

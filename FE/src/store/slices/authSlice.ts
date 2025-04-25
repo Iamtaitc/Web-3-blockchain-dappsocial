@@ -3,6 +3,7 @@ import { authAPI } from "../../services/api"
 
 // Định nghĩa kiểu dữ liệu cho user
 interface User {
+  [x: string]: any
   id: string
   walletAddress: string
   username: string

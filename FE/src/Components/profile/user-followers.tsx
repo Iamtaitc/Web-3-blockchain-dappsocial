@@ -1,7 +1,5 @@
-"use client"
-
 import { Card, CardTitle, CardDescription } from "../profile/ui/card"
-import { ExternalLink, UserPlus, Users } from "lucide-react"
+import { ExternalLink, UserMinus, UserPlus, Users } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "../profile/ui/avatar"
 import { Button } from "../profile/ui/button"
@@ -10,6 +8,7 @@ import { formatDate } from "../../lib/utils"
 import { useNavigate } from "react-router-dom"
 import userApi from "../../services/user.api"
 import type { UserListItem } from "../../services/user.api"
+import { useAppSelector } from "../../hooks/useAppSelector"
 
 interface UserFollowersProps {
   address: string
@@ -21,8 +20,10 @@ export default function UserFollowers({ address }: UserFollowersProps) {
   const [followers, setFollowers] = useState<UserListItem[]>([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
-  const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({})
   const [loadingFollow, setLoadingFollow] = useState<Record<string, boolean>>({})
+  
+  // Lấy địa chỉ ví của người dùng đang đăng nhập từ Redux store
+  const currentUserWalletAddress = useAppSelector((state) => state.auth.walletAddress)
 
   useEffect(() => {
     const fetchFollowers = async () => {
@@ -35,13 +36,6 @@ export default function UserFollowers({ address }: UserFollowersProps) {
 
           setFollowers((prev) => (page === 1 ? newFollowers : [...prev, ...newFollowers]))
           setHasMore(page < response.pagination.totalPages)
-
-          // Kiểm tra xem người dùng hiện tại có đang theo dõi những người này không
-          const followingStatus: Record<string, boolean> = {}
-          for (const follower of newFollowers) {
-            followingStatus[follower.walletAddress] = follower.isFollowedByCurrentUser || false
-          }
-          setFollowingMap((prev) => ({ ...prev, ...followingStatus }))
         } catch (error) {
           console.error("Error fetching followers:", error)
 
@@ -71,14 +65,6 @@ export default function UserFollowers({ address }: UserFollowersProps) {
           ]
 
           setFollowers(mockFollowers)
-
-          // Cập nhật followingMap từ mock data
-          const followingStatus: Record<string, boolean> = {}
-          for (const follower of mockFollowers) {
-            followingStatus[follower.walletAddress] = follower.isFollowedByCurrentUser || false
-          }
-          setFollowingMap(followingStatus)
-
           setHasMore(false)
         }
       } finally {
@@ -98,7 +84,16 @@ export default function UserFollowers({ address }: UserFollowersProps) {
 
     try {
       await userApi.followUser(userAddress)
-      setFollowingMap((prev) => ({ ...prev, [userAddress]: true }))
+      
+      // Cập nhật trạng thái người dùng trong danh sách
+      setFollowers(prev => 
+        prev.map(user => 
+          user.walletAddress === userAddress 
+            ? { ...user, isFollowedByCurrentUser: true }
+            : user
+        )
+      )
+
       toast({
         title: "Thành công",
         description: "Bạn đã theo dõi người dùng này",
@@ -120,7 +115,16 @@ export default function UserFollowers({ address }: UserFollowersProps) {
 
     try {
       await userApi.unfollowUser(userAddress)
-      setFollowingMap((prev) => ({ ...prev, [userAddress]: false }))
+      
+      // Cập nhật trạng thái người dùng trong danh sách
+      setFollowers(prev => 
+        prev.map(user => 
+          user.walletAddress === userAddress 
+            ? { ...user, isFollowedByCurrentUser: false }
+            : user
+        )
+      )
+
       toast({
         title: "Thành công",
         description: "Bạn đã hủy theo dõi người dùng này",
@@ -138,7 +142,7 @@ export default function UserFollowers({ address }: UserFollowersProps) {
   }
 
   const navigateToProfile = (userAddress: string) => {
-    navigate(`/profile/${userAddress}`)
+    navigate(`/user/${userAddress}`)
   }
 
   if (isLoading && page === 1) {
@@ -192,18 +196,23 @@ export default function UserFollowers({ address }: UserFollowersProps) {
               Xem profile
             </Button>
 
-            {follower.walletAddress !== address &&
-              (followingMap[follower.walletAddress] ? (
+            {/* Chỉ hiển thị nút theo dõi/bỏ theo dõi nếu không phải là profile của người dùng đang đăng nhập */}
+            {follower.walletAddress !== currentUserWalletAddress && (
+              follower.isFollowedByCurrentUser ? (
                 <Button
                   variant="outline"
                   size="sm"
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
                   onClick={() => handleUnfollow(follower.walletAddress)}
                   disabled={loadingFollow[follower.walletAddress]}
                 >
                   {loadingFollow[follower.walletAddress] ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent"></span>
                   ) : (
-                    "Bỏ theo dõi"
+                    <>
+                      <UserMinus className="h-4 w-4 mr-1" />
+                      Bỏ theo dõi
+                    </>
                   )}
                 </Button>
               ) : (
@@ -222,7 +231,8 @@ export default function UserFollowers({ address }: UserFollowersProps) {
                     </>
                   )}
                 </Button>
-              ))}
+              )
+            )}
           </div>
         </div>
       ))}
