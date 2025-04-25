@@ -1,10 +1,4 @@
-// services/reward/checkin.service.js
-const {
-  RewardPoints,
-  User,
-  Task,
-  CompletedTask,
-} = require("../../models/index");
+const { RewardPoints, User, Task, CompletedTask } = require("../../models/index");
 const BaseRewardService = require("./base.service");
 
 /**
@@ -22,46 +16,55 @@ class CheckInService extends BaseRewardService {
       const normalizedAddress = address.toLowerCase();
       const today = this._getTodayStart();
 
-      // Tìm hoặc tạo mới record RewardPoints
-      let userRewards = await RewardPoints.findOne({
-        user: normalizedAddress,
-      });
+      // Tìm user và rewards song song
+      const [user, userRewards] = await Promise.all([
+        User.findOne({ walletAddress: normalizedAddress }),
+        RewardPoints.findOne({ user: normalizedAddress }),
+      ]);
 
-      if (!userRewards) {
-        userRewards = new RewardPoints({
-          user: normalizedAddress,
-          totalPoints: 0,
-          pendingTokens: 0,
-          claimedTokens: 0,
-          checkIn: {
-            currentStreak: 0,
-            history: [],
-          },
-        });
+      if (!user) {
+        return {
+          success: false,
+          status: 404,
+          message: "Không tìm thấy người dùng",
+        };
       }
 
+      // Tạo mới record RewardPoints nếu chưa có
+      const rewards = userRewards || new RewardPoints({
+        user: normalizedAddress,
+        totalPoints: 0,
+        pendingTokens: 0,
+        claimedTokens: 0,
+        checkIn: {
+          currentStreak: 0,
+          history: [],
+        },
+      });
+
       // Kiểm tra đã check-in hôm nay chưa
-      const todayCheckInExists = userRewards.checkIn.history.some(
+      const todayCheckInExists = rewards.checkIn.history?.some(
         (check) => new Date(check.date).setHours(0, 0, 0, 0) === today.getTime()
       );
 
       if (todayCheckInExists) {
         return {
           success: false,
+          status: 400,
           message: "Bạn đã check-in hôm nay rồi",
         };
       }
 
       // Tính toán streak
       let streak = 1;
-      const lastCheckIn = userRewards.checkIn.lastCheckIn;
-
+      const lastCheckIn = rewards.checkIn.lastCheckIn;
       if (lastCheckIn) {
+        const lastCheckInDate = new Date(lastCheckIn);
+        lastCheckInDate.setHours(0, 0, 0, 0);
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
-
-        if (new Date(lastCheckIn).setHours(0, 0, 0, 0) >= yesterday.getTime()) {
-          streak = userRewards.checkIn.currentStreak + 1;
+        if (lastCheckInDate.getTime() === yesterday.getTime()) {
+          streak = rewards.checkIn.currentStreak + 1;
         }
       }
 
@@ -71,34 +74,33 @@ class CheckInService extends BaseRewardService {
 
       if (streak >= 7) pointsEarned += 2;
       if (streak >= 30) pointsEarned += 3;
-
       if (streak >= 7) tokensEarned = 1;
       if (streak >= 30) tokensEarned = 3;
 
-      const multiplier = await this._getMultiplier(normalizedAddress);
-
+      const multiplier = user.rewardMultiplier || 1;
       pointsEarned *= multiplier;
       tokensEarned *= multiplier;
 
       // Cập nhật thông tin check-in
-      userRewards.checkIn.lastCheckIn = today;
-      userRewards.checkIn.currentStreak = streak;
-      userRewards.checkIn.lastStreakUpdate = new Date();
-
-      // Thêm vào lịch sử check-in
-      userRewards.checkIn.history.push({
+      rewards.checkIn.lastCheckIn = today;
+      rewards.checkIn.currentStreak = streak;
+      rewards.checkIn.lastStreakUpdate = new Date();
+      rewards.checkIn.history.push({
         date: today,
         streak,
         pointsEarned,
         tokensEarned,
       });
 
+      // Giới hạn history tối đa 30 bản ghi
+      rewards.checkIn.history = rewards.checkIn.history.slice(-30);
+
       // Cập nhật điểm và token
-      userRewards.totalPoints += pointsEarned;
-      userRewards.pendingTokens += tokensEarned;
+      rewards.totalPoints += pointsEarned;
+      rewards.pendingTokens += tokensEarned;
 
       // Lưu vào database
-      await userRewards.save();
+      await rewards.save();
 
       // Cập nhật thông tin user
       await User.updateOne(
@@ -128,17 +130,20 @@ class CheckInService extends BaseRewardService {
 
       return {
         success: true,
+        status: 200,
         message: "Check-in thành công",
         data: {
           streak,
           pointsEarned,
           tokensEarned,
-          checkInInfo: userRewards.checkIn,
+          checkInInfo: rewards.checkIn,
         },
       };
     } catch (error) {
+      console.error("Error during check-in:", error);
       return {
         success: false,
+        status: 500,
         message: "Lỗi khi check-in",
         error: error.message,
       };

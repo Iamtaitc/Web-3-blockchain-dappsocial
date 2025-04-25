@@ -1,5 +1,5 @@
 // src/services/ReportService.js
-const {Report, Post, Comment, User, NFTCache} = require('../models/index');
+const { Report, Post, Comment, User, NFTCache } = require("../models/index");
 
 /**
  * Service xử lý các chức năng báo cáo
@@ -21,22 +21,24 @@ class ReportService {
       let targetOwner = null;
 
       switch (targetType) {
-        case 'post':
+        case "post":
           const post = await Post.findOne({ _id: targetId });
           targetExists = !!post;
           targetOwner = post?.author;
           break;
-        case 'comment':
+        case "comment":
           const comment = await Comment.findOne({ _id: targetId });
           targetExists = !!comment;
           targetOwner = comment?.author;
           break;
-        case 'user':
-          const user = await User.findOne({ walletAddress: targetId.toLowerCase() });
+        case "user":
+          const user = await User.findOne({
+            walletAddress: targetId.toLowerCase(),
+          });
           targetExists = !!user;
           targetOwner = user?.walletAddress;
           break;
-        case 'nft':
+        case "nft":
           const nft = await NFTCache.findOne({ tokenId: targetId });
           targetExists = !!nft;
           targetOwner = nft?.creator;
@@ -47,16 +49,19 @@ class ReportService {
         return {
           success: false,
           status: 404,
-          message: 'Không tìm thấy target'
+          message: "Không tìm thấy target",
         };
       }
 
       // Người dùng không thể báo cáo nội dung của chính mình
-      if (targetOwner && targetOwner.toLowerCase() === reporterAddress.toLowerCase()) {
+      if (
+        targetOwner &&
+        targetOwner.toLowerCase() === reporterAddress.toLowerCase()
+      ) {
         return {
           success: false,
           status: 400,
-          message: 'Bạn không thể báo cáo nội dung của chính mình'
+          message: "Bạn không thể báo cáo nội dung của chính mình",
         };
       }
 
@@ -64,14 +69,14 @@ class ReportService {
       const existingReport = await Report.findOne({
         reporter: reporterAddress.toLowerCase(),
         targetType,
-        targetId
+        targetId,
       });
 
       if (existingReport) {
         return {
           success: false,
           status: 400,
-          message: 'Bạn đã báo cáo nội dung này rồi'
+          message: "Bạn đã báo cáo nội dung này rồi",
         };
       }
 
@@ -81,9 +86,9 @@ class ReportService {
         targetType,
         targetId,
         reason,
-        details: details || '',
-        status: 'pending',
-        createdAt: new Date()
+        details: details || "",
+        status: "pending",
+        createdAt: new Date(),
       });
 
       await newReport.save();
@@ -94,18 +99,18 @@ class ReportService {
       return {
         success: true,
         status: 201,
-        message: 'Báo cáo đã được gửi thành công',
+        message: "Báo cáo đã được gửi thành công",
         data: {
-          reportId: newReport._id
-        }
+          reportId: newReport._id,
+        },
       };
     } catch (error) {
-      console.error('Error creating report:', error);
+      console.error("Error creating report:", error);
       return {
         success: false,
         status: 500,
-        message: 'Lỗi khi tạo báo cáo',
-        error: error.message
+        message: "Lỗi khi tạo báo cáo",
+        error: error.message,
       };
     }
   }
@@ -122,42 +127,51 @@ class ReportService {
       const skip = (page - 1) * limit;
 
       // Lấy báo cáo
-      const reports = await Report.find({ reporter: walletAddress.toLowerCase() })
+      const reports = await Report.find({
+        reporter: walletAddress.toLowerCase(),
+      })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
 
       // Lấy thông tin chi tiết của target
-      const reportsWithDetails = await Promise.all(reports.map(async (report) => {
-        const reportObj = report.toObject();
-        reportObj.targetDetails = await this.getTargetDetails(report.targetType, report.targetId);
-        return reportObj;
-      }));
+      const reportsWithDetails = await Promise.all(
+        reports.map(async (report) => {
+          const reportObj = report.toObject();
+          reportObj.targetDetails = await this.getTargetDetails(
+            report.targetType,
+            report.targetId
+          );
+          return reportObj;
+        })
+      );
 
       // Đếm tổng số báo cáo
-      const total = await Report.countDocuments({ reporter: walletAddress.toLowerCase() });
+      const total = await Report.countDocuments({
+        reporter: walletAddress.toLowerCase(),
+      });
 
       return {
         success: true,
         status: 200,
-        message: 'Lấy danh sách báo cáo thành công',
+        message: "Lấy danh sách báo cáo thành công",
         data: {
           reports: reportsWithDetails,
           pagination: {
             total,
             page,
             limit,
-            pages: Math.ceil(total / limit)
-          }
-        }
+            pages: Math.ceil(total / limit),
+          },
+        },
       };
     } catch (error) {
-      console.error('Error getting user reports:', error);
+      console.error("Error getting user reports:", error);
       return {
         success: false,
         status: 500,
-        message: 'Lỗi khi lấy danh sách báo cáo',
-        error: error.message
+        message: "Lỗi khi lấy danh sách báo cáo",
+        error: error.message,
       };
     }
   }
@@ -176,7 +190,7 @@ class ReportService {
 
       // Xây dựng query
       const query = {};
-      if (status !== 'all') {
+      if (status !== "all") {
         query.status = status;
       }
       if (targetType) {
@@ -190,21 +204,28 @@ class ReportService {
         .limit(limit);
 
       // Lấy thông tin chi tiết của target và reporter
-      const reportsWithDetails = await Promise.all(reports.map(async (report) => {
-        const reportObj = report.toObject();
-        reportObj.targetDetails = await this.getTargetDetails(report.targetType, report.targetId);
-        
-        // Lấy thông tin reporter
-        const reporter = await User.findOne({ walletAddress: report.reporter });
-        if (reporter) {
-          reportObj.reporterDetails = {
-            username: reporter.username,
-            walletAddress: reporter.walletAddress
-          };
-        }
-        
-        return reportObj;
-      }));
+      const reportsWithDetails = await Promise.all(
+        reports.map(async (report) => {
+          const reportObj = report.toObject();
+          reportObj.targetDetails = await this.getTargetDetails(
+            report.targetType,
+            report.targetId
+          );
+
+          // Lấy thông tin reporter
+          const reporter = await User.findOne({
+            walletAddress: report.reporter,
+          });
+          if (reporter) {
+            reportObj.reporterDetails = {
+              username: reporter.username,
+              walletAddress: reporter.walletAddress,
+            };
+          }
+
+          return reportObj;
+        })
+      );
 
       // Đếm tổng số báo cáo
       const total = await Report.countDocuments(query);
@@ -212,29 +233,29 @@ class ReportService {
       return {
         success: true,
         status: 200,
-        message: 'Lấy danh sách báo cáo thành công',
+        message: "Lấy danh sách báo cáo thành công",
         data: {
           reports: reportsWithDetails,
           counts: {
-            pending: await Report.countDocuments({ status: 'pending' }),
-            resolved: await Report.countDocuments({ status: 'resolved' }),
-            rejected: await Report.countDocuments({ status: 'rejected' })
+            pending: await Report.countDocuments({ status: "pending" }),
+            resolved: await Report.countDocuments({ status: "resolved" }),
+            rejected: await Report.countDocuments({ status: "rejected" }),
           },
           pagination: {
             total,
             page,
             limit,
-            pages: Math.ceil(total / limit)
-          }
-        }
+            pages: Math.ceil(total / limit),
+          },
+        },
       };
     } catch (error) {
-      console.error('Error getting all reports:', error);
+      console.error("Error getting all reports:", error);
       return {
         success: false,
         status: 500,
-        message: 'Lỗi khi lấy danh sách báo cáo',
-        error: error.message
+        message: "Lỗi khi lấy danh sách báo cáo",
+        error: error.message,
       };
     }
   }
@@ -248,7 +269,13 @@ class ReportService {
    * @param {String} adminAddress - Địa chỉ của admin
    * @returns {Object} Kết quả cập nhật trạng thái
    */
-  async updateReportStatus(reportId, status, adminComment, action, adminAddress) {
+  async updateReportStatus(
+    reportId,
+    status,
+    adminComment,
+    action,
+    adminAddress
+  ) {
     try {
       // Lấy báo cáo
       const report = await Report.findById(reportId);
@@ -256,39 +283,44 @@ class ReportService {
         return {
           success: false,
           status: 404,
-          message: 'Không tìm thấy báo cáo'
+          message: "Không tìm thấy báo cáo",
         };
       }
 
       // Cập nhật trạng thái
       report.status = status;
       report.adminComment = adminComment;
-      report.resolvedAt = status === 'pending' ? null : new Date();
-      report.resolvedBy = status === 'pending' ? null : adminAddress;
+      report.resolvedAt = status === "pending" ? null : new Date();
+      report.resolvedBy = status === "pending" ? null : adminAddress;
       await report.save();
 
       // Thực hiện hành động nếu có (hide, delete, ban)
-      if (status === 'resolved' && action) {
-        await this.executeModAction(report.targetType, report.targetId, action, adminAddress);
+      if (status === "resolved" && action) {
+        await this.executeModAction(
+          report.targetType,
+          report.targetId,
+          action,
+          adminAddress
+        );
       }
 
       return {
         success: true,
         status: 200,
-        message: 'Cập nhật trạng thái báo cáo thành công',
+        message: "Cập nhật trạng thái báo cáo thành công",
         data: {
           _id: report._id,
           status: report.status,
-          resolvedAt: report.resolvedAt
-        }
+          resolvedAt: report.resolvedAt,
+        },
       };
     } catch (error) {
-      console.error('Error updating report status:', error);
+      console.error("Error updating report status:", error);
       return {
         success: false,
         status: 500,
-        message: 'Lỗi khi cập nhật trạng thái báo cáo',
-        error: error.message
+        message: "Lỗi khi cập nhật trạng thái báo cáo",
+        error: error.message,
       };
     }
   }
@@ -302,45 +334,51 @@ class ReportService {
   async getTargetDetails(targetType, targetId) {
     try {
       switch (targetType) {
-        case 'post':
+        case "post":
           const post = await Post.findOne({ _id: targetId });
           if (!post) return { notFound: true };
           return {
-            content: post.content?.substring(0, 100) + (post.content?.length > 100 ? '...' : ''),
+            content:
+              post.content?.substring(0, 100) +
+              (post.content?.length > 100 ? "..." : ""),
             author: post.author,
-            createdAt: post.createdAt
+            createdAt: post.createdAt,
           };
-        case 'comment':
+        case "comment":
           const comment = await Comment.findOne({ _id: targetId });
           if (!comment) return { notFound: true };
           return {
-            content: comment.content?.substring(0, 100) + (comment.content?.length > 100 ? '...' : ''),
+            content:
+              comment.content?.substring(0, 100) +
+              (comment.content?.length > 100 ? "..." : ""),
             author: comment.author,
             postId: comment.postId,
-            createdAt: comment.createdAt
+            createdAt: comment.createdAt,
           };
-        case 'user':
-          const user = await User.findOne({ walletAddress: targetId.toLowerCase() });
+        case "user":
+          const user = await User.findOne({
+            walletAddress: targetId.toLowerCase(),
+          });
           if (!user) return { notFound: true };
           return {
             username: user.username,
             walletAddress: user.walletAddress,
-            createdAt: user.createdAt
+            createdAt: user.createdAt,
           };
-        case 'nft':
+        case "nft":
           const nft = await NFTCache.findOne({ tokenId: targetId });
           if (!nft) return { notFound: true };
           return {
             name: nft.metadata?.name,
             creator: nft.creator,
             owner: nft.owner,
-            tokenId: nft.tokenId
+            tokenId: nft.tokenId,
           };
         default:
           return { notFound: true };
       }
     } catch (error) {
-      console.error('Error getting target details:', error);
+      console.error("Error getting target details:", error);
       return { error: true };
     }
   }
@@ -356,30 +394,24 @@ class ReportService {
       const reportCount = await Report.countDocuments({
         targetType,
         targetId,
-        status: 'pending'
+        status: "pending",
       });
 
       // Cập nhật vào target tương ứng
       switch (targetType) {
-        case 'post':
-          await Post.updateOne(
-            { _id: targetId },
-            { $set: { reportCount } }
-          );
+        case "post":
+          await Post.updateOne({ _id: targetId }, { $set: { reportCount } });
           break;
-        case 'comment':
-          await Comment.updateOne(
-            { _id: targetId },
-            { $set: { reportCount } }
-          );
+        case "comment":
+          await Comment.updateOne({ _id: targetId }, { $set: { reportCount } });
           break;
-        case 'user':
+        case "user":
           await User.updateOne(
             { walletAddress: targetId.toLowerCase() },
             { $set: { reportCount } }
           );
           break;
-        case 'nft':
+        case "nft":
           await NFTCache.updateOne(
             { tokenId: targetId },
             { $set: { reportCount } }
@@ -393,7 +425,7 @@ class ReportService {
         await this.autoHideContent(targetType, targetId);
       }
     } catch (error) {
-      console.error('Error updating report count:', error);
+      console.error("Error updating report count:", error);
     }
   }
 
@@ -405,22 +437,32 @@ class ReportService {
   async autoHideContent(targetType, targetId) {
     try {
       switch (targetType) {
-        case 'post':
+        case "post":
           await Post.updateOne(
             { _id: targetId },
-            { $set: { status: 'hidden', hiddenReason: 'auto-hidden due to reports' } }
+            {
+              $set: {
+                status: "hidden",
+                hiddenReason: "auto-hidden due to reports",
+              },
+            }
           );
           break;
-        case 'comment':
+        case "comment":
           await Comment.updateOne(
             { _id: targetId },
-            { $set: { status: 'hidden', hiddenReason: 'auto-hidden due to reports' } }
+            {
+              $set: {
+                status: "hidden",
+                hiddenReason: "auto-hidden due to reports",
+              },
+            }
           );
           break;
         // Các trường hợp khác có thể tự định nghĩa hành động phù hợp
       }
     } catch (error) {
-      console.error('Error auto-hiding content:', error);
+      console.error("Error auto-hiding content:", error);
     }
   }
 
@@ -434,93 +476,93 @@ class ReportService {
   async executeModAction(targetType, targetId, action, adminAddress) {
     try {
       switch (action) {
-        case 'hide':
-          if (targetType === 'post') {
+        case "hide":
+          if (targetType === "post") {
             await Post.updateOne(
               { _id: targetId },
-              { 
-                $set: { 
-                  status: 'hidden', 
-                  hiddenReason: 'hidden by admin', 
+              {
+                $set: {
+                  status: "hidden",
+                  hiddenReason: "hidden by admin",
                   hiddenBy: adminAddress,
-                  hiddenAt: new Date()
-                } 
+                  hiddenAt: new Date(),
+                },
               }
             );
-          } else if (targetType === 'comment') {
+          } else if (targetType === "comment") {
             await Comment.updateOne(
               { _id: targetId },
-              { 
-                $set: { 
-                  status: 'hidden', 
-                  hiddenReason: 'hidden by admin',
+              {
+                $set: {
+                  status: "hidden",
+                  hiddenReason: "hidden by admin",
                   hiddenBy: adminAddress,
-                  hiddenAt: new Date()
-                } 
+                  hiddenAt: new Date(),
+                },
               }
             );
           }
           break;
-          
-        case 'delete':
-          if (targetType === 'post') {
+
+        case "delete":
+          if (targetType === "post") {
             await Post.updateOne(
               { _id: targetId },
-              { 
-                $set: { 
-                  status: 'deleted', 
-                  deletedReason: 'deleted by admin',
+              {
+                $set: {
+                  status: "deleted",
+                  deletedReason: "deleted by admin",
                   deletedBy: adminAddress,
-                  deletedAt: new Date() 
-                } 
+                  deletedAt: new Date(),
+                },
               }
             );
-          } else if (targetType === 'comment') {
+          } else if (targetType === "comment") {
             await Comment.updateOne(
               { _id: targetId },
-              { 
-                $set: { 
-                  status: 'deleted', 
-                  deletedReason: 'deleted by admin',
+              {
+                $set: {
+                  status: "deleted",
+                  deletedReason: "deleted by admin",
                   deletedBy: adminAddress,
-                  deletedAt: new Date()
-                } 
+                  deletedAt: new Date(),
+                },
               }
             );
-          } else if (targetType === 'nft') {
+          } else if (targetType === "nft") {
             // NFT không thể xóa nhưng có thể ẩn khỏi marketplace
             await NFTCache.updateOne(
               { tokenId: targetId },
-              { 
-                $set: { 
-                  status: 'hidden',
-                  hiddenReason: 'hidden by admin',
+              {
+                $set: {
+                  status: "hidden",
+                  hiddenReason: "hidden by admin",
                   hiddenBy: adminAddress,
-                  hiddenAt: new Date()
-                } 
+                  hiddenAt: new Date(),
+                },
               }
             );
           }
           break;
-          
-        case 'ban':
-          if (targetType === 'user') {
+
+        case "ban":
+          if (targetType === "user") {
             await User.updateOne(
               { walletAddress: targetId.toLowerCase() },
-              { 
-                $set: { 
-                  status: 'suspended', 
-                  suspendedReason: 'banned by admin',
+              {
+                $set: {
+                  status: "suspended",
+                  suspendedReason: "banned by admin",
                   suspendedBy: adminAddress,
-                  suspendedAt: new Date()
-                } 
+                  suspendedAt: new Date(),
+                },
               }
             );
           }
           break;
       }
     } catch (error) {
-      console.error('Error executing mod action:', error);
+      console.error("Error executing mod action:", error);
     }
   }
 }

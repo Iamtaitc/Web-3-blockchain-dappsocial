@@ -1,6 +1,6 @@
 // controllers/post.controller.js
 const { validationResult } = require("express-validator");
-const postService = require("../services/post.services");
+const postService = require("../services/post/index");
 const ApiResponse = require("../utils/apiResponse.utils");
 const { processMediaFiles } = require("../utils/mediaHelper.utils");
 const notificationService = require("../services/notification.services");

@@ -148,9 +148,11 @@ class NotificationService {
           message: "ID thông báo không được để trống",
         };
       }
-
-      const result = await Notification.findByIdAndDelete(notificationId);
-
+  
+      const cleanedId = notificationId.trim(); // ✨ Trim khoảng trắng và ký tự xuống dòng
+  
+      const result = await Notification.findByIdAndDelete(cleanedId);
+  
       if (!result) {
         return {
           success: false,
@@ -158,13 +160,13 @@ class NotificationService {
           message: "Không tìm thấy thông báo với ID này",
         };
       }
-
+  
       return {
         success: true,
         status: 200,
         message: "Xóa thông báo thành công",
         data: {
-          notificationId,
+          notificationId: cleanedId,
           deletedAt: new Date(),
         },
       };
@@ -178,6 +180,7 @@ class NotificationService {
       };
     }
   }
+  
 
   /**
    * Lấy danh sách thông báo đã gửi

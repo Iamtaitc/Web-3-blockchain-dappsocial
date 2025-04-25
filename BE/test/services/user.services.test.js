@@ -2,7 +2,7 @@ const { User, Follow } = require("../../src/models/index");
 const IPFSService = require("../../src/services/ipfs.services");
 const blockchainService = require("../../src/services/blockchain.services");
 const notificationService = require("../../src/services/notification.services");
-const UserServices = require("../../src/services/user.services");
+const UserServices = require("../../src/services/user/index");
 
 // Mock các modules
 jest.mock("../../src/models/index", () => ({

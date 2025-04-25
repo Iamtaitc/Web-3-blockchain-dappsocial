@@ -36,6 +36,11 @@ module.exports = {
 
   // Quản lý thông báo
   createSystemAnnouncement: notificationService.createSystemAnnouncement,
+  createUserNotification: notificationService.createUserNotification,
+  deleteNotification: notificationService.deleteNotification,
+  getNotifications: notificationService.getNotifications,
+  markAllAsRead: notificationService.markAllAsRead,
+
 
   // Thống kê
   getUsersOverTime: statisticsService.getUsersOverTime,
