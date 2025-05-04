@@ -7,6 +7,7 @@ import dashboardReducer from "./slices/dashboardSlice";
 import userReducer from "./slices/userSlice";
 import notificationReducer from "./slices/notificationSlice";
 import nftReducer from "./slices/nftSlice";
+import subscriptionReducer from "./slices/subscriptionSlice";
 
 // Middleware để đồng bộ localStorage với Redux
 const localStorageMiddleware = (store) => (next) => (action) => {
@@ -70,6 +71,7 @@ export const store = configureStore({
     user: userReducer,
     notification: notificationReducer,
     nft: nftReducer,
+    subscription: subscriptionReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

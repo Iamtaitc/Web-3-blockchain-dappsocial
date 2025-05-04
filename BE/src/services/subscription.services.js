@@ -6,20 +6,97 @@ const config = require("../configs/config.env");
 class SubscriptionService {
   constructor() {
     this.priceMap = {
-      1: 0.0001, // Standard
-      2: 0.0002, // Plus
-      5: 0.0005, // Pro
-      10: 0.001, // Elite
+      1: 0, // Standard: 0 DX
+      2: 0.000002, // Plus: 50 DX/tháng
+      5: 0.00001, // Pro: 100 DX/tháng
+      10: 0.0001, // Elite: 180 DX/tháng
     };
     this.validLevels = Object.keys(this.priceMap).map(Number);
     this.maxMonths = 12;
     this.minMonths = 1;
     this.network = "sepolia";
     this.currency = "ETH";
+    // Thêm thông tin mô tả quyền lợi cho mỗi cấp độ subscription
+    this.subscriptionBenefits = {
+      1: {
+        // Standard
+        name: "Standard",
+        benefits: [
+          "Reward multiplier 1.5x",
+          "Access to basic features",
+          "Daily token claim limit: 12 tokens",
+          "Maximum 3 posts per day",
+        ],
+      },
+      2: {
+        // Plus
+        name: "Plus",
+        benefits: [
+          "Reward multiplier 2x",
+          "All Standard features",
+          "Daily token claim limit: 16 tokens",
+          "Maximum 10 posts per day",
+          "Access to exclusive content",
+        ],
+      },
+      5: {
+        // Pro
+        name: "Pro",
+        benefits: [
+          "Reward multiplier 3x",
+          "All Plus features",
+          "Daily token claim limit: 24 tokens",
+          "Unlimited posts",
+          "Priority support",
+          "Premium profile badge",
+        ],
+      },
+      10: {
+        // Elite
+        name: "Elite",
+        benefits: [
+          "Reward multiplier 5x",
+          "All Pro features",
+          "Daily token claim limit: 40 tokens",
+          "Exclusive NFT access",
+          "VIP events access",
+          "Dedicated support channel",
+          "Custom profile features",
+        ],
+      },
+    };
+  }
+
+  /**
+   * Lấy thông tin mô tả về các cấp độ subscription
+   */
+  getSubscriptionLevels() {
+    const levels = {};
+    for (const level of this.validLevels) {
+      levels[level] = {
+        name: this.subscriptionBenefits[level].name,
+        pricePerMonth: this.priceMap[level],
+        currency: this.currency,
+        benefits: this.subscriptionBenefits[level].benefits,
+      };
+    }
+    return {
+      success: true,
+      status: 200,
+      message: "Lấy thông tin các cấp độ subscription thành công",
+      data: {
+        levels,
+        maxMonths: this.maxMonths,
+        minMonths: this.minMonths,
+        network: this.network,
+        adminAddress: config.ADMIN_ADDRESSES[0],
+      },
+    };
   }
 
   /**
    * Tạo yêu cầu thanh toán subscription
+   * Chỉ chuẩn bị thông tin cần thiết mà không tạo giao dịch từ backend
    */
   async createSubscriptionRequest(walletAddress, level, months) {
     try {
@@ -43,18 +120,6 @@ class SubscriptionService {
       const pricePerMonth = this.priceMap[level];
       const totalPrice = pricePerMonth * months;
 
-      const privateKey = config.PRIVATE_KEY;
-      if (!privateKey) {
-        return {
-          success: false,
-          status: 500,
-          message: "Không tìm thấy private key từ cấu hình",
-        };
-      }
-
-      const provider = getProvider();
-      const adminWallet = new ethers.Wallet(privateKey, provider);
-
       // Tạo ID riêng cho mỗi yêu cầu
       const paymentId = ethers.keccak256(
         ethers.toUtf8Bytes(
@@ -62,13 +127,8 @@ class SubscriptionService {
         )
       );
 
-      // Gửi ETH từ admin đến chính ví admin (để test lấy tx hash)
-      const tx = await adminWallet.sendTransaction({
-        to: adminWallet.address,
-        value: ethers.parseEther(totalPrice.toFixed(18).toString()),
-      });
-
-      console.log("Giao dịch đã gửi. Transaction Hash:", tx.hash);
+      // Lấy thông tin về level subscription
+      const subscriptionInfo = this.subscriptionBenefits[level];
 
       const subscriptionPayment = new Subscription({
         user: normalizedAddress,
@@ -80,6 +140,9 @@ class SubscriptionService {
         paymentCurrency: this.currency,
         network: this.network,
         createdAt: new Date(),
+        // Thêm thông tin mô tả về subscription
+        subscriptionName: subscriptionInfo.name,
+        subscriptionBenefits: subscriptionInfo.benefits,
       });
 
       await subscriptionPayment.save();
@@ -90,13 +153,15 @@ class SubscriptionService {
         message: "Tạo yêu cầu subscription thành công",
         data: {
           paymentId,
+          recipientAddress: config.ADMIN_ADDRESSES[0], // Địa chỉ nhận tiền
           totalPrice,
           currency: this.currency,
-          recipient: adminWallet.address,
           network: this.network,
           level,
           months,
-          transactionHash: tx.hash, // ✅ Trả về luôn để test
+          subscriptionName: subscriptionInfo.name,
+          subscriptionBenefits: subscriptionInfo.benefits,
+          // Bạn có thể trả thêm dữ liệu cần thiết cho frontend ở đây
         },
       };
     } catch (error) {
@@ -134,11 +199,24 @@ class SubscriptionService {
       const provider = getProvider();
       const txReceipt = await provider.getTransactionReceipt(transactionHash);
 
-      if (!txReceipt || txReceipt.status !== 1) {
+      if (!txReceipt) {
+        return {
+          success: false,
+          status: 404,
+          message: "Giao dịch không tồn tại trên blockchain",
+          error: "Transaction not found",
+          transactionHash,
+        };
+      }
+
+      if (txReceipt.status !== 1) {
         return {
           success: false,
           status: 400,
-          message: "Giao dịch không tồn tại hoặc thất bại trên blockchain",
+          message: "Giao dịch thất bại trên blockchain",
+          error: "Transaction failed",
+          transactionHash,
+          receipt: txReceipt,
         };
       }
 
@@ -165,6 +243,15 @@ class SubscriptionService {
         };
       }
 
+      // Kiểm tra xem người gửi giao dịch có phải là người dùng đã đăng ký không
+      if (tx.from.toLowerCase() !== payment.user.toLowerCase()) {
+        return {
+          success: false,
+          status: 400,
+          message: "Giao dịch không được gửi từ địa chỉ đã đăng ký",
+        };
+      }
+
       const privateKey = config.PRIVATE_KEY;
       if (!privateKey) {
         return {
@@ -180,6 +267,7 @@ class SubscriptionService {
         payment.level,
         payment.months
       );
+
       const receipt = await activateTx.wait();
 
       payment.paymentStatus = "completed";
@@ -188,14 +276,33 @@ class SubscriptionService {
       payment.subscriptionTransactionHash = receipt.transactionHash;
       await payment.save();
 
+      // Lấy thông tin quyền lợi của subscription
+      const subscriptionInfo = this.subscriptionBenefits[payment.level];
       const expirationDate = new Date(
         Date.now() + payment.months * 30 * 24 * 60 * 60 * 1000
       );
+
+      // Cập nhật thông tin User và thêm lịch sử thanh toán
       await User.findOneAndUpdate(
         { walletAddress: payment.user },
         {
           subscriptionLevel: payment.level,
           subscriptionExpireDate: expirationDate,
+          $push: {
+            "subscription.paymentHistory": {
+              paymentId: payment.paymentId,
+              amount: payment.totalPrice,
+              currency: payment.paymentCurrency,
+              transactionHash: payment.transactionHash,
+              date: payment.confirmationDate,
+              months: payment.months,
+            },
+          },
+          // Cập nhật thêm các thông tin về subscription
+          "subscription.level": payment.level,
+          "subscription.startDate": new Date(),
+          "subscription.expiration": expirationDate,
+          "subscription.paymentId": payment.paymentId,
         }
       );
 
@@ -208,6 +315,9 @@ class SubscriptionService {
           level: payment.level,
           months: payment.months,
           subscriptionTransactionHash: receipt.transactionHash,
+          subscriptionName: subscriptionInfo.name,
+          subscriptionBenefits: subscriptionInfo.benefits,
+          expiration: expirationDate,
         },
       };
     } catch (error) {

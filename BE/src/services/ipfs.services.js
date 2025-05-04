@@ -8,7 +8,7 @@ const { Buffer } = require("buffer");
 class IPFSService {
   constructor() {
     // Cấu hình gateway và endpoints IPFS
-    this.ipfsGateway = process.env.IPFS_GATEWAY || "http://127.0.0.1:9090/ipfs/";
+    this.ipfsGateway = process.env.IPFS_GATEWAY || "http://127.0.0.1:8080/ipfs/";
     // Sử dụng local IPFS node thay vì Infura
     this.ipfsEndpoint = "http://127.0.0.1:5001/api/v0";
   }

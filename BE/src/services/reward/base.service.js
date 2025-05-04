@@ -1,4 +1,3 @@
-// services/reward/base.service.js
 const { getSubscriptionInfo } = require("../blockchain.services");
 
 /**
@@ -12,7 +11,7 @@ class BaseRewardService {
    * @protected
    */
   _validateWalletAddress(address) {
-    if (!address || typeof address !== "string") {
+    if (!address || typeof address !== "string" || address.length !== 42) {
       throw new Error("Địa chỉ ví không hợp lệ");
     }
 
@@ -37,9 +36,9 @@ class BaseRewardService {
   }
 
   /**
-   * Lấy thông tin subscription và multiplier của người dùng
+   * Lấy multiplier từ subscription của người dùng
    * @param {String} address - Địa chỉ ví
-   * @returns {Object} - Thông tin multiplier
+   * @returns {Number} - Hệ số multiplier
    * @protected
    */
   async _getMultiplier(address) {
@@ -47,6 +46,9 @@ class BaseRewardService {
       const subscriptionInfo = await getSubscriptionInfo(address);
       return subscriptionInfo.level || 1;
     } catch (error) {
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("Không thể lấy thông tin subscription");
+      }
       return 1; // Default multiplier if error
     }
   }

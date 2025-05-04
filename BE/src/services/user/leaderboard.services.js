@@ -14,6 +14,9 @@ class LeaderboardService {
    */
   async getLeaderboard(page = 1, limit = 20) {
     try {
+      if (page < 1 || limit < 1) {
+        return { success: false, message: "Invalid page or limit" };
+      }
       const skip = (page - 1) * limit;
 
       // Lấy users theo points
@@ -23,7 +26,8 @@ class LeaderboardService {
         .limit(limit)
         .select(
           "walletAddress username avatarURI points followerCount postCount subscription"
-        );
+        )
+        .lean();
 
       // Format response
       const leaderboard = users.map((user) => ({
@@ -35,7 +39,9 @@ class LeaderboardService {
         points: user.points,
         followerCount: user.followerCount,
         postCount: user.postCount,
-        subscriptionLevel: user.subscription?.level || 1,
+        subscriptionLevel: user.subscription ? user.subscription.level || 1 : 1,
+        subscriptionName: user.subscriptionName,
+        rewardMultiplier: user.rewardMultiplier,
       }));
 
       // Lấy tổng số users để phân trang

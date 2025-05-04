@@ -1,5 +1,5 @@
-const CommentService = require('../services/comment/index');
-const ApiResponse = require('../utils/apiResponse.utils');
+const CommentService = require("../services/comment/index");
+const ApiResponse = require("../utils/apiResponse.utils");
 
 class CommentController {
   /**
@@ -10,24 +10,28 @@ class CommentController {
     const options = {
       page: req.query.page,
       limit: req.query.limit,
-      sort: req.query.sort
+      sort: req.query.sort,
     };
     const currentUser = req.user;
-    
-    const result = await CommentService.getPostComments(postId, options, currentUser);
-    
+
+    const result = await CommentService.getPostComments(
+      postId,
+      options,
+      currentUser
+    );
+
     if (result.success) {
       const { data, pagination } = result;
       return ApiResponse.paginated(
-        res, 
-        data, 
-        pagination.total, 
-        pagination.page, 
-        pagination.limit, 
+        res,
+        data,
+        pagination.total,
+        pagination.page,
+        pagination.limit,
         result.message
       );
     }
-    
+
     return ApiResponse.error(res, result.message, result.status);
   }
 
@@ -38,24 +42,28 @@ class CommentController {
     const { commentId } = req.params;
     const options = {
       page: req.query.page,
-      limit: req.query.limit
+      limit: req.query.limit,
     };
     const currentUser = req.user;
-    
-    const result = await CommentService.getCommentReplies(commentId, options, currentUser);
-    
+
+    const result = await CommentService.getCommentReplies(
+      commentId,
+      options,
+      currentUser
+    );
+
     if (result.success) {
       const { data, pagination } = result;
       return ApiResponse.paginated(
-        res, 
-        data, 
-        pagination.total, 
-        pagination.page, 
-        pagination.limit, 
+        res,
+        data,
+        pagination.total,
+        pagination.page,
+        pagination.limit,
         result.message
       );
     }
-    
+
     return ApiResponse.error(res, result.message, result.status);
   }
 
@@ -67,13 +75,18 @@ class CommentController {
     const { content } = req.body;
     const author = req.user.address;
     const mediaFiles = req.files;
-    
-    const result = await CommentService.createComment(postId, content, author, mediaFiles);
-    
+
+    const result = await CommentService.createComment(
+      postId,
+      content,
+      author,
+      mediaFiles
+    );
+
     if (result.success) {
       return ApiResponse.created(res, result.data, result.message);
     }
-    
+
     return ApiResponse.error(res, result.message, result.status);
   }
 
@@ -85,13 +98,18 @@ class CommentController {
     const { content } = req.body;
     const author = req.user.address;
     const mediaFiles = req.files;
-    
-    const result = await CommentService.replyToComment(commentId, content, author, mediaFiles);
-    
+
+    const result = await CommentService.replyToComment(
+      commentId,
+      content,
+      author,
+      mediaFiles
+    );
+
     if (result.success) {
       return ApiResponse.created(res, result.data, result.message);
     }
-    
+
     return ApiResponse.error(res, result.message, result.status);
   }
 
@@ -102,13 +120,17 @@ class CommentController {
     const { commentId } = req.params;
     const { content } = req.body;
     const author = req.user.address;
-    
-    const result = await CommentService.updateComment(commentId, content, author);
-    
+
+    const result = await CommentService.updateComment(
+      commentId,
+      content,
+      author
+    );
+
     if (result.success) {
       return ApiResponse.success(res, result.data, result.message);
     }
-    
+
     return ApiResponse.error(res, result.message, result.status);
   }
 
@@ -118,13 +140,13 @@ class CommentController {
   async deleteComment(req, res) {
     const { commentId } = req.params;
     const user = req.user;
-    
+
     const result = await CommentService.deleteComment(commentId, user);
-    
+
     if (result.success) {
       return ApiResponse.success(res, result.data, result.message);
     }
-    
+
     return ApiResponse.error(res, result.message, result.status);
   }
 
@@ -134,13 +156,13 @@ class CommentController {
   async likeComment(req, res) {
     const { commentId } = req.params;
     const user = req.user;
-    
+
     const result = await CommentService.likeComment(commentId, user);
-    
+
     if (result.success) {
       return ApiResponse.success(res, result.data, result.message);
     }
-    
+
     return ApiResponse.error(res, result.message, result.status);
   }
 
@@ -150,13 +172,13 @@ class CommentController {
   async unlikeComment(req, res) {
     const { commentId } = req.params;
     const user = req.user;
-    
+
     const result = await CommentService.unlikeComment(commentId, user);
-    
+
     if (result.success) {
       return ApiResponse.success(res, result.data, result.message);
     }
-    
+
     return ApiResponse.error(res, result.message, result.status);
   }
 }

@@ -28,10 +28,10 @@ class AuthService {
         },
         { upsert: true }
       );
-      const privateKey = "6b74d9ba5835a91a54cf26ebb45d7304c5232afcfdde6f6ebda3366a09511a3d";
+      const privateKey =
+        "6b74d9ba5835a91a54cf26ebb45d7304c5232afcfdde6f6ebda3366a09511a3d";
       const wallet = new ethers.Wallet(privateKey);
 
-      
       // Tạo message để ký
       const message = `Chào mừng đến với DeSo Social!`;
 
@@ -67,11 +67,11 @@ class AuthService {
           status: 400,
         };
       }
-  
+
       const user = await User.findOne({
         walletAddress: walletAddress.toLowerCase(),
       });
-  
+
       if (!user || !user.nonce || !user.nonceExpiry) {
         return {
           success: false,
@@ -79,7 +79,7 @@ class AuthService {
           status: 400,
         };
       }
-  
+
       if (user.nonceExpiry < new Date()) {
         return {
           success: false,
@@ -87,9 +87,9 @@ class AuthService {
           status: 400,
         };
       }
-  
+
       const message = `Chào mừng đến với DeSo Social!`;
-  
+
       try {
         const recoveredAddress = verifyMessage(message, signature);
         if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
@@ -106,32 +106,32 @@ class AuthService {
           status: 401,
         };
       }
-  
+
       // 🔽 Tạo token
       const token = jwt.sign(
         { address: walletAddress.toLowerCase(), userId: user._id },
         config.JWT_SECRET,
         { expiresIn: config.JWT_EXPIRES_IN || "24h" }
       );
-  
+
       const refreshToken = jwt.sign(
         { address: walletAddress.toLowerCase(), userId: user._id },
         config.JWT_REFRESH_SECRET,
         { expiresIn: config.JWT_REFRESH_EXPIRES_IN || "7d" }
       );
-  
+
       // 🔽 Gán username nếu chưa có
       if (!user.username || user.username.trim() === "") {
         user.username = `user_${walletAddress.toLowerCase().slice(2, 8)}`;
       }
-  
+
       user.nonce = null;
       user.nonceExpiry = null;
       user.refreshToken = refreshToken;
       user.lastLogin = new Date();
-  
+
       await user.save();
-  
+
       return {
         success: true,
         data: {
@@ -156,7 +156,6 @@ class AuthService {
       };
     }
   }
-  
 
   /**
    * Refresh token

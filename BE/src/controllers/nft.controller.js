@@ -1,5 +1,5 @@
 //BE\src\controllers\nft.controller.js
-const NFTService = require("../services/nft.services");
+const NFTService = require("../services/nft/index");
 const ApiResponse = require("../utils/apiResponse.utils");
 const { validationResult } = require("express-validator");
 

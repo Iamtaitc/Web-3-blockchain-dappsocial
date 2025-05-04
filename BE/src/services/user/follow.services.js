@@ -129,59 +129,41 @@ class FollowService {
     }
   }
 
-  /**
-   * Lấy danh sách người theo dõi (followers) của một user
-   * @param {string} address - Địa chỉ ví của user cần lấy danh sách followers
-   * @param {number} page - Số trang
-   * @param {number} limit - Số lượng item trên một trang
-   * @returns {object} Kết quả xử lý
-   */
-  async getUserFollowers(address, page = 1, limit = 20) {
+  async getUserRelations(address, type, page = 1, limit = 20) {
     try {
       const skip = (page - 1) * limit;
+      const field = type === "followers" ? "following" : "follower";
+      const relationField = type === "followers" ? "follower" : "following";
 
-      // Lấy danh sách followers
-      const followers = await Follow.find({
-        following: address,
-      })
+      const relations = await Follow.find({ [field]: address })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
 
-      // Lấy thông tin chi tiết của mỗi follower
-      const followerDetails = await Promise.all(
-        followers.map(async (follow) => {
+      const details = await Promise.all(
+        relations.map(async (relation) => {
           const user = await User.findOne({
-            walletAddress: follow.follower,
+            walletAddress: relation[relationField],
           });
-
           if (!user) return null;
-
           return {
             walletAddress: user.walletAddress,
             username: user.username,
             avatarURI: user.avatarURI
               ? IPFSService.formatIPFSUrl(user.avatarURI)
               : null,
-            followedAt: follow.createdAt,
+            followedAt: relation.createdAt,
           };
         })
       );
 
-      // Filter out nulls
-      const filteredFollowers = followerDetails.filter(
-        (follower) => follower !== null
-      );
-
-      // Lấy tổng số followers để phân trang
-      const total = await Follow.countDocuments({
-        following: address,
-      });
+      const filteredDetails = details.filter((detail) => detail !== null);
+      const total = await Follow.countDocuments({ [field]: address });
 
       return {
         success: true,
         data: {
-          followers: filteredFollowers,
+          [type]: filteredDetails,
           pagination: {
             total,
             page,
@@ -191,9 +173,20 @@ class FollowService {
         },
       };
     } catch (error) {
-      console.error("Error getting followers:", error);
-      return { success: false, message: "Failed to get followers", error };
+      console.error(`Error getting ${type}:`, error);
+      return { success: false, message: `Failed to get ${type}`, error };
     }
+  }
+
+  /**
+   * Lấy danh sách người theo dõi (followers) của một user
+   * @param {string} address - Địa chỉ ví của user cần lấy danh sách followers
+   * @param {number} page - Số trang
+   * @param {number} limit - Số lượng item trên một trang
+   * @returns {object} Kết quả xử lý
+   */
+  async getUserFollowers(address, page = 1, limit = 20) {
+    return this.getUserRelations(address, "followers", page, limit);
   }
 
   /**
@@ -204,63 +197,7 @@ class FollowService {
    * @returns {object} Kết quả xử lý
    */
   async getUserFollowing(address, page = 1, limit = 20) {
-    try {
-      const skip = (page - 1) * limit;
-
-      // Lấy danh sách following
-      const following = await Follow.find({
-        follower: address,
-      })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
-
-      // Lấy thông tin chi tiết của mỗi người đang follow
-      const followingDetails = await Promise.all(
-        following.map(async (follow) => {
-          const user = await User.findOne({
-            walletAddress: follow.following,
-          });
-
-          if (!user) return null;
-
-          return {
-            walletAddress: user.walletAddress,
-            username: user.username,
-            avatarURI: user.avatarURI
-              ? IPFSService.formatIPFSUrl(user.avatarURI)
-              : null,
-            followedAt: follow.createdAt,
-          };
-        })
-      );
-
-      // Filter out nulls
-      const filteredFollowing = followingDetails.filter(
-        (user) => user !== null
-      );
-
-      // Lấy tổng số following để phân trang
-      const total = await Follow.countDocuments({
-        follower: address,
-      });
-
-      return {
-        success: true,
-        data: {
-          following: filteredFollowing,
-          pagination: {
-            total,
-            page,
-            limit,
-            totalPages: Math.ceil(total / limit),
-          },
-        },
-      };
-    } catch (error) {
-      console.error("Error getting following:", error);
-      return { success: false, message: "Failed to get following", error };
-    }
+    return this.getUserRelations(address, "following", page, limit);
   }
 }
 
