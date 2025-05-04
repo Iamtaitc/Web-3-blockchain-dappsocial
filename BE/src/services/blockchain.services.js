@@ -2,10 +2,10 @@ const { ethers } = require("ethers");
 const config = require("../configs/config.env");
 
 // ABIs
-const DXTokenABI = require("../abis/DXToken.json").abi;
 const NFTMediaABI = require("../abis/NFTMedia.json").abi;
 const MarketplaceABI = require("../abis/Marketplace.json").abi;
 const SubscriptionABI = require("../abis/Subscription.json").abi;
+const DXTokenABI = require("../abis/DXToken.json").abi; // Keep for other functionalities
 
 // Contract addresses
 const contracts = {
@@ -62,34 +62,21 @@ const getSignedContracts = (privateKey) => {
   };
 };
 
-const approveMarketplace = async (walletPrivateKey, amount) => {
+// Get NFT listing info
+const getNFTListing = async (tokenId) => {
   try {
-    const provider = getProvider(); // Thêm dòng này
-    const { dxToken, marketplace } = getSignedContracts(walletPrivateKey);
+    const { marketplace } = getContracts();
+    const listing = await marketplace.listings(tokenId);
 
-    // Convert amount to wei format
-    const amountInWei = ethers.parseEther(amount.toString());
-
-    // Approve marketplace to spend tokens
-    const tx = await dxToken.approve(marketplace.target, amountInWei);
-    await tx.wait();
-
-    return { success: true, transactionHash: tx.hash };
+    return {
+      tokenId: listing.tokenId.toString(),
+      seller: listing.seller,
+      price: ethers.formatEther(listing.price),
+      active: listing.active,
+    };
   } catch (error) {
-    console.error("Error approving tokens:", error);
-    throw error;
-  }
-};
-
-// Lấy số dư DX token
-const getDXBalance = async (address) => {
-  try {
-    const { dxToken } = getContracts();
-    const balance = await dxToken.balanceOf(address);
-    return ethers.formatEther(balance);
-  } catch (error) {
-    console.error("Error getting DX balance:", error);
-    throw new Error("Failed to get DX token balance");
+    console.error("Error getting NFT listing:", error);
+    throw new Error("Failed to get NFT listing");
   }
 };
 
@@ -115,7 +102,6 @@ const mintNFT = async (privateKey, tokenURI, mediaType, royaltyPercent) => {
     console.log(`Transaction confirmed in block ${receipt.blockNumber}`);
 
     // Phân tích transaction logs để tìm sự kiện NFTCreated
-    // Trong ethers.js v6, cần thêm logic để phân tích logs
     let tokenId = null;
     let creator = null;
 
@@ -134,7 +120,6 @@ const mintNFT = async (privateKey, tokenURI, mediaType, royaltyPercent) => {
           if (parsedLog && parsedLog.name === "NFTCreated") {
             tokenId = parsedLog.args[0]; // tokenId
             creator = parsedLog.args[1]; // creator
-            // Không cần lấy tokenURI vì đã có
             break;
           }
         }
@@ -160,7 +145,6 @@ const mintNFT = async (privateKey, tokenURI, mediaType, royaltyPercent) => {
 
       // Lấy tokenId của NFT mới nhất của người dùng
       for (let i = 0; i < balance; i++) {
-        // tokenOfOwnerByIndex có thể không có sẵn nếu contract không implement ERC721Enumerable
         try {
           const id = await nftMedia.tokenOfOwnerByIndex(
             userAddress,
@@ -264,52 +248,6 @@ async function findTokenIdFromTransferEvents(
   }
 }
 
-// Mint reward tokens to a user
-const mintReward = async (privateKey, recipientAddress, amount) => {
-  try {
-    // Validate inputs
-    if (!privateKey || typeof privateKey !== "string") {
-      throw new Error("Invalid private key");
-    }
-
-    if (!ethers.isAddress(recipientAddress)) {
-      throw new Error("Invalid recipient address");
-    }
-
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      throw new Error("Invalid amount");
-    }
-
-    // Get signed contract instance with admin wallet
-    const { dxToken, wallet } = getSignedContracts(privateKey);
-
-    // Convert amount to proper format (with decimals)
-    const tokenAmount = ethers.parseEther(amount);
-
-    // Check admin balance to ensure they have enough tokens to distribute
-    const adminBalance = await dxToken.balanceOf(wallet.address);
-    if (adminBalance < tokenAmount) {
-      throw new Error("Insufficient tokens in admin wallet for rewards");
-    }
-
-    // Execute the token transfer
-    const tx = await dxToken.transfer(recipientAddress, tokenAmount);
-    const receipt = await tx.wait();
-
-    console.log(`Reward minted: ${amount} tokens to ${recipientAddress}`);
-
-    return {
-      recipientAddress,
-      amount: amount,
-      transactionHash: receipt.hash,
-      blockNumber: receipt.blockNumber,
-    };
-  } catch (error) {
-    console.error("Error minting reward tokens:", error);
-    throw new Error(`Failed to mint reward tokens: ${error.message}`);
-  }
-};
-
 // Lấy thông tin NFT
 const getNFTInfo = async (tokenId) => {
   try {
@@ -342,11 +280,11 @@ const listNFTForSale = async (privateKey, tokenId, price) => {
     const approveTx = await nftMedia.approve(contracts.Marketplace, tokenId);
     await approveTx.wait();
 
+    // Convert price to wei format
+    const priceInWei = ethers.parseEther(price.toString());
+
     // List NFT
-    const listTx = await marketplace.listNFT(
-      tokenId,
-      ethers.parseEther(price.toString())
-    );
+    const listTx = await marketplace.listNFT(tokenId, priceInWei);
     const receipt = await listTx.wait();
 
     // Xử lý events cho ethers.js v6
@@ -389,7 +327,7 @@ const listNFTForSale = async (privateKey, tokenId, price) => {
   }
 };
 
-// Hủy đăng bán NFT - Chức năng mới được thêm vào
+// Hủy đăng bán NFT
 const unlistNFT = async (privateKey, tokenId) => {
   try {
     const { marketplace } = getSignedContracts(privateKey);
@@ -447,18 +385,30 @@ const unlistNFT = async (privateKey, tokenId) => {
   }
 };
 
-// Mua NFT
+// Mua NFT bằng ETH
 const buyNFT = async (privateKey, tokenId) => {
   try {
-    const { marketplace } = getSignedContracts(privateKey);
+    const { marketplace, wallet } = getSignedContracts(privateKey);
 
-    // Gọi hàm buyNFT trên smart contract
-    const tx = await marketplace.buyNFT(tokenId);
+    // Lấy thông tin listing để biết giá
+    const listing = await marketplace.listings(tokenId);
+
+    if (!listing.active) {
+      throw new Error("NFT is not for sale");
+    }
+
+    // Gọi hàm buyNFT trên smart contract với ETH value
+    const tx = await marketplace.buyNFT(tokenId, {
+      value: listing.price,
+    });
+
     const receipt = await tx.wait();
 
     return {
       success: true,
       transactionHash: receipt.hash,
+      price: ethers.formatEther(listing.price),
+      buyer: wallet.address,
     };
   } catch (error) {
     console.error("Blockchain error buying NFT:", error);
@@ -495,8 +445,10 @@ const verifyTransaction = async (txHash, buyer, tokenId) => {
             const eventTokenId = parsedLog.args[0];
             if (eventTokenId.toString() === tokenId.toString()) {
               // Kiểm tra buyer trong event nếu cần
-              const buyer = parsedLog.args[2];
-              return true;
+              const eventBuyer = parsedLog.args[2];
+              if (eventBuyer.toLowerCase() === buyer.toLowerCase()) {
+                return true;
+              }
             }
           }
         }
@@ -513,7 +465,49 @@ const verifyTransaction = async (txHash, buyer, tokenId) => {
   }
 };
 
-// Mua subscription
+// Lấy số dư ETH
+const getETHBalance = async (address) => {
+  try {
+    const provider = getProvider();
+    const balance = await provider.getBalance(address);
+    return ethers.formatEther(balance);
+  } catch (error) {
+    console.error("Error getting ETH balance:", error);
+    throw new Error("Failed to get ETH balance");
+  }
+};
+
+// Đối với các chức năng không liên quan đến mua NFT, vẫn giữ lại các hàm DX token
+const getDXBalance = async (address) => {
+  try {
+    const { dxToken } = getContracts();
+    const balance = await dxToken.balanceOf(address);
+    return ethers.formatEther(balance);
+  } catch (error) {
+    console.error("Error getting DX balance:", error);
+    throw new Error("Failed to get DX token balance");
+  }
+};
+
+const approveMarketplace = async (walletPrivateKey, amount) => {
+  try {
+    const { dxToken, marketplace } = getSignedContracts(walletPrivateKey);
+
+    // Convert amount to wei format
+    const amountInWei = ethers.parseEther(amount.toString());
+
+    // Approve marketplace to spend tokens
+    const tx = await dxToken.approve(marketplace.target, amountInWei);
+    await tx.wait();
+
+    return { success: true, transactionHash: tx.hash };
+  } catch (error) {
+    console.error("Error approving tokens:", error);
+    throw error;
+  }
+};
+
+// Function này không liên quan đến mua NFT nên giữ nguyên
 const purchaseSubscription = async (privateKey, level, months) => {
   try {
     const { subscription, dxToken } = getSignedContracts(privateKey);
@@ -577,7 +571,6 @@ const purchaseSubscription = async (privateKey, level, months) => {
   }
 };
 
-// Lấy thông tin subscription
 const getSubscriptionInfo = async (address) => {
   try {
     const { subscription } = getContracts();
@@ -603,15 +596,21 @@ module.exports = {
   getProvider,
   getContracts,
   getSignedContracts,
+  // Token balances
   getDXBalance,
+  getETHBalance,
+  // NFT operations
   mintNFT,
   getNFTInfo,
   listNFTForSale,
-  unlistNFT, // Xuất chức năng mới được thêm vào
+  unlistNFT,
   buyNFT,
+  getNFTListing,
+  // Subscription operations
   purchaseSubscription,
   getSubscriptionInfo,
-  mintReward,
-  approveMarketplace,
+  // Verification
   verifyTransaction,
+  // DX Token operations (preserved for other functionalities)
+  approveMarketplace,
 };

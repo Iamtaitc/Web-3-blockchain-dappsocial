@@ -23,7 +23,7 @@ class SubscriptionController {
       paymentId: result.data.paymentId,
       totalPrice: result.data.totalPrice,
       currency: result.data.currency,
-      recipient: result.data.recipient,
+      transactionHash: result.data.transactionHash,
       network: result.data.network,
       level: result.data.level,
       months: result.data.months,

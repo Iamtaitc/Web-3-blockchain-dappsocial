@@ -13,10 +13,10 @@ router.get("/nft/id/:tokenId", NftController.getNFTById);
 router.post("/nft/:tokenId/unlist", NftController.unlistNFT);
 
 // Mua NFT (yêu cầu xác thực)
-router.post("/nft/:tokenId/buy", NftController.buyNFT);
+router.post("/nft/:tokenId/buy", NftController.prepareNFTPurchase);
 
 // Xác nhận hoàn tất giao dịch mua NFT
-router.post("/nft/purchase-complete", NftController.purchaseComplete);
+router.post("/nft/process-nft-purchase", NftController.processNFTPurchase);
 
 // Lấy danh sách NFT trên marketplace
 router.get("/nft/marketplace", NftController.getMarketplaceNFTs);

@@ -140,7 +140,6 @@ class SubscriptionService {
         paymentCurrency: this.currency,
         network: this.network,
         createdAt: new Date(),
-        // Thêm thông tin mô tả về subscription
         subscriptionName: subscriptionInfo.name,
         subscriptionBenefits: subscriptionInfo.benefits,
       });
@@ -161,7 +160,6 @@ class SubscriptionService {
           months,
           subscriptionName: subscriptionInfo.name,
           subscriptionBenefits: subscriptionInfo.benefits,
-          // Bạn có thể trả thêm dữ liệu cần thiết cho frontend ở đây
         },
       };
     } catch (error) {

@@ -18,8 +18,8 @@ class NFTService {
   // Marketplace functionality
   listNFTForSale = marketplaceNFTService.listNFTForSale;
   unlistNFT = marketplaceNFTService.unlistNFT;
-  buyNFT = marketplaceNFTService.buyNFT;
-  purchaseComplete = marketplaceNFTService.purchaseComplete;
+  processNFTPurchase = marketplaceNFTService.processNFTPurchase;
+  prepareNFTPurchase = marketplaceNFTService.prepareNFTPurchase;
 }
 
 module.exports = new NFTService();

@@ -6,7 +6,7 @@ const { retryOperation } = require("../../utils/retry.utils");
 /**
  * Đăng bán NFT
  * @param {String} tokenId - ID của NFT
- * @param {String} price - Giá bán
+ * @param {String} price - Giá bán (in ETH)
  * @param {String} walletAddress - Địa chỉ ví của người bán
  * @returns {Object} Kết quả đăng bán
  */
@@ -19,10 +19,7 @@ const listNFTForSale = async (tokenId, price, walletAddress) => {
         message: "Giá không hợp lệ",
       };
     }
-
-    // Kiểm tra NFT có tồn tại không
     const nft = await NFTCache.findOne({ tokenId });
-
     if (!nft) {
       return {
         success: false,
@@ -30,8 +27,6 @@ const listNFTForSale = async (tokenId, price, walletAddress) => {
         message: "NFT không tồn tại",
       };
     }
-
-    // Kiểm tra người dùng có phải là chủ sở hữu không
     if (nft.owner.toLowerCase() !== walletAddress.toLowerCase()) {
       return {
         success: false,
@@ -39,8 +34,6 @@ const listNFTForSale = async (tokenId, price, walletAddress) => {
         message: "Bạn không phải là chủ sở hữu của NFT này",
       };
     }
-
-    // Kiểm tra NFT đã đăng bán chưa
     if (nft.forSale) {
       return {
         success: false,
@@ -48,8 +41,6 @@ const listNFTForSale = async (tokenId, price, walletAddress) => {
         message: "NFT đã được đăng bán",
       };
     }
-
-    // Đăng bán NFT trên blockchain
     const listingResult = await retryOperation(async () => {
       return await blockchainService.listNFTForSale(
         process.env.PRIVATE_KEY,
@@ -57,14 +48,13 @@ const listNFTForSale = async (tokenId, price, walletAddress) => {
         price
       );
     }, 3);
-
-    // Cập nhật thông tin trong database - sử dụng mongoose v6 syntax
     await NFTCache.findOneAndUpdate(
       { tokenId },
       {
         $set: {
           forSale: true,
           price,
+          priceInETH: true, // Thêm flag để đánh dấu là giá bằng ETH
           lastUpdated: new Date(),
         },
         $push: {
@@ -73,6 +63,7 @@ const listNFTForSale = async (tokenId, price, walletAddress) => {
             from: walletAddress.toLowerCase(),
             to: walletAddress.toLowerCase(),
             price,
+            currency: "ETH", // Thêm loại tiền tệ
             timestamp: new Date(),
             txHash: listingResult.transactionHash,
           },
@@ -81,18 +72,35 @@ const listNFTForSale = async (tokenId, price, walletAddress) => {
       { new: true }
     );
 
+    // Tạo thông báo về việc đăng bán NFT
+    await notificationService.createNotification({
+      type: "nft_listed",
+      userId: nft.creator, // Gửi thông báo cho người tạo NFT nếu khác với người bán
+      data: {
+        tokenId,
+        price,
+        currency: "ETH",
+        seller: walletAddress,
+        nftName: nft.name || `NFT #${tokenId}`,
+        imageUrl: nft.imageUrl || null,
+      },
+    });
+
     return {
       tokenId,
       price,
-      txHash: listingResult.transactionHash,
+      currency: "ETH",
+      success: true,
+      status: 200,
+      message: "NFT đã được đăng bán thành công",
+      transactionHash: listingResult.transactionHash,
     };
   } catch (error) {
     console.error("Error listing NFT for sale:", error);
-
     return {
       success: false,
       status: 500,
-      message: error.message,
+      message: `Không thể đăng bán NFT: ${error.message}`,
     };
   }
 };
@@ -105,9 +113,7 @@ const listNFTForSale = async (tokenId, price, walletAddress) => {
  */
 const unlistNFT = async (tokenId, walletAddress) => {
   try {
-    // Kiểm tra NFT có tồn tại không
     const nft = await NFTCache.findOne({ tokenId });
-
     if (!nft) {
       return {
         success: false,
@@ -116,25 +122,22 @@ const unlistNFT = async (tokenId, walletAddress) => {
       };
     }
 
-    // Kiểm tra người dùng có phải là chủ sở hữu không
     if (nft.owner.toLowerCase() !== walletAddress.toLowerCase()) {
       return {
         success: false,
-        status: 404,
+        status: 403,
         message: "Bạn không phải là chủ sở hữu của NFT này",
       };
     }
 
-    // Kiểm tra NFT có đang được đăng bán không
     if (!nft.forSale) {
       return {
         success: false,
-        status: 404,
-        message: "NFT không được đăng bán",
+        status: 400,
+        message: "NFT hiện không được đăng bán",
       };
     }
 
-    // Hủy đăng bán NFT trên blockchain
     const unlistResult = await retryOperation(async () => {
       return await blockchainService.unlistNFT(
         process.env.PRIVATE_KEY,
@@ -142,13 +145,13 @@ const unlistNFT = async (tokenId, walletAddress) => {
       );
     }, 3);
 
-    // Cập nhật thông tin trong database - sử dụng mongoose v6 syntax
     await NFTCache.findOneAndUpdate(
       { tokenId },
       {
         $set: {
           forSale: false,
-          price: "0",
+          price: null,
+          priceInETH: false,
           lastUpdated: new Date(),
         },
         $push: {
@@ -166,29 +169,98 @@ const unlistNFT = async (tokenId, walletAddress) => {
 
     return {
       tokenId,
-      txHash: unlistResult.transactionHash,
+      success: true,
+      status: 200,
+      message: "Đã hủy đăng bán NFT thành công",
+      transactionHash: unlistResult.transactionHash,
     };
   } catch (error) {
     console.error("Error unlisting NFT:", error);
     return {
       success: false,
       status: 500,
-      message: error.message,
+      message: `Không thể hủy đăng bán NFT: ${error.message}`,
     };
   }
 };
 
 /**
- * Mua NFT
+ * Lấy thông tin đăng bán của NFT
  * @param {String} tokenId - ID của NFT
- * @param {String} walletAddress - Địa chỉ ví của người mua
- * @returns {Object} Kết quả mua NFT
+ * @returns {Object} Thông tin đăng bán
  */
-const buyNFT = async (tokenId, walletAddress) => {
+const getNFTListingInfo = async (tokenId) => {
   try {
-    // Kiểm tra NFT có tồn tại không
-    const nft = await NFTCache.findOne({ tokenId });
+    // Lấy thông tin từ cache trước
+    const nftCache = await NFTCache.findOne({ tokenId });
 
+    if (!nftCache || !nftCache.forSale) {
+      // Truy vấn blockchain để kiểm tra
+      const listing = await blockchainService.getNFTListing(tokenId);
+
+      if (!listing || !listing.active) {
+        return {
+          success: false,
+          status: 404,
+          message: "NFT không được đăng bán",
+        };
+      }
+
+      // Cập nhật cache nếu có sự không đồng bộ
+      if (nftCache && !nftCache.forSale) {
+        await NFTCache.findOneAndUpdate(
+          { tokenId },
+          {
+            $set: {
+              forSale: true,
+              price: listing.price,
+              priceInETH: true,
+              lastUpdated: new Date(),
+            },
+          }
+        );
+      }
+
+      return {
+        tokenId: listing.tokenId,
+        seller: listing.seller,
+        price: listing.price,
+        currency: "ETH",
+        active: listing.active,
+        success: true,
+        status: 200,
+      };
+    }
+
+    // Trả về thông tin từ cache
+    return {
+      tokenId: nftCache.tokenId,
+      seller: nftCache.owner,
+      price: nftCache.price,
+      currency: "ETH",
+      active: nftCache.forSale,
+      success: true,
+      status: 200,
+    };
+  } catch (error) {
+    console.error("Error getting NFT listing info:", error);
+    return {
+      success: false,
+      status: 500,
+      message: `Không thể lấy thông tin đăng bán NFT: ${error.message}`,
+    };
+  }
+};
+
+/**
+ * Chuẩn bị thông tin để mua NFT
+ * @param {String} tokenId - ID của NFT
+ * @param {String} buyerAddress - Địa chỉ ví của người mua
+ * @returns {Object} Thông tin cần thiết để thực hiện giao dịch từ frontend
+ */
+const prepareNFTPurchase = async (tokenId, buyerAddress) => {
+  try {
+    const nft = await NFTCache.findOne({ tokenId });
     if (!nft) {
       return {
         success: false,
@@ -197,182 +269,192 @@ const buyNFT = async (tokenId, walletAddress) => {
       };
     }
 
-    // Kiểm tra NFT có đang được đăng bán không
     if (!nft.forSale) {
       return {
         success: false,
-        status: 404,
-        message: "NFT không được đăng bán",
+        status: 400,
+        message: "NFT này không được đăng bán",
       };
     }
 
-    // Kiểm tra người dùng không phải là chủ sở hữu
-    if (nft.owner.toLowerCase() === walletAddress.toLowerCase()) {
+    if (nft.owner.toLowerCase() === buyerAddress.toLowerCase()) {
       return {
         success: false,
-        status: 404,
-        message: "Bạn không thể mua NFT của chính mình",
+        status: 400,
+        message: "Bạn đã là chủ sở hữu của NFT này",
       };
     }
 
-    // Kiểm tra balance DX token
-    const balance = await blockchainService.getDXBalance(walletAddress);
-    if (parseFloat(balance) < parseFloat(nft.price)) {
-      return {
-        success: false,
-        status: 404,
-        message: "Số dư DX token không đủ",
-      };
-    }
+    // Lấy thông tin listing từ blockchain để đảm bảo giá mới nhất
+    const listing = await blockchainService.getNFTListing(tokenId);
 
-    // THÊM: Phê duyệt cho marketplace sử dụng tokens
-    const approveResult = await retryOperation(async () => {
-      return await blockchainService.approveMarketplace(
-        process.env.PRIVATE_KEY,
-        nft.price
-      );
-    }, 3);
-
-    // Thực hiện mua NFT trên blockchain
-    const buyResult = await retryOperation(async () => {
-      return await blockchainService.buyNFT(process.env.PRIVATE_KEY, tokenId);
-    }, 3);
-
-    // Lưu lại owner cũ để thông báo
-    const previousOwner = nft.owner;
-
-    // Cập nhật thông tin trong database - sử dụng mongoose v6 syntax
-    await NFTCache.findOneAndUpdate(
-      { tokenId },
-      {
-        $set: {
-          owner: walletAddress.toLowerCase(),
-          forSale: false,
-          price: "0",
-          lastUpdated: new Date(),
-        },
-        $push: {
-          transactions: {
-            type: "sale",
-            from: previousOwner,
-            to: walletAddress.toLowerCase(),
-            price: nft.price,
-            timestamp: new Date(),
-            txHash: buyResult.transactionHash,
+    if (!listing || !listing.active) {
+      // Cập nhật cache nếu có sự không đồng bộ
+      await NFTCache.findOneAndUpdate(
+        { tokenId },
+        {
+          $set: {
+            forSale: false,
+            price: null,
+            priceInETH: false,
+            lastUpdated: new Date(),
           },
+        }
+      );
+
+      return {
+        success: false,
+        status: 400,
+        message: "NFT này không còn được đăng bán trên blockchain",
+      };
+    }
+
+    // Trả về thông tin cần thiết để frontend tạo giao dịch
+    return {
+      success: true,
+      status: 200,
+      data: {
+        tokenId,
+        seller: listing.seller,
+        price: listing.price,
+        contractAddress: blockchainService.getContracts().marketplace.target, // Địa chỉ của marketplace contract
+        buyFunctionSignature: "buyNFT(uint256)", // Chữ ký hàm để frontend gọi
+        nftInfo: {
+          name: nft.name || `NFT #${tokenId}`,
+          imageUrl: nft.imageUrl || null,
+          description: nft.description || null,
         },
       },
-      { new: true }
-    );
-
-    // Tạo thông báo cho người bán
-    await notificationService.createNotification({
-      recipient: previousOwner,
-      type: "sale",
-      sender: walletAddress.toLowerCase(),
-      content: `NFT "${nft.metadata.name}" đã được bán với giá ${nft.price} DX`,
-      targetType: "nft",
-      targetId: tokenId,
-    });
-
-    return {
-      tokenId,
-      name: nft.metadata.name,
-      previousOwner,
-      newOwner: walletAddress.toLowerCase(),
-      price: nft.price,
-      txHash: buyResult.transactionHash,
     };
   } catch (error) {
-    console.error("Error buying NFT:", error);
+    console.error("Error preparing NFT purchase:", error);
     return {
       success: false,
       status: 500,
-      message: error.message,
+      message: `Không thể chuẩn bị thông tin mua NFT: ${error.message}`,
     };
   }
 };
 
 /**
- * Xác nhận hoàn tất giao dịch mua NFT
- * @param {String} tokenId - ID của NFT
+ * Xử lý kết quả giao dịch mua NFT từ frontend
  * @param {String} txHash - Hash của giao dịch
- * @param {String} buyer - Địa chỉ ví của người mua
- * @returns {Object} Kết quả xác nhận
+ * @param {String} tokenId - ID của NFT
+ * @param {String} buyerAddress - Địa chỉ của người mua
+ * @returns {Object} Kết quả xử lý giao dịch
  */
-const purchaseComplete = async (tokenId, txHash, buyer) => {
+const processNFTPurchase = async (txHash, tokenId, buyerAddress) => {
   try {
-    // Kiểm tra NFT có tồn tại không
-    const nft = await NFTCache.findOne({ tokenId });
-
-    if (!nft) {
-      throw new Error("NFT không tồn tại");
-    }
-
-    // Xác minh giao dịch trên blockchain
-    const isValidTx = await blockchainService.verifyTransaction(
+    // Xác minh giao dịch
+    const isValid = await blockchainService.verifyTransaction(
       txHash,
-      buyer,
+      buyerAddress,
       tokenId
     );
-    if (!isValidTx) {
-      throw new Error("Giao dịch không hợp lệ");
+
+    if (!isValid) {
+      return {
+        success: false,
+        status: 400,
+        message: "Giao dịch không hợp lệ hoặc chưa hoàn thành",
+      };
     }
 
-    // Lưu lại owner cũ để thông báo
-    const previousOwner = nft.owner;
+    // Lấy thông tin NFT hiện tại
+    const nft = await NFTCache.findOne({ tokenId });
+    if (!nft) {
+      return {
+        success: false,
+        status: 404,
+        message: "NFT không tồn tại trong hệ thống",
+      };
+    }
 
-    // Cập nhật thông tin trong database
-    const updatedNFT = await NFTCache.findOneAndUpdate(
+    const currentOwner = nft.owner;
+    const price = nft.price;
+
+    // Cập nhật thông tin trong cache
+    await NFTCache.findOneAndUpdate(
       { tokenId },
       {
         $set: {
-          owner: buyer.toLowerCase(),
+          owner: buyerAddress.toLowerCase(),
           forSale: false,
-          price: "0",
+          price: null,
+          priceInETH: false,
           lastUpdated: new Date(),
         },
         $push: {
           transactions: {
-            type: "sale",
-            from: previousOwner,
-            to: buyer.toLowerCase(),
-            price: nft.price,
+            type: "purchase",
+            from: currentOwner.toLowerCase(),
+            to: buyerAddress.toLowerCase(),
+            price,
+            currency: "ETH",
             timestamp: new Date(),
-            txHash: txHash,
+            txHash,
           },
         },
       },
       { new: true }
     );
 
-    // Tạo thông báo cho người bán
+    // Gửi thông báo cho người bán
     await notificationService.createNotification({
-      recipient: previousOwner,
-      type: "sale",
-      sender: buyer.toLowerCase(),
-      content: `NFT "${nft.metadata.name}" đã được bán với giá ${nft.price} DX`,
-      targetType: "nft",
-      targetId: tokenId,
+      type: "nft_sold",
+      userId: currentOwner,
+      data: {
+        tokenId,
+        price,
+        currency: "ETH",
+        buyer: buyerAddress,
+        nftName: nft.name || `NFT #${tokenId}`,
+        imageUrl: nft.imageUrl || null,
+      },
     });
+
+    // Gửi thông báo cho người tạo NFT (nếu có phí royalty)
+    if (nft.creator.toLowerCase() !== currentOwner.toLowerCase()) {
+      const royaltyAmount =
+        (parseFloat(price) * (nft.royaltyPercent || 0)) / 100;
+      if (royaltyAmount > 0) {
+        await notificationService.createNotification({
+          type: "royalty_received",
+          userId: nft.creator,
+          data: {
+            tokenId,
+            price,
+            royaltyAmount: royaltyAmount.toFixed(6),
+            currency: "ETH",
+            nftName: nft.name || `NFT #${tokenId}`,
+            imageUrl: nft.imageUrl || null,
+          },
+        });
+      }
+    }
 
     return {
       tokenId,
-      name: nft.metadata.name,
-      previousOwner,
-      newOwner: buyer.toLowerCase(),
-      price: nft.price,
-      txHash: txHash,
+      price,
+      currency: "ETH",
+      success: true,
+      status: 200,
+      message: "NFT đã được mua thành công",
+      transactionHash: txHash,
     };
   } catch (error) {
-    console.error("Error processing purchase completion:", error);
-    throw error;
+    console.error("Error processing NFT purchase:", error);
+    return {
+      success: false,
+      status: 500,
+      message: `Không thể xử lý giao dịch mua NFT: ${error.message}`,
+    };
   }
 };
-
 module.exports = {
   listNFTForSale,
   unlistNFT,
-  buyNFT,
-  purchaseComplete,
+  getNFTListingInfo,
+  processNFTPurchase,
+  prepareNFTPurchase,
 };
