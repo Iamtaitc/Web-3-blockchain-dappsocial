@@ -1,61 +1,58 @@
-import React from "react";
-import { Sparkles } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useState } from "react";
+import CreateNFTModal from "../CreateNFTModal";
 import { toast } from "react-hot-toast";
+import { useSelector } from "react-redux";
 import type { RootState } from "../../../store";
-import { WalletLoginModal } from "../../Login/wallet-login-modal";
+import { useNavigate } from "react-router-dom";
 
 interface NFTButtonProps {
   postId: string;
   hasMedia: boolean;
+  onNFTCreated?: () => void; // Thêm prop để làm mới bài viết
 }
 
-const NFTButton: React.FC<NFTButtonProps> = ({ postId, hasMedia }) => {
-  const navigate = useNavigate();
-  const [showLoginModal, setShowLoginModal] = React.useState(false);
+const NFTButton = ({ postId, hasMedia, onNFTCreated }: NFTButtonProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const isAuthenticated = useSelector((state: RootState) => !!state.auth.token);
+  const navigate = useNavigate();
 
-  const handleNFTClick = () => {
+  const handleOpenModal = () => {
     if (!isAuthenticated) {
       toast.error("Vui lòng đăng nhập để tạo NFT");
-      setShowLoginModal(true);
       return;
     }
 
     if (!hasMedia) {
-      toast.error("Bài viết này không có media để tạo NFT");
+      toast.error("Bài đăng cần có media để tạo NFT");
       return;
     }
 
-    navigate(`/post/${postId}/create-nft`);
+    setIsModalOpen(true);
   };
-
+  const handleNFTCreated = () => {
+    // Gọi callback từ props nếu có
+    if (onNFTCreated) {
+      onNFTCreated();
+    }
+    
+    // Chuyển hướng đến trang marketplace khi đăng bán thành công
+    navigate(`/marketplace?postId=${postId}`);
+  };
   return (
     <>
-      <button 
-        onClick={handleNFTClick}
-        disabled={!hasMedia}
-        className={`
-          flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
-          transition-colors duration-200
-          ${hasMedia 
-            ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-          }
-        `}
-        title={hasMedia ? "Tạo NFT từ media" : "Bài viết không có media để tạo NFT"}
+      <button
+        onClick={handleOpenModal}
+        className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
       >
-        <Sparkles size={16} className="animate-pulse" />
-        <span>Tạo NFT</span>
+        TẠO NFT
       </button>
-
-      {showLoginModal && (
-        <WalletLoginModal 
-          isOpen={showLoginModal} 
-          onClose={() => setShowLoginModal(false)} 
-        />
-      )}
+      <CreateNFTModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        postId={postId}
+        mediaIndex={0}
+        onNFTCreated={onNFTCreated}
+      />
     </>
   );
 };

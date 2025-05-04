@@ -469,17 +469,17 @@ const buyNFT = async (privateKey, tokenId) => {
 const verifyTransaction = async (txHash, buyer, tokenId) => {
   try {
     const provider = getProvider();
-    
+
     // Lấy transaction receipt
     const receipt = await provider.getTransactionReceipt(txHash);
-    
+
     // Kiểm tra transaction có tồn tại và thành công
     if (!receipt || receipt.status !== 1) {
       return false;
     }
-    
+
     const { marketplace } = getContracts();
-    
+
     // Tìm event NFTSold trong logs
     for (const log of receipt.logs) {
       try {
@@ -489,7 +489,7 @@ const verifyTransaction = async (txHash, buyer, tokenId) => {
             topics: log.topics,
             data: log.data,
           });
-          
+
           if (parsedLog && parsedLog.name === "NFTSold") {
             // Kiểm tra tokenId trong event
             const eventTokenId = parsedLog.args[0];
@@ -505,7 +505,7 @@ const verifyTransaction = async (txHash, buyer, tokenId) => {
         continue;
       }
     }
-    
+
     return false;
   } catch (error) {
     console.error("Error verifying transaction:", error);

@@ -1,5 +1,5 @@
 const ApiResponse = require("../utils/apiResponse.utils");
-const RewardPointsService = require("../services/rewardPoints.services");
+const RewardPointsService = require("../services/reward/index");
 
 /**
  * Controller xử lý các chức năng liên quan đến điểm thưởng và tokens

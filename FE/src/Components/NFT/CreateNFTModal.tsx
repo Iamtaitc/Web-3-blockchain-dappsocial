@@ -1,160 +1,191 @@
-import React, { useState } from "react";
+// components/NFT/UI/CreateNFTModal.tsx
+import { useState } from "react";
+import postApi from "../../services/post.api";
 import { toast } from "react-hot-toast";
-import { X } from "lucide-react";
-import IPFSImage from "../UI/IPFSImage";
-import nftApi from "../../services/nft.api";
 
 interface CreateNFTModalProps {
   isOpen: boolean;
   onClose: () => void;
   postId: string;
   mediaIndex: number;
-  mediaUri: string;
-  onNFTCreated?: (tokenId: string) => void;
+  onNFTCreated?: () => void;
 }
 
-const CreateNFTModal: React.FC<CreateNFTModalProps> = ({
-  isOpen,
-  onClose,
-  postId,
-  mediaIndex,
-  mediaUri,
-  onNFTCreated,
-}) => {
+const CreateNFTModal = ({ isOpen, onClose, postId, mediaIndex, onNFTCreated }: CreateNFTModalProps) => {
+  const [step, setStep] = useState<"create" | "list">("create");
+  const [tokenId, setTokenId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [royaltyPercent, setRoyaltyPercent] = useState(10);
+  const [royaltyPercent, setRoyaltyPercent] = useState<number>(0);
+  const [price, setPrice] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  if (!isOpen) return null;
-
-  const handleCreateNFT = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name.trim()) {
-      toast.error("Vui lòng nhập tên cho NFT");
+  const handleCreateNFT = async () => {
+    if (!name || !description) {
+      toast.error("Vui lòng điền đầy đủ thông tin");
       return;
     }
 
-    if (royaltyPercent < 0 || royaltyPercent > 15) {
-      toast.error("Phần trăm hoa hồng phải từ 0% đến 15%");
-      return;
-    }
-
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      
-      const result = await nftApi.createNFTFromPostMedia(postId, mediaIndex, {
-        name,
-        description,
-        royaltyPercent,
-      });
-
-      if (result.success) {
-        toast.success("Tạo NFT thành công!");
-        if (onNFTCreated && result.data && result.data.tokenId) {
-          onNFTCreated(result.data.tokenId);
-        }
-        onClose();
+      const response = await postApi.createNFTFromPostMedia(postId, mediaIndex, { name, description, royaltyPercent });
+      console.log("createNFTFromPostMedia response:", response);
+      if (response.success && response.data?.tokenId) {
+        setTokenId(response.data.tokenId);
+        setStep("list");
+        toast.success("NFT đã được tạo thành công!");
       } else {
-        toast.error(result.message || "Tạo NFT thất bại");
+        toast.error(response.message || "Không thể tạo NFT");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Có lỗi xảy ra khi tạo NFT");
+    } catch (error) {
+      console.error("Lỗi khi tạo NFT:", error);
+      toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleListNFT = async () => {
+    if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
+      toast.error("Vui lòng nhập giá hợp lệ");
+      return;
+    }
+
+    if (!tokenId) {
+      toast.error("Không tìm thấy tokenId. Vui lòng thử lại.");
+      return;
+    }
+
+    console.log("listNFTFromPost params:", { tokenId, price, postId });
+    setIsLoading(true);
+    try {
+      const response = await postApi.listNFTFromPost(postId, tokenId, price );
+      if (response.success) {
+        toast.success("NFT đã được đăng bán thành công!");
+        onNFTCreated?.();
+        onClose();
+      } else {
+        toast.error(response.message || "Không thể đăng bán NFT");
+      }
+    } catch (error) {
+      console.error("Lỗi khi đăng bán NFT:", error);
+      toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setStep("create");
+    setTokenId(null);
+    setName("");
+    setDescription("");
+    setRoyaltyPercent(0);
+    setPrice("");
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-semibold text-gray-900">Tạo NFT từ media</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X size={20} className="text-gray-500" />
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg w-full max-w-md max-h-[80vh] overflow-y-auto">
+        {/* Header với nền xanh ngọc và chữ trắng */}
+        <div className="bg-emerald-500 text-white rounded-t-lg p-4 flex justify-between items-center">
+          <h2 className="text-lg font-semibold">
+            {step === "create" ? "Tạo NFT từ bài đăng" : "Đăng bán NFT"}
+          </h2>
+          <button onClick={handleClose} className="text-white hover:text-gray-200">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
-        
-        <div className="p-6 overflow-y-auto">
-          <div className="mb-6">
-            <IPFSImage 
-              hash={mediaUri} 
-              alt="Media Preview" 
-              className="w-full h-64 object-contain rounded-lg bg-gray-50"
-            />
-          </div>
-          
-          <form onSubmit={handleCreateNFT} className="space-y-6">
-            <div>
-              <label htmlFor="nft-name" className="block text-sm font-medium text-gray-700 mb-1">
-                Tên NFT <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="nft-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nhập tên cho NFT của bạn"
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="nft-description" className="block text-sm font-medium text-gray-700 mb-1">
-                Mô tả
-              </label>
-              <textarea
-                id="nft-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Mô tả về NFT của bạn"
-                rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="nft-royalty" className="block text-sm font-medium text-gray-700 mb-1">
-                Phần trăm hoa hồng ({royaltyPercent}%)
-              </label>
-              <input
-                id="nft-royalty"
-                type="range"
-                min="0"
-                max="15"
-                step="0.1"
-                value={royaltyPercent}
-                onChange={(e) => setRoyaltyPercent(parseFloat(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Bạn sẽ nhận được {royaltyPercent}% giá trị mỗi khi NFT này được bán lại
-              </p>
-            </div>
-            
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                disabled={isLoading}
-              >
-                Hủy
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                disabled={isLoading}
-              >
-                {isLoading ? "Đang tạo..." : "Tạo NFT"}
-              </button>
-            </div>
-          </form>
+
+        {/* Nội dung modal */}
+        <div className="p-6">
+          {step === "create" ? (
+            <>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tên NFT</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Nhập tên NFT"
+                  className="w-full p-3 border bg-white border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-700 placeholder-gray-400"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Nhập mô tả cho NFT"
+                  className="w-full p-3 border border-gray-300  bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-700 placeholder-gray-400"
+                  rows={3}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm  font-medium text-gray-700 mb-1">Phần trăm tiền bản quyền (%)</label>
+                <input
+                  type="number"
+                  value={royaltyPercent}
+                  onChange={(e) => setRoyaltyPercent(Number(e.target.value))}
+                  placeholder="Nhập phần trăm tiền bản quyền"
+                  min="0"
+                  max="100"
+                  className="w-full p-3 border border-gray-300 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-700 placeholder-gray-400"
+                  style={{ caretColor: "#10b981" }}
+               />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={handleClose}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleCreateNFT}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 disabled:opacity-50"
+                >
+                  {isLoading ? "Đang tạo..." : "Tạo NFT"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Giá bán (DX)</label>
+                <input
+                  type="text"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="Nhập giá bán (DX)"
+                  className="w-full bg-white p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-700 placeholder-gray-400"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={handleClose}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleListNFT}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 disabled:opacity-50"
+                >
+                  {isLoading ? "Đang đăng bán..." : "Đăng bán"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

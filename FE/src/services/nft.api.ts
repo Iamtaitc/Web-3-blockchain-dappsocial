@@ -5,6 +5,7 @@ export interface NFTMetadata {
   name: string;
   description: string;
   royaltyPercent: number;
+  image: string;
 }
 
 // Interface cho phản hồi từ API
@@ -12,7 +13,36 @@ export interface NFTResponse {
   success: boolean;
   status: number;
   message: string;
-  data: any;
+  data: {
+    nfts: any;
+    tokenId: string;
+    newOwner: any | string;
+    data: {
+      nft: {
+        creator: string;
+        creatorDetails: {
+          username: string;
+          avatarURI: string | null;
+        };
+        forSale: boolean;
+        mediaType: string;
+        metadata: {
+          name: string;
+          description: string;
+        };
+        mintedAt: string;
+        owner: string;
+        ownerDetails: {
+          username: string;
+          avatarURI: string | null;
+        };
+        price: string;
+        royaltyPercent: number;
+        tokenId: string;
+        tokenURI: string;
+      };
+    };
+  };
 }
 
 // Interface cho dữ liệu NFT
@@ -31,52 +61,11 @@ export interface NFT {
   listedAt?: string;
   forSale: boolean;
   postId?: string;
+  metadata?: NFTMetadata;
 }
 
 // Service API cho NFT
 const nftApi = {
-  // Tạo NFT từ media của bài viết
-  createNFTFromPostMedia: async (
-    postId: string,
-    mediaIndex: number,
-    nftMetadata: NFTMetadata
-  ): Promise<NFTResponse> => {
-    try {
-      const response = await instance.post(
-        `/post/${postId}/media/${mediaIndex}/nft`,
-        nftMetadata
-      );
-      return response.data;
-    } catch (error: any) {
-      console.error("Lỗi khi tạo NFT:", error);
-      throw error.response?.data || {
-        success: false,
-        message: "Lỗi khi tạo NFT từ media",
-      };
-    }
-  },
-
-  // Đăng bán NFT
-  listNFTForSale: async (
-    postId: string,
-    tokenId: string,
-    price: number
-  ): Promise<NFTResponse> => {
-    try {
-      const response = await instance.post(
-        `/post/${postId}/nft/${tokenId}/list`,
-        { price }
-      );
-      return response.data;
-    } catch (error: any) {
-      console.error("Lỗi khi đăng bán NFT:", error);
-      throw error.response?.data || {
-        success: false,
-        message: "Lỗi khi đăng bán NFT",
-      };
-    }
-  },
-
   // Lấy tất cả NFT
   getAllNFTs: async (): Promise<NFTResponse> => {
     try {
@@ -91,16 +80,30 @@ const nftApi = {
     }
   },
 
-  // Lấy chi tiết NFT theo ID
-  getNFTById: async (tokenId: string): Promise<NFTResponse> => {
+// Lấy chi tiết NFT theo ID
+getNFTById: async (tokenId: string): Promise<NFTResponse> => {
+  try {
+    const response = await instance.get(`/nft/id/${tokenId}`);
+    return response.data;
+  } catch (error: any) {
+    console.error("Lỗi khi lấy chi tiết NFT:", error);
+    throw error.response?.data || {
+      success: false,
+      message: "Lỗi khi lấy chi tiết NFT",
+    };
+  }
+},
+
+  // Đăng bán NFT từ bài post
+  listNFTFromPost: async (postId: string, tokenId: string, price: number): Promise<NFTResponse> => {
     try {
-      const response = await instance.get(`/nft/id/${tokenId}`);
+      const response = await instance.post(`/post/${postId}/nft/${tokenId}/list`, { price });
       return response.data;
     } catch (error: any) {
-      console.error("Lỗi khi lấy chi tiết NFT:", error);
+      console.error("Lỗi khi đăng bán NFT:", error);
       throw error.response?.data || {
         success: false,
-        message: "Lỗi khi lấy chi tiết NFT",
+        message: "Lỗi khi đăng bán NFT",
       };
     }
   },
@@ -134,9 +137,9 @@ const nftApi = {
   },
 
   // Xác nhận hoàn tất giao dịch mua NFT
-  confirmPurchase: async (purchaseData: any): Promise<NFTResponse> => {
+  purchaseComplete: async (tokenId: string, txHash: string, buyer: string): Promise<NFTResponse> => {
     try {
-      const response = await instance.post("/nft/purchase-complete", purchaseData);
+      const response = await instance.post(`/nft/purchase-complete`, { tokenId, txHash, buyer });
       return response.data;
     } catch (error: any) {
       console.error("Lỗi khi xác nhận giao dịch:", error);

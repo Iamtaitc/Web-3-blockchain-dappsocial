@@ -1,4 +1,4 @@
-const CommentService = require('../services/comment.services');
+const CommentService = require('../services/comment/index');
 const ApiResponse = require('../utils/apiResponse.utils');
 
 class CommentController {

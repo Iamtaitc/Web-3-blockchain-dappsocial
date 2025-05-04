@@ -1,7 +1,7 @@
 // src/controllers/AdminController.js
 const { validationResult } = require("express-validator");
 const ApiResponse = require("../utils/apiResponse.utils");
-const AdminService = require("../services/admin.services");
+const AdminService = require("../services/admin");
 const config = require("../configs/config.env");
 
 /**
@@ -428,9 +428,94 @@ class AdminController {
 
     return ApiResponse.success(
       res,
-      { recipientCount: result.data },
+      { recipientCount: result.data.sentCount },
       "Tạo thông báo hệ thống thành công"
     );
+  }
+
+  /**
+   * Tạo thông báo cho người dùng cụ thể
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  async createUserNotification(req, res) {
+    const { walletAddress, title, content } = req.body;
+
+    if (!walletAddress || !title || !content) {
+      return ApiResponse.badRequest(
+        res,
+        "Địa chỉ ví, tiêu đề và nội dung là bắt buộc"
+      );
+    }
+
+    const result = await AdminService.createUserNotification(
+      walletAddress,
+      title,
+      content
+    );
+
+    if (!result.success) {
+      return ApiResponse.error(
+        res,
+        result.message,
+        result.status,
+        result.error
+      );
+    }
+
+    return ApiResponse.success(
+      res,
+      result.data,
+      "Tạo thông báo cho người dùng thành công"
+    );
+  }
+
+  /**
+   * Lấy danh sách thông báo
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  async getNotifications(req, res) {
+    const { page = 1, limit = 20, type = null } = req.query;
+
+    const result = await AdminService.getNotifications(
+      parseInt(page),
+      parseInt(limit),
+      type
+    );
+
+    if (!result.success) {
+      return ApiResponse.error(
+        res,
+        result.message,
+        result.status,
+        result.error
+      );
+    }
+
+    return ApiResponse.success(res, result.data);
+  }
+
+  /**
+   * Xóa thông báo
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  async deleteNotification(req, res) {
+    const { notificationId } = req.params;
+
+    const result = await AdminService.deleteNotification(notificationId);
+
+    if (!result.success) {
+      return ApiResponse.error(
+        res,
+        result.message,
+        result.status,
+        result.error
+      );
+    }
+
+    return ApiResponse.success(res, result.data, "Xóa thông báo thành công");
   }
 
   /**

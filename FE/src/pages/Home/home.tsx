@@ -417,21 +417,18 @@ const Home = () => {
                       </span>
                     </div>
                     <div className="nft-bt">
-                      {/* Thêm nút tạo NFT */}
-                      <NFTButton 
-                        postId={post._id} 
-                        hasMedia={!!(post.media && post.media.length > 0)}
-                      />
-                      
-                      {/* Nút mua NFT chỉ hiển thị khi bài viết có NFT đang bán */}
-                      {post.nfts && post.nfts.some(nft => nft.forSale) && (
-                        <button onClick={() => navigate(`/marketplace?postId=${post._id}`)} className="buy-nft">
-                          MUA NFT
-                        </button>
-                      )}
-                    </div>
+                        <NFTButton 
+                          postId={post._id} 
+                          hasMedia={!!(post.media && post.media.length > 0)}
+                          onNFTCreated={handleRefresh} // Truyền handleRefresh để làm mới danh sách
+                        />
+                        {post.nfts && post.nfts.some(nft => nft.forSale) && (
+                          <button onClick={() => navigate(`/marketplacea?postId=${post._id}`)} className="buy-nft">
+                            MUA NFT
+                          </button>
+                        )}
+                      </div>
                   </div>
-
                   {/* Hiển thị phần comments khi người dùng click vào icon comment */}
                   {activeCommentPostId === post._id && (
                     <CommentSection postId={post._id} isOpen={true} onClose={() => setActiveCommentPostId(null)} />

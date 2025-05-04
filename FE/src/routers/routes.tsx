@@ -19,7 +19,9 @@ import Profileuser from "../pages/Profileuser";
 import PostDetail from "../pages/PostDetail";
 import TaskDetail from "../pages/TaskDetail";
 import Notification from "../pages/Notification";
-import NFTCreator from "../components/NFT/NFTCreator";
+import NFTMarketplace from "../pages/NFT/NFTMarketplace";
+import NFTBuyPage from "../pages/NFT/NFTBuyPage";
+import PurchaseCompletionPage from '../pages/NFT/PurchaseCompletionPage';
 
 const AppRoutes = () => {
   return (
@@ -34,13 +36,15 @@ const AppRoutes = () => {
       <Route path="/user/:address" element={<Profileuser />} />
       <Route path="/nft" element={<NFTDetail />} />
       <Route path="/post/:postId" element={<PostDetail />} />
-      <Route path="/post/:postId/create-nft" element={<NFTCreator />} />
       <Route path="/premium" element={<Premium />} />
       <Route path="/quest" element={<Quest />} />
       <Route path="/task/:taskId" element={<TaskDetail />} />
       <Route path="/wallet" element={<Wallet />} />
       <Route path="/profile" element={<ProfileNFT />} />
       <Route path="/create" element={<CreateNFT />} />
+      <Route path="/marketplace" element={<NFTMarketplace />} />
+      <Route path="/nft/:tokenId/buy" element={<NFTBuyPage />} />
+      <Route path="/nft/:tokenId/complete" element={<PurchaseCompletionPage />} />
       <Route path="/nft" element={<NFTDetail />} />
       <Route path="/SnakeGame" element={<SnakeGame />} />
       <Route path="/DropGame" element={<DropGame />} />

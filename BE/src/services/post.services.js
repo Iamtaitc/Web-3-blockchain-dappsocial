@@ -387,6 +387,7 @@ class PostServices {
       };
     }
   }
+
   async likePost(address, postId) {
     try {
       // Kiểm tra bài đăng có tồn tại không
@@ -542,6 +543,7 @@ class PostServices {
       };
     }
   }
+
   async getSavePostsService(address, page, limit) {
     try {
       const skip = (page - 1) * limit;
@@ -582,7 +584,7 @@ class PostServices {
 
       // Lấy danh sách bài viết yêu thích
       const likedPosts = await Like.find({
-        user: address,
+        user: address.toLowerCase(),
         postId: { $in: postIds },
       })
         .select("postId")
