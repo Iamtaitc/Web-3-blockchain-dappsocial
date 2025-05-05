@@ -27,7 +27,7 @@ const config = {
 IPFS_HOST: getEnv('IPFS_HOST', '127.0.0.1'), // Localhost
 IPFS_PORT: parseInt(getEnv('IPFS_PORT', '5001')), // API port
 IPFS_PROTOCOL: getEnv('IPFS_PROTOCOL', 'http'), // IPFS daemon chạy HTTP
-IPFS_GATEWAY: getEnv('IPFS_GATEWAY', 'http://127.0.0.1:8080/ipfs/'), // Gateway local
+IPFS_GATEWAY: getEnv('IPFS_GATEWAY', 'http://127.0.0.1:9090/ipfs/'), // Gateway local
 INFURA_IPFS_PROJECT_ID: '', // Không cần khi dùng local
 INFURA_IPFS_PROJECT_SECRET: '', 
 INFURA_IPFS_AUTH: '', // Không cần auth khi dùng local
