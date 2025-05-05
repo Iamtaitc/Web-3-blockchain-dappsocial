@@ -1,6 +1,21 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* Thêm vào file CSS của bạn (thường là index.css hoặc App.css) */
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* Reset CSS để đảm bảo không có margin hoặc padding gây ra vấn đề */
+* {
+  box-sizing: border-box;
+}
 
 @layer base {
 :root {
@@ -59,14 +74,14 @@
   --ring: 224.3 76.3% 48%;
 }
 }
-@layer base {
+/* @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
   }
-}
+} */
 
 a {
   font-weight: 500;
@@ -105,7 +120,26 @@ button {
     z-index: 9999 !important;
   }
 }
-
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.3);
+  }
+  50% {
+    transform: scale(1);
+  }
+  75% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-heartbeat {
+  animation: heartbeat 0.5s ease-in-out;
+}
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
@@ -123,3 +157,18 @@ button:focus-visible {
   }
 }
 
+@keyframes bookmark-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-bookmark-pop {
+  animation: bookmark-pop 0.3s ease-in-out;
+}

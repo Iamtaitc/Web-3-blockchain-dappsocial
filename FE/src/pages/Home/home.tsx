@@ -1,535 +1,502 @@
 "use client"
 
+import { useState, useEffect, useCallback } from "react"
 import "../../styles/home.css"
-import newImage from "../../assets/pngtree-background-beautiful-wallpaper-image-picture-image_15491298.jpg"
+import "../../styles/comment-section.css"
 import avtImage from "../../assets/default-avatar-profile-image-vector-social-media-user-icon-potrait-182347582.webp"
-import boyImage from "../../assets/boy.jpg"
-import sunsetImage from "../../assets/sun.jpg"
-import seaImage from "../../assets/sea.jpeg"
-import mountainImage from "../../assets/Mountain.jpg"
-import cafeImage from "../../assets/cafe.webp"
-import foodImage from "../../assets/food.jpg"
-import dogImage from "../../assets/dog.jpg"
 import Nfttuimu from "../../assets/NFTtuimu.avif"
-import { useEffect, useState } from "react"
-// import Lightbox from "yet-another-react-lightbox"
-import "yet-another-react-lightbox/styles.css"
-// import NFTModal from "../../components/NFT/ModalNFT"
 import HeartButton from "../../components/UI/HeartButton"
-import CommentModal, { type Comment } from "../../components/UI/CommentModal"
-import { MessageCircle } from "lucide-react"
+import CreatePostModal from "../../components/UI/CreatePostModal"
+import { Flag, PlusCircle, RefreshCw, MessageCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import InfiniteScroll from "../../components/infinite-scroll"
+import PostSkeleton from "../../components/post-skeleton"
+import { useSelector } from "react-redux"
+import type { RootState } from "../../store"
+import postApi, { type Post, type PostMention } from "../../services/post.api"
+import IPFSImage from "../../components/UI/IPFSImage"
+import BookmarkButton from "../../components/UI/BookmarkButton"
+import { toast } from "react-hot-toast"
+import { WalletLoginModal } from "../../components/Login/wallet-login-modal"
+import CommentSection from "../../components/Comment/CommentSection"
+import NFTButton from "../../components/NFT/UI/NFTButton"
 
-// interface NFT {
-//   title: string
-//   price: string
-//   image: string
-//   likes: string
-//   comments: Array<{ user: string; text: string }>
-//   user: string
-// }
 
-interface PostImage {
-  src: string
-  title: string
-  likes: string
-  comments: Array<{ user: string; text: string }>
-}
-
-interface Post {
-  id: number
-  user: {
-    username: string
-    avatar: string
-  }
-  time: string
-  title: string
-  images: PostImage[]
-  likes: string
-  comments: string
-  commentsList: Comment[]
-}
 
 const Home = () => {
   const navigate = useNavigate()
-  // const [isNFTModalOpen, setIsNFTModalOpen] = useState(false)
-  // const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null)
-  // const [isOpen, setIsOpen] = useState(false)
-  // const [photoIndex, setPhotoIndex] = useState(0)
-  const [commentModalOpen, setCommentModalOpen] = useState(false)
-  const [selectedPostComments, setSelectedPostComments] = useState<Comment[]>([])
-  const [selectedPostId, setSelectedPostId] = useState<number | null>(null)
+  const [createPostModalOpen, setCreatePostModalOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<"discover" | "follow">("discover")
+  const [apiPosts, setApiPosts] = useState<Post[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [hasMorePosts, setHasMorePosts] = useState(true)
+  const [page, setPage] = useState(1)
+  const [walletLoginModalOpen, setWalletLoginModalOpen] = useState(false)
+  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null)
 
-  // Xử lý scroll khi modal mở/đóng
-  // useEffect(() => {
-  //   if (isNFTModalOpen || commentModalOpen) {
-  //     // Khi modal mở, vô hiệu hóa scroll của body
-  //     document.body.style.overflow = "hidden"
-  //   } else {
-  //     // Khi modal đóng, khôi phục scroll
-  //     document.body.style.overflow = "auto"
-  //   }
+  // Kiểm tra trạng thái đăng nhập từ Redux store
+  const isAuthenticated = useSelector((state: RootState) => !!state.auth.token)
+  const user = useSelector((state: RootState) => state.auth.user)
 
-  //   // Cleanup khi component unmount
-  //   return () => {
-  //     document.body.style.overflow = "auto"
-  //   }
-  // }, [isNFTModalOpen, commentModalOpen])
+  // Tải bài viết từ API
+  const fetchPosts = useCallback(async (pageNum = 1, replace = true) => {
+    try {
+      if (replace) {
+        setIsLoading(true)
+      }
 
-  const posts: Post[] = [
-    {
-      id: 2,
-      user: {
-        username: "john_doe",
-        avatar: boyImage,
-      },
-      time: "15 giờ",
-      title: "Chuyến đi đáng nhớ!",
-      images: [
-        {
-          src: boyImage,
-          title: "Ngày đầu chuyến đi",
-          likes: "6k",
-          comments: [
-            { user: "anna", text: "Nhìn vui quá!" },
-            { user: "peter", text: "Đẹp lắm bạn ơi" },
-            { user: "lily", text: "Cho mình xin địa điểm với" },
-            { user: "anna", text: "Nhìn vui quá!" },
-            { user: "peter", text: "Đẹp lắm bạn ơi" },
-            { user: "lily", text: "Cho mình xin địa điểm với" },
-          ],
-        },
-        {
-          src: newImage,
-          title: "Phong cảnh tuyệt đẹp",
-          likes: "4k",
-          comments: [
-            { user: "mike", text: "Cảnh đẹp như tranh" },
-            { user: "sara", text: "Thích quá đi" },
-          ],
-        },
-      ],
-      likes: "10k",
-      comments: "15",
-      commentsList: [
-        {
-          id: "c1",
-          user: "anna",
-          text: "Nhìn vui quá!",
-          likes: 5,
-          replies: [{ user: "john_doe", text: "Cảm ơn bạn! Chuyến đi rất vui" }],
-        },
-        { id: "c2", user: "peter", text: "Đẹp lắm bạn ơi", likes: 3 },
-        { id: "c3", user: "lily", text: "Cho mình xin địa điểm với", likes: 2 },
-        { id: "c4", user: "mike", text: "Cảnh đẹp như tranh", likes: 7 },
-        { id: "c5", user: "sara", text: "Thích quá đi", likes: 1 },
-      ],
-    },
-    {
-      id: 3,
-      user: {
-        username: "mary_jane",
-        avatar: newImage,
-      },
-      time: "8 giờ",
-      title: "Một góc phố cổ",
-      images: [
-        {
-          src: newImage,
-          title: "Góc phố yên bình",
-          likes: "2k",
-          comments: [
-            { user: "tom", text: "Nhìn yên bình ghê" },
-            { user: "jane", text: "Thích kiểu cổ kính thế này" },
-          ],
-        },
-        {
-          src: newImage,
-          title: "Nhà cổ trăm năm",
-          likes: "1.5k",
-          comments: [{ user: "kate", text: "Cổ kính quá" }],
-        },
-        {
-          src: newImage,
-          title: "Chợ đêm phố cổ",
-          likes: "1.5k",
-          comments: [
-            { user: "bob", text: "Đêm đẹp quá" },
-            { user: "lucy", text: "Nhiều đồ ăn ngon không?" },
-          ],
-        },
-      ],
-      likes: "5k",
-      comments: "8",
-      commentsList: [
-        {
-          id: "c6",
-          user: "tom",
-          text: "Nhìn yên bình ghê",
-          likes: 4,
-          replies: [{ user: "mary_jane", text: "Đúng vậy, rất yên bình" }],
-        },
-        { id: "c7", user: "jane", text: "Thích kiểu cổ kính thế này", likes: 2 },
-        { id: "c8", user: "kate", text: "Cổ kính quá", likes: 1 },
-        { id: "c9", user: "bob", text: "Đêm đẹp quá", likes: 3 },
-        { id: "c10", user: "lucy", text: "Nhiều đồ ăn ngon không?", likes: 0 },
-      ],
-    },
-    {
-      id: 4,
-      user: {
-        username: "alex_99",
-        avatar: sunsetImage,
-      },
-      time: "3 giờ",
-      title: "Hoàng hôn trên biển",
-      images: [
-        {
-          src: sunsetImage,
-          title: "Mặt trời lặn",
-          likes: "10k",
-          comments: [
-            { user: "emma", text: "Hoàng hôn đẹp quá!" },
-            { user: "david", text: "Màu sắc tuyệt vời" },
-            { user: "oliver", text: "Đỉnh cao nhiếp ảnh" },
-          ],
-        },
-        {
-          src: seaImage,
-          title: "Biển chiều tà",
-          likes: "8k",
-          comments: [
-            { user: "mia", text: "Thích biển quá" },
-            { user: "jack", text: "Nhìn muốn đi biển liền" },
-          ],
-        },
-      ],
-      likes: "18k",
-      comments: "32",
-      commentsList: [
-        {
-          id: "c11",
-          user: "emma",
-          text: "Hoàng hôn đẹp quá!",
-          likes: 12,
-          replies: [
-            { user: "alex_99", text: "Cảm ơn bạn!" },
-            { user: "visitor", text: "Đồng ý, đẹp tuyệt vời" },
-          ],
-        },
-        { id: "c12", user: "david", text: "Màu sắc tuyệt vời", likes: 8 },
-        { id: "c13", user: "oliver", text: "Đỉnh cao nhiếp ảnh", likes: 6 },
-        { id: "c14", user: "mia", text: "Thích biển quá", likes: 5 },
-        { id: "c15", user: "jack", text: "Nhìn muốn đi biển liền", likes: 4 },
-      ],
-    },
-    {
-      id: 5,
-      user: {
-        username: "lisa_wanderlust",
-        avatar: mountainImage,
-      },
-      time: "1 ngày",
-      title: "Hành trình đến núi cao",
-      images: [
-        {
-          src: mountainImage,
-          title: "Đỉnh núi hùng vĩ",
-          likes: "12k",
-          comments: [
-            { user: " sophia", text: "Chinh phục đỉnh núi luôn hả?" },
-            { user: "ethan", text: "View đẹp quá" },
-            { user: "chloe", text: "Mình cũng muốn leo núi" },
-          ],
-        },
-      ],
-      likes: "12k",
-      comments: "20",
-      commentsList: [
-        { id: "c16", user: "sophia", text: "Chinh phục đỉnh núi luôn hả?", likes: 7 },
-        { id: "c17", user: "ethan", text: "View đẹp quá", likes: 9 },
-        {
-          id: "c18",
-          user: "chloe",
-          text: "Mình cũng muốn leo núi",
-          likes: 5,
-          replies: [{ user: "lisa_wanderlust", text: "Đi cùng mình lần sau nhé!" }],
-        },
-      ],
-    },
-    {
-      id: 6,
-      user: {
-        username: "travel_with_me",
-        avatar: cafeImage,
-      },
-      time: "5 giờ",
-      title: "Check-in quán cà phê chill",
-      images: [
-        {
-          src: cafeImage,
-          title: "Góc quán yêu thích",
-          likes: "4k",
-          comments: [
-            { user: "zoe", text: "Quán đẹp quá" },
-            { user: "liam", text: "Chỗ này ở đâu vậy?" },
-          ],
-        },
-        {
-          src: cafeImage,
-          title: "Ly cà phê sáng",
-          likes: "4k",
-          comments: [
-            { user: "noah", text: "Cà phê ngon không?" },
-            { user: "ava", text: "Nhìn chill thật" },
-          ],
-        },
-      ],
-      likes: "8k",
-      comments: "12",
-      commentsList: [
-        { id: "c19", user: "zoe", text: "Quán đẹp quá", likes: 3 },
-        {
-          id: "c20",
-          user: "liam",
-          text: "Chỗ này ở đâu vậy?",
-          likes: 2,
-          replies: [{ user: "travel_with_me", text: "Ở phố Nguyễn Huệ bạn nhé" }],
-        },
-        { id: "c21", user: "noah", text: "Cà phê ngon không?", likes: 1 },
-        { id: "c22", user: "ava", text: "Nhìn chill thật", likes: 4 },
-      ],
-    },
-    {
-      id: 7,
-      user: {
-        username: "foodie_lover",
-        avatar: foodImage,
-      },
-      time: "10 giờ",
-      title: "Món ngon ngày cuối tuần",
-      images: [
-        {
-          src: foodImage,
-          title: "Bữa sáng thịnh soạn",
-          likes: "8k",
-          comments: [
-            { user: "isabella", text: "Ngon quá bạn ơi" },
-            { user: "mason", text: "Cho mình xin công thức" },
-          ],
-        },
-        {
-          src: foodImage,
-          title: "Món tráng miệng",
-          likes: "7k",
-          comments: [
-            { user: "harper", text: "Ngọt ngào quá" },
-            { user: "logan", text: "Trông hấp dẫn thật" },
-          ],
-        },
-      ],
-      likes: "15k",
-      comments: "22",
-      commentsList: [
-        { id: "c23", user: "isabella", text: "Ngon quá bạn ơi", likes: 6 },
-        {
-          id: "c24",
-          user: "mason",
-          text: "Cho mình xin công thức",
-          likes: 8,
-          replies: [{ user: "foodie_lover", text: "Mình sẽ gửi cho bạn sau nhé" }],
-        },
-        { id: "c25", user: "harper", text: "Ngọt ngào quá", likes: 3 },
-        { id: "c26", user: "logan", text: "Trông hấp dẫn thật", likes: 5 },
-      ],
-    },
-    {
-      id: 8,
-      user: {
-        username: "pet_world",
-        avatar: avtImage,
-      },
-      time: "12 giờ",
-      title: "Bé cún đáng yêu của tôi",
-      images: [
-        {
-          src: dogImage,
-          title: "Chú cún nghịch ngợm",
-          likes: "25k",
-          comments: [
-            { user: "amelia", text: "Dễ thương quá đi!" },
-            { user: "james", text: "Cún cưng của bạn à?" },
-            { user: "evelyn", text: "Muốn ôm nó quá" },
-          ],
-        },
-      ],
-      likes: "25k",
-      comments: "40",
-      commentsList: [
-        { id: "c27", user: "amelia", text: "Dễ thương quá đi!", likes: 15 },
-        {
-          id: "c28",
-          user: "james",
-          text: "Cún cưng của bạn à?",
-          likes: 7,
-          replies: [{ user: "pet_world", text: "Đúng rồi, mình nuôi được 2 năm rồi" }],
-        },
-        { id: "c29", user: "evelyn", text: "Muốn ôm nó quá", likes: 9 },
-      ],
-    },
-  ]
+      const response = await postApi.getAllPosts(pageNum, 10)
 
-  const allImages = posts.flatMap((post) => post.images.map((img) => img.src))
+      if (response.success && response.data) {
+        let newPosts: Post[] = []
 
-  const handleOpenCommentModal = (postId: number) => {
-    const post = posts.find((p) => p.id === postId)
-    if (post) {
-      setSelectedPostComments(post.commentsList || [])
-      setSelectedPostId(postId)
-      setCommentModalOpen(true)
+        // Kiểm tra cấu trúc dữ liệu trả về
+        if (Array.isArray(response.data)) {
+          newPosts = response.data
+        } else if (response.data.posts && Array.isArray(response.data.posts)) {
+          newPosts = response.data.posts
+        }
+
+        if (replace) {
+          setApiPosts(newPosts)
+        } else {
+          setApiPosts((prev) => [...prev, ...newPosts])
+        }
+
+        setHasMorePosts(newPosts.length === 10)
+
+        if (!replace) {
+          setPage(pageNum)
+        }
+      } else {
+        if (replace) {
+          setApiPosts([])
+        }
+        setHasMorePosts(false)
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải bài viết:", error)
+      toast.error("Không thể tải bài viết. Vui lòng thử lại sau.")
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
+    }
+  }, [])
+
+  // Tải bài viết khi component mount hoặc khi tab thay đổi
+  useEffect(() => {
+    setPage(1)
+    fetchPosts(1, true)
+  }, [activeTab, fetchPosts])
+
+  // Tải thêm bài viết khi cuộn xuống
+  const loadMorePosts = async (): Promise<boolean> => {
+    if (!hasMorePosts || isLoading) return false
+
+    try {
+      const nextPage = page + 1
+      await fetchPosts(nextPage, false)
+      return true
+    } catch (error) {
+      console.error("Lỗi khi tải thêm bài viết:", error)
+      return false
     }
   }
 
-  const handleAddComment = (postId: number, comment: { user: string; text: string; replyTo?: string }) => {
-    // In a real app, you would update your state or make an API call here
-    console.log(`Adding comment to post ${postId}:`, comment)
+  // Làm mới danh sách bài viết
+  const handleRefresh = () => {
+    if (isRefreshing) return
+    setIsRefreshing(true)
+    setPage(1)
+    fetchPosts(1, true)
+  }
 
-    // For demo purposes, we'll just add it to the local state
-    if (comment.replyTo) {
-      // This is a reply to an existing comment
-      const updatedComments = selectedPostComments.map((existingComment) => {
-        if (existingComment.id === comment.replyTo) {
-          return {
-            ...existingComment,
-            replies: [
-              ...(existingComment.replies || []),
-              {
-                user: comment.user,
-                text: comment.text,
-              },
-            ],
-          }
-        }
-        return existingComment
-      })
-      setSelectedPostComments(updatedComments)
+  // Xử lý khi chuyển tab
+  const handleTabChange = (tab: "discover" | "follow") => {
+    if (tab === activeTab) return
+    setActiveTab(tab)
+    setPage(1)
+    setApiPosts([])
+    setHasMorePosts(true)
+    setIsLoading(true)
+  }
+
+  // Xử lý khi nhấn nút đăng bài
+  const handlePostButtonClick = () => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để đăng bài")
+      setWalletLoginModalOpen(true)
     } else {
-      // This is a new top-level comment
-      const newComment: Comment = {
-        id: `new-${Date.now()}`,
-        user: comment.user,
-        text: comment.text,
-        likes: 0,
-        replies: [],
-      }
-      setSelectedPostComments([...selectedPostComments, newComment])
+      setCreatePostModalOpen(true)
     }
+  }
+
+  // Xử lý khi bài viết được tạo thành công
+  const handlePostCreated = () => {
+    toast.success("Đăng bài thành công!")
+    handleRefresh()
+  }
+
+  // Xử lý khi click vào mention
+  const handleMentionClick = (mention: PostMention) => {
+    navigate(`/user/${mention.walletAddress}`)
+  }
+
+  // Xử lý thích bài viết
+  const handleLikePost = async (postId: string, isLiked: boolean) => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để thích bài viết")
+      setWalletLoginModalOpen(true)
+      return
+    }
+
+    try {
+      // Cập nhật UI ngay lập tức (optimistic update)
+      setApiPosts((posts) =>
+        posts.map((post) =>
+          post._id === postId
+            ? {
+                ...post,
+                isLiked: !post.isLiked,
+                likeCount: post.isLiked ? post.likeCount - 1 : post.likeCount + 1,
+              }
+            : post,
+        ),
+      )
+
+      // Gọi API
+      if (!isLiked) {
+        await postApi.likePost(postId)
+      } else {
+        await postApi.unlikePost(postId)
+      }
+    } catch (error) {
+      console.error("Lỗi khi thích/bỏ thích bài viết:", error)
+      toast.error("Có lỗi xảy ra. Vui lòng thử lại.")
+
+      // Khôi phục trạng thái nếu có lỗi
+      fetchPosts(page, true)
+    }
+  }
+
+  // Xử lý lưu bài viết
+  const handleSavePost = async (postId: string, isSaved: boolean) => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để lưu bài viết")
+      setWalletLoginModalOpen(true)
+      return
+    }
+
+    try {
+      // Cập nhật UI ngay lập tức (optimistic update)
+      setApiPosts((posts) =>
+        posts.map((post) =>
+          post._id === postId
+            ? {
+                ...post,
+                isSaved: !post.isSaved,
+                saveCount: post.isSaved ? post.saveCount - 1 : post.saveCount + 1,
+              }
+            : post,
+        ),
+      )
+
+      // Gọi API
+      if (!isSaved) {
+        await postApi.savePost(postId)
+      } else {
+        await postApi.unsavePost(postId)
+      }
+    } catch (error) {
+      console.error("Lỗi khi lưu/bỏ lưu bài viết:", error)
+      toast.error("Có lỗi xảy ra. Vui lòng thử lại.")
+
+      // Khôi phục trạng thái nếu có lỗi
+      fetchPosts(page, true)
+    }
+  }
+
+  // Xử lý báo cáo bài viết
+  const handleReportPost = (postId: string) => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để báo cáo bài viết")
+      setWalletLoginModalOpen(true)
+      return
+    }
+
+    // Hiển thị xác nhận báo cáo
+    if (confirm("Bạn có chắc chắn muốn báo cáo bài viết này không?")) {
+      // Trong thực tế, bạn sẽ gọi API để báo cáo bài viết
+      toast.success("Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét bài viết này.")
+    }
+  }
+
+  // Định dạng thời gian
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSecs = Math.floor(diffMs / 1000)
+    const diffMins = Math.floor(diffSecs / 60)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffSecs < 60) return "Vừa xong"
+    if (diffMins < 60) return `${diffMins} phút trước`
+    if (diffHours < 24) return `${diffHours} giờ trước`
+    if (diffDays < 7) return `${diffDays} ngày trước`
+
+    return date.toLocaleDateString("vi-VN")
+  }
+
+  // Xử lý khi click vào icon comment
+  const handleCommentClick = (postId: string) => {
+    setActiveCommentPostId(activeCommentPostId === postId ? null : postId)
   }
 
   return (
     <div className="container">
       <div className="left-panel">
-        <div className="discover">
-          <span>Khám phá</span>
-          <span>Theo dõi</span>
-        </div>
-        <div className="Status">
-          <div className="tl">
-            <img src={avtImage || "/placeholder.svg"} alt="avatar" className="avatar" />
-            <p>Có gì mới ?</p>
-          </div>
-          <div className="bt">
-            <button>Đăng</button>
-          </div>
-        </div>
-        {posts.map((post) => (
-          <div key={post.id} className="post">
-            <div className="user-info">
-              <img src={post.user.avatar || "/placeholder.svg"} alt="avatar" className="avatar" />
-              <div>
-                <p className="username">{post.user.username}</p>
-                <p className="time">{post.time}</p>
-              </div>
-            </div>
-            <p className="post-title">{post.title}</p>
+        <div className="tabs-container">
+          <div className="discover">
+            <span className={activeTab === "discover" ? "active" : ""} onClick={() => handleTabChange("discover")}>
+              Khám phá
+            </span>
+            <span className={activeTab === "follow" ? "active" : ""} onClick={() => handleTabChange("follow")}>
+              Theo dõi
+            </span>
 
-            {/* Hình ảnh bài đăng */}
-            <div
-              className={`image-container ${
-                post.images.length === 2
-                  ? "two"
-                  : post.images.length === 3
-                    ? "three"
-                    : post.images.length === 4
-                      ? "four"
-                      : ""
-              }`}
-            >
-              {post.images.map((img, index) => {
-                return (
-                  <img
-                    key={index}
-                    src={img.src || "/placeholder.svg"}
-                    alt="background"
-                    className="post-image"
-                    onClick={() => navigate("/add-nft/nft-view")}
-                  />
-                )
-              })}
-            </div>
+            {/* Nút làm mới */}
+            <button onClick={handleRefresh} className="refresh-button" disabled={isRefreshing} title="Làm mới">
+              <RefreshCw size={18} className={`${isRefreshing ? "animate-spin" : ""}`} />
+            </button>
+          </div>
+        </div>
 
-            <div className="actions">
-              <div className="icon-page">
-                <span className="like">
-                  <HeartButton />
-                  {post.likes}
-                </span>
-                <span className="comment" onClick={() => handleOpenCommentModal(post.id)} style={{ cursor: "pointer" }}>
-                  <MessageCircle
-                    className="comment-icon"
-                    style={{
-                      color: "#6b7280",
-                      width: "20px",
-                      height: "20px",
-                      transition: "transform 0.2s, color 0.2s",
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.transform = "scale(1.1)"
-                      e.currentTarget.style.color = "#4b5563"
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.transform = "scale(1)"
-                      e.currentTarget.style.color = "#6b7280"
-                    }}
-                  />
-                  {post.comments}
-                </span>
-              </div>
-              <div className="nft-bt">
-                <button className="buy-nft">Buy NFT</button>
-              </div>
+        <div className="status-container">
+          <div className="Status">
+            <div className="tl">
+              <img
+                src={user?.avatarURI || avtImage || "/placeholder.svg?height=42&width=42"}
+                alt="avatar"
+                className="avatar"
+              />
+              <p>Có gì mới?</p>
+            </div>
+            <div className="bt">
+              <button onClick={handlePostButtonClick} className="flex items-center gap-2 justify-center">
+                <PlusCircle size={18} />
+                <span>{isAuthenticated ? "Đăng Bài" : "Đăng nhập để đăng bài"}</span>
+              </button>
             </div>
           </div>
-        ))}
+        </div>
+
+        <div className="posts-container">
+          {isLoading ? (
+            // Hiển thị skeleton loading khi đang tải
+            <>
+              <PostSkeleton />
+              <PostSkeleton />
+              <PostSkeleton />
+            </>
+          ) : apiPosts.length > 0 ? (
+            // Hiển thị các bài viết từ API
+            <div>
+              {apiPosts.map((post) => (
+                <div key={post._id} className="post">
+                  {/* Thay đổi hiển thị username thay vì địa chỉ ví trong phần user-info */}
+                  <div className="user-info">
+                    <img
+                      src={post.authorDetails?.avatarURI || avtImage || "/placeholder.svg?height=42&width=42"}
+                      alt="avatar"
+                      className="avatar"
+                    />
+                    <div className="user-details">
+                      <p className="username">{post.authorDetails.username}</p>
+                      <p className="time">{formatTime(post.createdAt)}</p>
+                    </div>
+
+                    {/* Nút lưu và báo cáo */}
+                    <div className="flex items-center ml-auto gap-3">
+                      <BookmarkButton
+                        initialSaved={post.isSaved || false}
+                        saveCount={post.saveCount}
+                        postId={post._id}
+                        onToggle={() => handleSavePost(post._id, post.isSaved || false)}
+                      />
+                      <button
+                        onClick={() => handleReportPost(post._id)}
+                        className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                        title="Báo cáo bài viết"
+                      >
+                        <Flag size={18} className="text-gray-500" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Nội dung bài viết */}
+                  {post.content && <p className="post-title">{post.content}</p>}
+
+                  {/* Hiển thị tags và mentions */}
+                  {(post.tags?.length > 0 || post.mentions?.length > 0) && (
+                    <div className="flex flex-wrap gap-2 my-2">
+                      {/* Tags */}
+                      {post.tags &&
+                        post.tags.length > 0 &&
+                        post.tags.map((tag, index) => (
+                          <span
+                            key={`tag-${index}`}
+                            className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 cursor-pointer transition-colors"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+
+                      {/* Mentions */}
+                      {post.mentions &&
+                        post.mentions.length > 0 &&
+                        post.mentions.map((mention, index) => (
+                          <button
+                            key={`mention-${index}`}
+                            onClick={() => handleMentionClick(mention)}
+                            className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm hover:bg-green-200 transition-colors"
+                          >
+                            @{mention.username}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+
+                  {/* Hiển thị hình ảnh từ IPFS */}
+                  {post.media && post.media.length > 0 && (
+                    <div
+                      className={`image-container ${
+                        post.media.length === 2
+                          ? "two"
+                          : post.media.length === 3
+                            ? "three"
+                            : post.media.length === 4
+                              ? "four"
+                              : ""
+                      }`}
+                    >
+                      {post.media.map((media, index) => (
+                        <IPFSImage
+                          key={index}
+                          hash={media.uri}
+                          alt={`Hình ảnh bài viết ${index + 1}`}
+                          className="post-image"
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Hiển thị hình ảnh từ contentURI nếu không có media */}
+                  {(!post.media || post.media.length === 0) && post.contentURI && (
+                    <div className="image-container">
+                      <IPFSImage hash={post.contentURI} alt="Hình ảnh bài viết" className="post-image" />
+                    </div>
+                  )}
+
+                  {/* Nút tương tác */}
+                  <div className="actions">
+                    <div className="icon-page">
+                      <span className="like">
+                        <HeartButton
+                          initialLiked={post.isLiked || false}
+                          likeCount={post.likeCount}
+                          postId={post._id}
+                          onToggle={() => handleLikePost(post._id, post.isLiked || false)}
+                        />
+                      </span>
+                      <span className="comment" onClick={() => handleCommentClick(post._id)}>
+                        <MessageCircle className="comment-icon" />
+                        <span className="count">{post.commentCount}</span>
+                      </span>
+                    </div>
+                    <div className="nft-bt">
+                        <NFTButton 
+                          postId={post._id} 
+                          hasMedia={!!(post.media && post.media.length > 0)}
+                          onNFTCreated={handleRefresh} // Truyền handleRefresh để làm mới danh sách
+                        />
+                        {post.nfts && post.nfts.some(nft => nft.forSale) && (
+                          <button onClick={() => navigate(`/marketplacea?postId=${post._id}`)} className="buy-nft">
+                            MUA NFT
+                          </button>
+                        )}
+                      </div>
+                  </div>
+                  {/* Hiển thị phần comments khi người dùng click vào icon comment */}
+                  {activeCommentPostId === post._id && (
+                    <CommentSection postId={post._id} isOpen={true} onClose={() => setActiveCommentPostId(null)} />
+                  )}
+                </div>
+              ))}
+
+              {/* Component InfiniteScroll để tải thêm bài viết */}
+              <InfiniteScroll onLoadMore={loadMorePosts} hasMoreData={hasMorePosts} />
+            </div>
+          ) : (
+            // Hiển thị trạng thái trống nếu không có bài viết
+            <div className="empty-follow-state">
+              <div className="empty-follow-content">
+                <img
+                  src={avtImage || "/placeholder.svg?height=120&width=120"}
+                  alt="Trạng thái trống"
+                  className="empty-follow-image"
+                />
+                <h3>Chưa có bài viết nào</h3>
+                <p>
+                  {activeTab === "follow"
+                    ? "Hãy theo dõi những người dùng khác để xem bài viết của họ ở đây"
+                    : "Chưa có bài viết nào trong hệ thống"}
+                </p>
+                {activeTab === "follow" && (
+                  <button className="discover-more-btn" onClick={() => handleTabChange("discover")}>
+                    Khám phá thêm
+                  </button>
+                )}
+                {activeTab === "discover" && isAuthenticated && (
+                  <button className="discover-more-btn" onClick={() => setCreatePostModalOpen(true)}>
+                    Tạo bài viết đầu tiên
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Bảng bên phải */}
-      <div className="right-panel ">
+      {/* Bảng bên phải - đã được cập nhật để sticky khi cuộn */}
+      <div className="right-panel">
         <div className="balance">
           <p className="balance-amount">189.331.433 Dx</p>
           <div className="balance-checkin">
-            <p className="checkin">Check In</p>
-            <p className="day14">Day 14</p>
-            <button className="claim-checkin">Claim</button>
+            <p className="checkin">Điểm danh</p>
+            <p className="day14">Ngày 14</p>
+            <button className="claim-checkin">Nhận</button>
           </div>
-          <p className="farming">Farming 400 Dx/h</p>
-          <button className="claim-farming">Claim</button>
+          <p className="farming">🌱 Farming 400 Dx/h</p>
+          <button className="claim-farming">Nhận</button>
         </div>
+
         <div className="referrals">
-          <p>Referrals</p>
-          <p>Refer users with your referral code to earn points.</p>
-          <p>Total Referrals: 3</p>
-          <button className="invite">Invite Friends now</button>
+          <h3>Giới thiệu</h3>
+          <p>Giới thiệu người dùng với mã giới thiệu của bạn để kiếm điểm.</p>
+          <p className="total-referrals">
+            Tổng: <span>3</span>
+          </p>
+          <button className="invite">Mời bạn bè</button>
+        </div>
+
+        <div className="nft-ad-card">
+          <h3>🎁 Bốc Túi Mù NFT</h3>
+          <p>Mở túi và nhận NFT hiếm!</p>
+          <img src={Nfttuimu || "/placeholder.svg?height=80&width=80"} alt="Túi mù NFT" />
+          <button className="explore-btn">Khám phá ngay</button>
         </div>
         <div className="nft-ad-card">
           <h3>🎁 Bốc Túi Mù NFT</h3>
@@ -539,25 +506,17 @@ const Home = () => {
         </div>
       </div>
 
-      {/* NFT Modal */}
-      {/* <NFTModal isOpen={isNFTModalOpen} onClose={() => setIsNFTModalOpen(false)} nft={selectedNFT} /> */}
-
-      {/* Comment Modal */}
-      <CommentModal
-        isOpen={commentModalOpen}
-        onClose={() => setCommentModalOpen(false)}
-        comments={selectedPostComments}
-        postId={selectedPostId || 0}
-        onAddComment={handleAddComment}
+      {/* Modal đăng bài */}
+      <CreatePostModal
+        isOpen={createPostModalOpen}
+        onClose={() => setCreatePostModalOpen(false)}
+        onPostCreated={handlePostCreated}
       />
 
-      {/* Lightbox - Hiển thị ảnh khi bấm vào */}
-      {/* <Lightbox
-        open={isOpen}
-        close={() => setIsOpen(false)}
-        slides={allImages.map((src) => ({ src }))}
-        index={photoIndex}
-      /> */}
+      {/* Modal đăng nhập */}
+      {walletLoginModalOpen && (
+        <WalletLoginModal isOpen={walletLoginModalOpen} onClose={() => setWalletLoginModalOpen(false)} />
+      )}
     </div>
   )
 }

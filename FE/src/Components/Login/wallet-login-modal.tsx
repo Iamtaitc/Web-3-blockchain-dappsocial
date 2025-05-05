@@ -4,15 +4,15 @@ import { useState, useEffect } from "react"
 import { X } from "lucide-react"
 import { WalletOptions } from "./wallet-options"
 import { walletOptions } from "./wallet-config"
-import { connectToWallet } from "./wallet-utils"
-import { WalletConnectQR } from "./wallet-connect-qr"   
+import { WalletConnectQR } from "./wallet-connect-qr"
 import { AuthenticationSection } from "./authentication-section"
 import { ConnectedWallet } from "./connected-wallet"
+import { useAuth } from "../../hooks/useAuth"
 
 interface WalletLoginModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess?: (address: string, walletType: string, isAuthenticated: boolean) => void
+  onSuccess?: () => void
   requireSignature?: boolean
   actionMessage?: string
 }
@@ -33,6 +33,16 @@ export function WalletLoginModal({
   const [connectedWalletId, setConnectedWalletId] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [step, setStep] = useState<"connect" | "authenticate">("connect")
+
+  const { connectWallet, isAuthenticated: isUserAuthenticated } = useAuth()
+
+  // Kiểm tra nếu người dùng đã xác thực từ trước
+  useEffect(() => {
+    if (isUserAuthenticated) {
+      setIsAuthenticated(true)
+      if (onSuccess) onSuccess()
+    }
+  }, [isUserAuthenticated, onSuccess])
 
   useEffect(() => {
     if (!isOpen) {
@@ -71,8 +81,8 @@ export function WalletLoginModal({
         return
       }
 
-      // Đối với các ví khác, sử dụng hàm connectToWallet
-      const result = await connectToWallet(walletId, walletOptions)
+      // Kết nối ví sử dụng hook useAuth
+      const result = await connectWallet(walletId)
 
       if (result.success) {
         // Kết nối thành công
@@ -80,14 +90,8 @@ export function WalletLoginModal({
         setCurrentProvider(result.provider)
         setConnectedWalletId(walletId)
 
-        // Luôn chuyển sang bước xác thực, nhưng không hiển thị lỗi nếu người dùng từ chối
+        // Luôn chuyển sang bước xác thực
         setStep("authenticate")
-
-        // Nếu không yêu cầu chữ ký bắt buộc, vẫn thông báo thành công
-        // if (!requireSignature && onSuccess) {
-        //   const walletName = getWalletNameById(walletId)
-        //   onSuccess(result.account!, walletName, false)
-        // }
       } else {
         // Hiển thị lỗi
         setError(result.error)
@@ -106,23 +110,15 @@ export function WalletLoginModal({
     setCurrentProvider(provider)
     setConnectedWalletId("walletconnect")
     setShowQRCode(false)
-
-    // Luôn chuyển sang bước xác thực, nhưng không hiển thị lỗi nếu người dùng từ chối
     setStep("authenticate")
-
-    // Nếu không yêu cầu chữ ký bắt buộc, vẫn thông báo thành công
-    if (!requireSignature && onSuccess) {
-      onSuccess(account, "WalletConnect", false)
-    }
   }
-  
+
   // Xử lý xác thực thành công
   const handleAuthenticated = () => {
     setIsAuthenticated(true)
 
-    if (onSuccess && account) {
-      const walletName = getWalletNameById(connectedWalletId || "")
-      onSuccess(account, walletName, true)
+    if (onSuccess) {
+      onSuccess()
     }
   }
 

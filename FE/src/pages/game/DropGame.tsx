@@ -2,11 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-<<<<<<< Updated upstream
+
 import { Clock, Pause } from 'lucide-react'
-=======
-import { Clock, Pause } from "lucide-react"
->>>>>>> Stashed changes
 import { Button } from "../../Components/UI/buttonlogin"
 import { cn } from "../../lib/utils"
 

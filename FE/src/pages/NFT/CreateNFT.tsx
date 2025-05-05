@@ -6,6 +6,8 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { FiX, FiTwitter, FiShare2 } from "react-icons/fi"
 import { FaFacebookF, FaTelegramPlane } from "react-icons/fa"
+import { useSelector } from "react-redux"
+import { RootState } from "../../store"
 
 const CreateNFT = () => {
   const navigate = useNavigate()
@@ -19,7 +21,7 @@ const CreateNFT = () => {
   const [visibility, setVisibility] = useState("public")
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [createdNFTId, setCreatedNFTId] = useState("")
-
+  const token = useSelector((state: RootState) => state.auth.token)
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
@@ -27,7 +29,8 @@ const CreateNFT = () => {
       setCurrentStep(2)
     }
   }
-
+   
+  console.log("🔑 Token hiện tại trong Redux:", token)
   const handleCreateNFT = () => {
     setCurrentStep(3)
     // Generate a random ID for the NFT

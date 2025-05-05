@@ -1,0 +1,11 @@
+[
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "tokenId", "type": "uint256" }
+      ],
+      "name": "buyNFT",
+      "outputs": [],
+      "type": "function"
+    }
+  ]

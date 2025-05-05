@@ -94,6 +94,18 @@ class NFTController {
     }
   }
 
+  async buyNFT(req, res) {
+    try {
+      const result = await NFTService.buyNFT(
+        req.params.tokenId,
+        req.user.address
+      );
+      return ApiResponse.success(res, result, "Mua NFT thành công");
+    } catch (error) {
+      return this.handleNFTError(res, error);
+    }
+  }
+
   async getMarketplaceNFTs(req, res) {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;

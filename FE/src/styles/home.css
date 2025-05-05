@@ -1,215 +1,740 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
 
+/* Base styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  width: 100%;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background-color: #f0f2f5;
+  color: #333333; /* Unified dark gray for body text */
+  line-height: 1.6;
+  font-size: 14px; /* Base font size for body text */
+  font-weight: 400; /* Regular weight for body text */
+  overflow-x: hidden;
+}
+
+button {
+  cursor: pointer;
+  font-family: "Poppins", sans-serif;
+  font-size: 14px; /* Consistent button text size */
+  font-weight: 500; /* Slightly bold for buttons */
+}
+
+/* Main container */
 .container {
-    display: flex;
-    justify-content: space-between;
-    color: black;
-    padding: 20px;
-  }
-  .left-panel {
-    width: 65%;
-    padding-right: 20px;
-  }
-  .discover {
-    display: inline-flex;
-    gap: 25px;
-    font-size: 15px;
-    font-weight: bold;
-    color: white;
-    padding-bottom: 15px;
-    white-space: nowrap;
-    text-align: center; 
-    margin-left: 270px;
-  }
-    .Status{
-        display: flex;
-        gap: 490px;
-        padding: 17px 15px 16px;
-        background: #1c1c1c;
-        /* margin-bottom: 15px; */
-        width: 100%;
-        border: 2px solid  #555;
-        border-top-left-radius: 25px;
-        border-top-right-radius: 25px;
-        border-bottom: none;
-  }
-  
-   .Status .tl{
-    display: inline-flex;
-     gap: 10px;
-   }
-   .Status .tl p{
-    padding-top:10px;
-    color: #A19999;
-   }
-   .bt button{
-    background: black;
-    color: white;
-    border: 1px solid;
-   }
-   .bt button:hover{
-    background: white;
-    color: black;
-   }
-  .right-panel {
-    width: 40%;
-    padding: 20px;
-    padding-top: 40px;
-  }
-  .post {
-    background: #1a1a1a;
-    padding: 15px 0px 15px 0px ;
-    border: 2px solid #555;
-    margin-bottom: 0; /* Loại bỏ khoảng cách giữa các post */
-    border-bottom: none; 
-  }
-  .post-title{
-    padding: 0px 15px;
-  }
-  .user-info {
-    display: flex;
-    align-items: center;
-    padding: 0px 15px;
-    margin-bottom: 10px;
-  }
-  .avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    margin-right: 10px;
-    border: 2px solid #777;
-  }
-  .post-image {
-    width: 100%;
-    border-radius: 15px;
-    border: 1px solid black;
-    margin-bottom: 10px;
-  }
-  .image{
-    padding: 10px 15px;
-  }
-  .actions {
-    display: flex;
-    gap: 480px;
-    align-items: center;
-  }
-  .actions .icon-page{
-   padding-left: 15px;
-   display: flex;
-   gap: 20px;
-  }
-  .buy-nft {
-    background: linear-gradient(45deg, #00c853, #64dd17);
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    text-transform: uppercase;
-    transition: 0.3s ease-in-out;
-    box-shadow: 0 4px 10px rgba(0, 255, 0, 0.3);
-    border: 1px solid #0a0;
-    position: relative;
-    overflow: hidden;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  /* max-width: 1320px; */
+  margin: 0 auto;
+  padding: 20px;
+  gap: 24px;
+}
+
+/* Left panel */
+.left-panel {
+  width: 65%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Tabs */
+.tabs-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.discover {
+  display: flex;
+  gap: 40px;
+  font-size: 14px; /* Consistent with body text */
+  font-weight: 500;
+  padding: 8px 16px;
+  background-color: #ffffff;
+  border-radius: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.discover span {
+  padding: 8px 16px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+  border-radius: 20px;
+  color: #333333; /* Unified text color */
+}
+
+.discover span.active {
+  color: #ffffff;
+  background-color: #10b981;
+  font-weight: 600;
+}
+
+/* Status container */
+.status-container {
+  margin-bottom: 16px;
+}
+
+.Status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.Status .tl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.Status .tl p {
+  color: #666666; /* Lighter gray for secondary text */
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.bt button {
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.bt button:hover {
+  background: #12d594;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Posts container */
+.posts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.post {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+  margin-top: 15px;
+}
+
+.post:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.username {
+  font-weight: 600;
+  font-size: 15px; /* Slightly larger for emphasis */
+  color: #333333;
+}
+
+.time {
+  font-size: 13px; /* Smaller for secondary info */
+  color: #666666;
+  font-weight: 400;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  margin-right: 12px;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+}
+
+.post-title {
+  margin-bottom: 16px;
+  font-size: 15px;
+  color: #333333;
+  font-weight: 400;
+}
+
+/* Image container */
+.image-container {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.post-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.post-image:hover {
+  transform: scale(1.02);
+}
+
+/* Image layouts */
+.image-container.two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.image-container.three {
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.image-container.three img:first-child {
+  grid-row: span 2;
+  height: 100%;
+}
+
+.image-container.four {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 15px;
+}
+
+.icon-page {
+  display: flex;
+  gap: 20px;
+}
+
+.like,
+.comment {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 6px 10px;
+  border-radius: 20px;
+}
+
+.like:hover,
+.comment:hover {
+  background-color: #f3f4f6;
+}
+
+.comment-icon {
+  color: #6b7280;
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s, color 0.2s;
+}
+
+.comment:hover .comment-icon {
+  transform: scale(1.1);
+  color: #4b5563;
+}
+
+.count {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* Heart button styles */
+.heart-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.heart-button:hover {
+  transform: scale(1.15);
+}
+
+.heart-icon {
+  font-size: 20px;
+}
+
+.heart-icon.filled {
+  color: #e11d48 !important;
+}
+
+/* Buy NFT button */
+.buy-nft {
+  background: linear-gradient(45deg, #10b981, #14b8a6);
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 14px;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(20, 184, 166, 0.2);
+  position: relative;
+  overflow: hidden;
 }
 
 .buy-nft:hover {
-    background: linear-gradient(45deg, #64dd17, #00c853);
-    box-shadow: 0 0 15px rgba(0, 255, 0, 0.6), 0 0 25px rgba(0, 255, 0, 0.4);
-    transform: scale(1.05);
+  background: linear-gradient(45deg, #14b8a6, #10b981);
+  box-shadow: 0 6px 15px rgba(20, 184, 166, 0.3);
+  transform: translateY(-2px);
 }
+
 .buy-nft:active {
-    transform: scale(0.95);
-    box-shadow: 0 0 5px rgba(0, 255, 0, 0.8);
+  transform: scale(0.98);
 }
 
 .buy-nft::before {
-    content: "";
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 70%);
-    transition: opacity 0.4s ease-in-out;
-    opacity: 0;
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 10%, transparent 70%);
+  transition: opacity 0.4s ease-in-out;
+  opacity: 0;
 }
 
 .buy-nft:hover::before {
-    opacity: 1;
+  opacity: 1;
 }
 
-  .balance {
-    padding: 30px;
-    border-bottom: 2px solid #666;
-    border: 2px solid #555;
-    font-family: 'Press Start 2P', cursive;
-    border-radius: 15px;
-    background: #1a1a1a;
-  }
-  .balance-amount{
-    text-align: center;
-    font-size: 42px;
-  }
-  .balance-checkin {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 10px;
-    padding: 10px;
-    border-radius: 5px;
-  }
-  .checkin {
-    font-size: 25px;
-    color: white;
-  }
-  
-  .day14 {
-    font-size: 20px;
-    color: #aaaaaa;
-  }
-  
-  .claim-checkin {
-    background-color: #33ff66;
-    color: black;
-    font-size: 15px;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-  }
-  .farming {
-    font-size: 20px;
-    color: #aaaaaa;
-    margin-top: 10px;
-  }
-  
-  .claim-farming {
-    background-color: #33ff66;
-    color: black;
-    font-size: 16px;
-    padding: 10px;
-    width: 100%;
-    border: none;
-    border-radius: 15px;
-    cursor: pointer;
-    margin-top: 10px;
-  }
-  
-  .claim-checkin:hover,
-  .claim-farming:hover {
-    background-color: #2ecc71;
+/* Right panel */
+.right-panel {
+  width: 35%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: fit-content;
+  padding-right: 8px;
+}
+
+/* Balance card */
+.balance {
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.balance-amount {
+  text-align: center;
+  font-size: 20px; /* Slightly smaller for balance */
+  font-weight: 600;
+  color: #333333;
+  background: linear-gradient(45deg, #10b981, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+}
+
+.balance-checkin {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f9fafb;
+  padding: 8px;
+  border-radius: 12px;
+}
+
+.checkin {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333333;
+}
+
+.day14 {
+  font-size: 12px; /* Smaller for labels */
+  color: #6b7280;
+  background-color: #e5e7eb;
+  padding: 3px 6px;
+  border-radius: 12px;
+  font-weight: 400;
+}
+
+.claim-checkin {
+  background-color: #10b981;
+  color: #ffffff;
+  font-size: 12px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.farming {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.claim-farming {
+  background-color: #10b981;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px;
+  width: 100%;
+  border: none;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+}
+
+.claim-farming:hover {
+  background-color: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Referrals card */
+.referrals {
+  background-color: #ffffff;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.referrals h3 {
+  font-size: 16px; /* Heading size */
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 8px;
+}
+
+.referrals p {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  font-weight: 400;
+}
+
+.total-referrals {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.total-referrals span {
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.invite {
+  background-color: #10b981;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+}
+
+.invite:hover {
+  background-color: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* NFT ad card */
+.nft-ad-card {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  padding: 16px;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #6ee7b7;
+}
+
+.nft-ad-card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #10b981;
+  margin-bottom: 8px;
+}
+
+.nft-ad-card p {
+  font-size: 14px;
+  color: #065f46;
+  margin-bottom: 12px;
+  font-weight: 400;
+}
+
+.nft-ad-card img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin: 0 auto 12px;
+  border: 2px solid #10b981;
+  transition: transform 0.3s ease;
+}
+
+.nft-ad-card img:hover {
+  transform: scale(1.05);
+}
+
+.nft-ad-card .explore-btn {
+  background: linear-gradient(45deg, #10b981, #34d399);
+  color: #ffffff;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+}
+
+.nft-ad-card .explore-btn:hover {
+  background: linear-gradient(45deg, #059669, #10b981);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
+}
+
+/* Empty state */
+.empty-follow-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.empty-follow-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.empty-follow-image {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin-bottom: 24px;
+  object-fit: cover;
+  border: 3px solid #e5e7eb;
+}
+
+.empty-follow-content h3 {
+  font-size: 18px; /* Slightly smaller heading */
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #333333;
+}
+
+.empty-follow-content p {
+  color: #6b7280;
+  margin-bottom: 24px;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.discover-more-btn {
+  background-color: #3b82f6;
+  color: #ffffff;
+  padding: 10px 24px;
+  border-radius: 20px;
+  border: none;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.discover-more-btn:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .container {
+    flex-direction: column;
   }
 
-  .referrals {
-    background-color: #1c1c1c;
-    padding: 16px;
-    border-radius: 8px;
-    margin-top: 30px;
-    text-align: left;
-    color: white;
-    font-family: 'Press Start 2P', cursive;
-    border: 2px solid #555;
+  .left-panel,
+  .right-panel {
+    width: 100%;
   }
-  
+
+  .right-panel {
+    margin-top: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .Status {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .nft-bt {
+    width: 100%;
+  }
+
+  .buy-nft {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .discover {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .balance-checkin {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .claim-checkin {
+    width: 100%;
+  }
+}
+
+/* Post actions top */
+.user-info {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.post-actions-top {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+}
+
+.action-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.save-btn.active svg {
+  fill: #3b82f6;
+  color: #3b82f6;
+}
+
+.report-btn:hover svg {
+  color: #ef4444;
+}
+
+/* Image styles */
+.post-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.post-image:hover {
+  transform: scale(1.02);
+}
+
+.image-container {
+  margin: 10px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 500px;
+}
+
+.image-container.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.image-container.three {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+}
+
+.image-container.three > *:first-child {
+  grid-row: span 2;
+}
+
+.image-container.four {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+}

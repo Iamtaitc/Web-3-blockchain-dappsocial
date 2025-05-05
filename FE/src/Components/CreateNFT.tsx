@@ -6,6 +6,9 @@ import { FaImage } from "react-icons/fa"
 
 const CreateNFT: React.FC = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+ 
+  
+  console.log("🔑 Token hiện tại trong Redux:", token)
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -17,6 +20,7 @@ const CreateNFT: React.FC = () => {
       reader.readAsDataURL(file)
     }
   }
+
 
   return (
     <div className="w-screen max-w-[calc(100vw-200px)] p-20 max-w-3xl mx-auto font-mono">

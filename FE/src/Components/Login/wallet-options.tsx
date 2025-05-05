@@ -26,7 +26,7 @@
               key={wallet.id}
               disabled={isConnecting}
               onClick={() => onConnectWallet(wallet.id)}
-              className={`w-full flex items-center inset-0 z-[9999] justify-between p-4 rounded-xl transition-colors ${
+              className={`w-full text-white flex items-center inset-0 z-[9999] justify-between p-4 rounded-xl transition-colors ${
                 wallet.id === "metamask"
                   ? "bg-orange-400 hover:bg-orange-500"
                   : wallet.id === "walletconnect"

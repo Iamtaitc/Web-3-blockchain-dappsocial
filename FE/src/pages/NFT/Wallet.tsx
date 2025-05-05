@@ -356,6 +356,7 @@ const Wallet: React.FC = () => {
               <FaWallet className="text-emerald-500 text-2xl" />
             </div>
             <div>
+              <div className="flex items-center">
                 <h2 className="text-xl font-bold mr-2 text-gray-800">Main Wallet</h2>
                 <div className="bg-emerald-100 text-emerald-600 text-xs px-2 py-1 rounded-full border border-emerald-200">
                   Active
@@ -371,6 +372,28 @@ const Wallet: React.FC = () => {
                   aria-label="Copy wallet address"
                 >
                   {copiedAddress ? <FaCheckCircle className="text-emerald-500" /> : <FaCopy />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end">
+            <div className="flex items-center mb-2">
+              <h3 className="text-gray-500 mr-2">Total Balance:</h3>
+              <div className="flex items-center">
+                {loading ? (
+                  <div className="h-8 w-32 bg-gray-200 animate-pulse rounded"></div>
+                ) : showBalance ? (
+                  <span className="text-2xl font-bold bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
+                    {totalBalance}
+                  </span>
+                ) : (
+                  <span className="text-2xl font-bold text-gray-800">••••••••</span>
+                )}
+                <button
+                  onClick={() => setShowBalance(!showBalance)}
+                  className="ml-2 text-gray-400 hover:text-emerald-500 transition-colors"
+                  aria-label={showBalance ? "Hide balance" : "Show balance"}
                 >
                   {showBalance ? <FaEyeSlash /> : <FaEye />}
                 </button>
@@ -428,8 +451,9 @@ const Wallet: React.FC = () => {
                 className={`px-3 py-1 text-xs rounded-full transition-colors ${
                   activeTab === "security"
                     ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
-                onClick={() => setActiveTab("security")}
+                onClick={() => setActiveTab("security")}></button>
             </div>
           </div>
 

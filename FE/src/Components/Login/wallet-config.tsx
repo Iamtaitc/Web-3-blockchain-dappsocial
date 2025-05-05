@@ -1,4 +1,5 @@
-import type { WalletOption } from "./types"
+import type { WalletOption } from "./types";
+import okxicon from "../../assets/okx.png";
 
 export const walletOptions: WalletOption[] = [
   {
@@ -133,28 +134,8 @@ export const walletOptions: WalletOption[] = [
   {
     id: "okx",
     name: "OKX Wallet",
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="24" height="24" rx="12" fill="#000000" />
-        <path
-          d="M7.5 7.5C8.88071 7.5 10 8.61929 10 10C10 11.3807 8.88071 12.5 7.5 12.5C6.11929 12.5 5 11.3807 5 10C5 8.61929 6.11929 7.5 7.5 7.5Z"
-          fill="white"
-        />
-        <path
-          d="M16.5 7.5C17.8807 7.5 19 8.61929 19 10C19 11.3807 17.8807 12.5 16.5 12.5C15.1193 12.5 14 11.3807 14 10C14 8.61929 15.1193 7.5 16.5 7.5Z"
-          fill="white"
-        />
-        <path
-          d="M7.5 16.5C8.88071 16.5 10 17.6193 10 19C10 20.3807 8.88071 21.5 7.5 21.5C6.11929 21.5 5 20.3807 5 19C5 17.6193 6.11929 16.5 7.5 16.5Z"
-          fill="white"
-        />
-        <path
-          d="M16.5 16.5C17.8807 16.5 19 17.6193 19 19C19 20.3807 17.8807 21.5 16.5 21.5C15.1193 21.5 14 20.3807 14 19C14 17.6193 15.1193 16.5 16.5 16.5Z"
-          fill="white"
-        />
-      </svg>
-    ),
-    color: "bg-gray-100 text-gray-900 hover:bg-gray-200",
+    icon: <img src={okxicon} alt="OKX" width={24} height={24}  />,
+    color: "bg-gray-100 text-white hover:bg-gray-200",
     checkInstalled: () => {
       // More comprehensive check for OKX wallet
       return (
