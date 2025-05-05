@@ -19,15 +19,7 @@ class SubscriptionController {
       return ApiResponse.error(res, result.message, result.status);
     }
 
-    return ApiResponse.success(res, {
-      paymentId: result.data.paymentId,
-      totalPrice: result.data.totalPrice,
-      currency: result.data.currency,
-      transactionHash: result.data.transactionHash,
-      network: result.data.network,
-      level: result.data.level,
-      months: result.data.months,
-    });
+    return ApiResponse.success(res, result.data);
   }
 
   /**
