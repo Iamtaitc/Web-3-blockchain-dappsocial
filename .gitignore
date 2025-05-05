@@ -132,3 +132,4 @@ dist
 FE/node_modules
 BE/.env
 FE/src/Components/UI/HeartButton.tsx
+FE/src/Components/UI/HeartButton.tsx
