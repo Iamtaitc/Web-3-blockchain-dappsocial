@@ -131,3 +131,4 @@ dist
 .qodo
 FE/node_modules
 BE/.env
+FE/src/Components/UI/HeartButton.tsx
