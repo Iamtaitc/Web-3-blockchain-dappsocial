@@ -1,24 +1,28 @@
 // services/comment/index.js
-const readService = require("./read.service");
-const writeService = require("./write.service");
-const interactionService = require("./interaction.service");
+const ReadService = require("./read.service");
+const readService = new ReadService();
+
+const WriteService = require("./write.service");
+const writeService = new WriteService();
+
+const InteractionService = require("./interaction.service");
+const interactionService = new InteractionService();
+
 
 /**
  * Service tổng hợp xử lý các chức năng liên quan đến comments
  */
 class CommentService {
   constructor() {
-    // Đăng ký các phương thức từ read service
-    this.getPostComments = readService.getPostComments;
-    this.getCommentReplies = readService.getCommentReplies;
+    // Bind phương thức từ readService
+    this.getPostComments = readService.getPostComments.bind(readService);
+    this.getCommentReplies = readService.getCommentReplies.bind(readService);
 
-    // Đăng ký các phương thức từ write service
+    // Các phương thức khác giữ nguyên
     this.createComment = writeService.createComment;
     this.replyToComment = writeService.replyToComment;
     this.updateComment = writeService.updateComment;
     this.deleteComment = writeService.deleteComment;
-
-    // Đăng ký các phương thức từ interaction service
     this.likeComment = interactionService.likeComment;
     this.unlikeComment = interactionService.unlikeComment;
   }

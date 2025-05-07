@@ -147,4 +147,4 @@ class CommentInteractionService extends BaseCommentService {
   }
 }
 
-module.exports = new CommentInteractionService();
+module.exports = CommentInteractionService;

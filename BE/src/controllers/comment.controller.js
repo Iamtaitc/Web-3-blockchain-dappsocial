@@ -97,13 +97,11 @@ class CommentController {
     const { commentId } = req.params;
     const { content } = req.body;
     const author = req.user.address;
-    const mediaFiles = req.files;
 
     const result = await CommentService.replyToComment(
       commentId,
       content,
-      author,
-      mediaFiles
+      author
     );
 
     if (result.success) {

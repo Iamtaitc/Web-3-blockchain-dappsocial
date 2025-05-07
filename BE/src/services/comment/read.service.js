@@ -6,6 +6,7 @@ const BaseCommentService = require("./base.service");
  * Service xử lý việc đọc comments
  */
 class CommentReadService extends BaseCommentService {
+  
   /**
    * Lấy tất cả comments của một bài đăng
    */
@@ -138,4 +139,4 @@ class CommentReadService extends BaseCommentService {
   }
 }
 
-module.exports = new CommentReadService();
+module.exports = CommentReadService;
