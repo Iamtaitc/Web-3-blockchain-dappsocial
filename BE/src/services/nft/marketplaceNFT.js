@@ -308,7 +308,17 @@ const prepareNFTPurchase = async (tokenId, buyerAddress) => {
         message: "NFT này không còn được đăng bán trên blockchain",
       };
     }
-
+    // const buyResult = await blockchainService.buyNFT(
+    //   process.env.PRIVATE_KEY,
+    //   tokenId
+    // );
+    // if (!buyResult.transactionHash) {
+    //   return {
+    //     success: false,
+    //     status: 500,
+    //     message: "Không thể mua NFT",
+    //   };
+    // }
     // Trả về thông tin cần thiết để frontend tạo giao dịch
     return {
       success: true,
@@ -319,6 +329,8 @@ const prepareNFTPurchase = async (tokenId, buyerAddress) => {
         price: listing.price,
         contractAddress: blockchainService.getContracts().marketplace.target, // Địa chỉ của marketplace contract
         buyFunctionSignature: "buyNFT(uint256)", // Chữ ký hàm để frontend gọi
+        // transactionHash: buyResult.transactionHash,
+        buyer: buyResult.buyer,
         nftInfo: {
           name: nft.name || `NFT #${tokenId}`,
           imageUrl: nft.imageUrl || null,
