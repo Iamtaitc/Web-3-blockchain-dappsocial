@@ -150,10 +150,10 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
           <p className="text-gray-500 mt-2">Hãy quay lại sau để xem những nội dung mới nhất</p>
           <div className="mt-6 flex justify-center space-x-4">
             <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors">
-              Khám phá nft  mới
+              Khám phá nội dung mới
             </button>
             <button className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors">
-              Tạo NFT
+              Tạo bài mới
             </button>
           </div>
         </div>

@@ -1,8 +1,10 @@
+
 "use client"
 
 import { useState, useEffect } from "react";
 import { FaCheckCircle, FaFire, FaBolt, FaChartLine, FaCalendarCheck, FaCoins, FaGamepad, FaGem, FaTrophy, FaArrowRight, FaHistory } from "react-icons/fa";
 import { RewardPointsService } from "../../services/rewardPointsAPI";
+import userApi from "../../services/user.api"; // Import userApi để lấy subscription.level
 import { Link } from "react-router-dom";
 
 // Định nghĩa kiểu cho Particle
@@ -19,7 +21,7 @@ interface Particle {
 
 // Định nghĩa kiểu cho dữ liệu từ API /reward/info
 interface CheckInHistory {
-  date: string; // Giữ là string vì API trả về chuỗi ISO
+  date: string;
   streak: number;
   pointsEarned: number;
   tokensEarned: number;
@@ -47,11 +49,21 @@ interface RewardInfo {
 // Định nghĩa kiểu cho lịch sử tổng hợp
 interface CombinedHistory {
   type: "Check-In" | "Claim";
-  time: string; // Chuẩn hóa từ date hoặc timestamp
-  streak?: number; // Chỉ có trong Check-In
-  pointsEarned?: number; // Chỉ có trong Check-In
-  tokensEarned?: number; // Chỉ có trong Check-In
-  amount?: number; // Chỉ có trong Claim
+  time: string;
+  streak?: number;
+  pointsEarned?: number;
+  tokensEarned?: number;
+  amount?: number;
+}
+
+// Định nghĩa kiểu cho thông tin người dùng từ API /user/:address
+interface UserProfile {
+  walletAddress: string;
+  subscription: {
+    level: number;
+    isActive: boolean;
+    expiration: string | null;
+  };
 }
 
 const Farm = () => {
@@ -67,6 +79,7 @@ const Farm = () => {
     pendingTokens: 0,
     totalPoints: 0,
   });
+  const [userLevel, setUserLevel] = useState<number | null>(null); // Lưu subscription.level
   const [nextCheckInTime, setNextCheckInTime] = useState<string | null>(null);
   const [timeToNextCheckIn, setTimeToNextCheckIn] = useState<string>("");
   const [nextClaimTime, setNextClaimTime] = useState<Date | null>(null);
@@ -76,20 +89,20 @@ const Farm = () => {
   const [rewardInfo, setRewardInfo] = useState<RewardInfo | null>(null);
   const [combinedHistory, setCombinedHistory] = useState<CombinedHistory[]>([]);
 
-  // Khôi phục nextClaimTime từ localStorage khi component mount
+  // Fetch user profile để lấy subscription.level
   useEffect(() => {
-    const savedNextClaimTime = localStorage.getItem("nextClaimTime");
-    if (savedNextClaimTime) {
-      const nextClaim = new Date(savedNextClaimTime);
-      const now = new Date();
-      if (nextClaim > now) {
-        setNextClaimTime(nextClaim);
-      } else {
-        localStorage.removeItem("nextClaimTime");
-        setFarmingProgress(100);
-        setShowReward(true);
+    const fetchUserProfile = async () => {
+      try {
+        const walletAddress = "0x3bab9682ed569c6e25e228efb7e61b100bdaf2d3"; // Thay bằng địa chỉ thực tế
+        const profile: UserProfile = await userApi.getUserProfile(walletAddress);
+        setUserLevel(profile.subscription.level);
+      } catch (err: any) {
+        console.error("Error fetching user profile:", err);
+        setError("Failed to load user profile. Please try again.");
       }
-    }
+    };
+
+    fetchUserProfile();
   }, []);
 
   // Fetch user points and check-in streak on mount
@@ -107,31 +120,27 @@ const Farm = () => {
           });
 
           const lastCheckIn = response.data.lastCheckIn;
-          const timestamp = response.timestamp; // Thời gian hiện tại từ API
+          const timestamp = response.timestamp;
           if (lastCheckIn) {
             const lastCheckInDate = new Date(lastCheckIn);
             const currentTime = new Date(timestamp);
 
-            // Tính thời gian điểm danh tiếp theo (cộng 24 giờ từ lastCheckIn)
             const nextCheckIn = new Date(lastCheckInDate);
             nextCheckIn.setHours(nextCheckIn.getHours() + 24);
 
-            // So sánh với thời gian hiện tại từ timestamp
             if (currentTime < nextCheckIn) {
-              // Nếu chưa đến thời gian điểm danh tiếp theo
               setClaimed(true);
               setNextCheckInTime(nextCheckIn.toISOString());
             } else {
-              // Nếu đã qua thời gian điểm danh tiếp theo
               setClaimed(false);
               setNextCheckInTime(null);
             }
           }
         } else {
-          setError("Không thể tải thông tin điểm thưởng. Vui lòng thử lại.");
+          setError("Failed to load points info. Please try again.");
         }
       } catch (err: any) {
-        setError("Lỗi kết nối server. Vui lòng thử lại sau.");
+        setError("Server connection error. Please try again later.");
       }
     };
 
@@ -142,53 +151,58 @@ const Farm = () => {
   useEffect(() => {
     const fetchUserRewards = async () => {
       try {
-        const response = await RewardPointsService.getUserRewards(); // Gọi API /reward/info
+        const response = await RewardPointsService.getUserRewards();
         if (response.success) {
           setRewardInfo(response.data);
 
-          // Log dữ liệu để kiểm tra
-          console.log("response.data.checkIn.history:", response.data.checkIn?.history);
-          console.log("response.data.claimHistory:", response.data.claimHistory);
-
-          // Xử lý lastClaimTime để tính toán farming progress
           if (response.data.lastClaimTime) {
             const lastClaimTime = new Date(response.data.lastClaimTime);
             const nextClaim = new Date(lastClaimTime);
             nextClaim.setHours(nextClaim.getHours() + 8);
             setNextClaimTime(nextClaim);
             localStorage.setItem("nextClaimTime", nextClaim.toISOString());
+          } else {
+            const savedNextClaimTime = localStorage.getItem("nextClaimTime");
+            if (savedNextClaimTime) {
+              const nextClaim = new Date(savedNextClaimTime);
+              const now = new Date();
+              if (nextClaim > now) {
+                setNextClaimTime(nextClaim);
+              } else {
+                localStorage.removeItem("nextClaimTime");
+                setFarmingProgress(100);
+                setShowReward(true);
+              }
+            }
           }
 
-          // Kiểm tra dữ liệu trước khi gộp
           const checkInHistory: CombinedHistory[] = Array.isArray(response.data.checkIn?.history)
             ? response.data.checkIn.history.map((entry: CheckInHistory) => ({
-              type: "Check-In" as const,
-              time: entry.date,
-              streak: entry.streak,
-              pointsEarned: entry.pointsEarned,
-              tokensEarned: entry.tokensEarned,
-            }))
+                type: "Check-In" as const,
+                time: entry.date,
+                streak: entry.streak,
+                pointsEarned: entry.pointsEarned,
+                tokensEarned: entry.tokensEarned,
+              }))
             : [];
 
           const claimHistory: CombinedHistory[] = Array.isArray(response.data.claimHistory)
             ? response.data.claimHistory.map((entry: ClaimHistory) => ({
-              type: "Claim" as const,
-              time: entry.timestamp,
-              amount: entry.amount,
-            }))
+                type: "Claim" as const,
+                time: entry.timestamp,
+                amount: entry.amount,
+              }))
             : [];
 
-          // Gộp và sắp xếp theo thời gian (mới nhất trước)
           const combinedHistory = [...checkInHistory, ...claimHistory].sort(
             (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
           );
-
           setCombinedHistory(combinedHistory);
         } else {
-          setError("Không thể tải thông tin rewards. Vui lòng thử lại.");
+          setError("Failed to load rewards info. Please try again.");
         }
       } catch (err: any) {
-        setError("Lỗi kết nối server. Vui lòng thử lại sau.");
+        setError("Server connection error. Please try again later.");
       }
     };
 
@@ -201,7 +215,7 @@ const Farm = () => {
       if (nextClaimTime) {
         const now = new Date();
         const timeDiff = nextClaimTime.getTime() - now.getTime();
-        const totalClaimDuration = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+        const totalClaimDuration = 8 * 60 * 60 * 1000;
 
         if (timeDiff <= 0) {
           setTimeToNextClaim("");
@@ -285,7 +299,7 @@ const Farm = () => {
       const response = await RewardPointsService.checkIn();
       if (response.success) {
         setClaimed(true);
-        setSuccessMessage("Check-in thành công! Bạn nhận được phần thưởng.");
+        setSuccessMessage("Check-in successful! You received your reward.");
 
         const pointsResponse = await RewardPointsService.getUserPoints();
         if (pointsResponse.success) {
@@ -303,10 +317,10 @@ const Farm = () => {
           setNextCheckInTime(nextCheckIn.toISOString());
         }
       } else {
-        setError(response.message || "Không thể check-in. Vui lòng thử lại.");
+        setError(response.message || "Failed to check-in. Please try again.");
       }
     } catch (err: any) {
-      setError("Lỗi khi check-in. Vui lòng thử lại sau.");
+      setError("Error during check-in. Please try again later.");
     }
   };
 
@@ -315,44 +329,135 @@ const Farm = () => {
       setError(null);
       setSuccessMessage(null);
 
-      const response = await RewardPointsService.claimTokens(); // Thay claimReward bằng claimTokens
+      const response = await RewardPointsService.claimTokens();
       if (response.success) {
-        if (response.data.canClaimNow) {
-          setUserPoints({
-            points: response.data.points,
-            todayPoints: response.data.todayPoints,
-            checkInStreak: response.data.checkInStreak,
-            pendingTokens: response.data.pendingTokens,
-            totalPoints: response.data.totalPoints,
-          });
+        const claimedAmount = response.data.amount || 40;
 
-          setFarmingProgress(0);
-          setShowReward(false);
-          const newNextClaimTime = new Date();
-          newNextClaimTime.setHours(newNextClaimTime.getHours() + 8); // Đặt lại thời gian chờ 8 tiếng
+        setFarmingProgress(0);
+        setShowReward(false);
+        const newNextClaimTime = new Date();
+        newNextClaimTime.setHours(newNextClaimTime.getHours() + 8);
+        setNextClaimTime(newNextClaimTime);
+        localStorage.setItem("nextClaimTime", newNextClaimTime.toISOString());
+
+        // Cập nhật userPoints và rewardInfo
+        const pointsResponse = await RewardPointsService.getUserPoints();
+        if (pointsResponse.success) {
+          setUserPoints({
+            points: pointsResponse.data.points,
+            todayPoints: pointsResponse.data.todayPoints,
+            checkInStreak: pointsResponse.data.checkInStreak,
+            pendingTokens: pointsResponse.data.pendingTokens,
+            totalPoints: pointsResponse.data.totalPoints,
+          });
+        }
+
+        const rewardsResponse = await RewardPointsService.getUserRewards();
+        if (rewardsResponse.success) {
+          setRewardInfo(rewardsResponse.data);
+
+          const checkInHistory: CombinedHistory[] = Array.isArray(rewardsResponse.data.checkIn?.history)
+            ? rewardsResponse.data.checkIn.history.map((entry: CheckInHistory) => ({
+                type: "Check-In" as const,
+                time: entry.date,
+                streak: entry.streak,
+                pointsEarned: entry.pointsEarned,
+                tokensEarned: entry.tokensEarned,
+              }))
+            : [];
+
+          const claimHistory: CombinedHistory[] = Array.isArray(rewardsResponse.data.claimHistory)
+            ? rewardsResponse.data.claimHistory.map((entry: ClaimHistory) => ({
+                type: "Claim" as const,
+                time: entry.timestamp,
+                amount: entry.amount,
+              }))
+            : [];
+
+          const combinedHistory = [...checkInHistory, ...claimHistory].sort(
+            (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
+          );
+          setCombinedHistory(combinedHistory);
+        }
+
+        setSuccessMessage(`Reward claimed successfully! +${claimedAmount} Dx added to your balance.`);
+      } else {
+        if (response.error?.nextClaimTime) {
+          const newNextClaimTime = new Date(response.error.nextClaimTime);
           setNextClaimTime(newNextClaimTime);
           localStorage.setItem("nextClaimTime", newNextClaimTime.toISOString());
-
-          setSuccessMessage(`Reward claimed successfully! +${response.data.pendingTokens || 40} Dx added to your balance.`);
+          setError("Not enough time to claim. Please wait.");
         } else {
-          setError("Chưa đủ thời gian để claim. Vui lòng chờ thêm.");
-          if (response.data.nextClaimTime) {
-            const newNextClaimTime = new Date(response.data.nextClaimTime);
-            setNextClaimTime(newNextClaimTime);
-            localStorage.setItem("nextClaimTime", newNextClaimTime.toISOString());
-          }
+          setError(response.message || "Failed to claim reward. Please try again.");
         }
-      } else {
-        setError(response.message || "Không thể claim phần thưởng. Vui lòng thử lại.");
       }
     } catch (err: any) {
-      setError("Lỗi khi claim phần thưởng. Vui lòng thử lại sau.");
+      setError("Error claiming reward. Please try again later.");
     }
   };
 
+  // Tính toán thông số Farming Stats dựa trên subscription.level
+  const getFarmingStats = () => {
+    if (userLevel === null) {
+      return {
+        currentRate: "1000 Dx/h",
+        activeBoosters: "None",
+        nextLevel: "Standard (Level 1)",
+        progressToNextLevel: 0,
+      };
+    }
+
+    let currentRate = "1000 Dx/h";
+    let activeBoosters = "None";
+    let nextLevel = "";
+    let progressToNextLevel = 65; // Giả định tiến trình, có thể điều chỉnh sau
+
+    if (userLevel >= 1 && userLevel < 2) {
+      currentRate = "1000 Dx/h"; // Standard
+      activeBoosters = "None";
+      nextLevel = "Plus (Level 2)";
+    } else if (userLevel >= 2 && userLevel < 5) {
+      currentRate = "2000 Dx/h"; // Plus
+      activeBoosters = "2x Speed";
+      nextLevel = "Pro (Level 5)";
+    } else if (userLevel >= 5 && userLevel < 10) {
+      currentRate = "3000 Dx/h"; // Pro
+      activeBoosters = "2x Speed";
+      nextLevel = "Elite (Level 10)";
+    } else if (userLevel >= 10) {
+      currentRate = "4000 Dx/h"; // Elite
+      activeBoosters = "3x Rewards";
+      nextLevel = "Max Level Reached";
+      progressToNextLevel = 100; // Đã đạt level tối đa
+    }
+
+    return { currentRate, activeBoosters, nextLevel, progressToNextLevel };
+  };
+
+  // Tính toán phần thưởng check-in dựa trên subscription.level
+  const getCheckInReward = () => {
+    if (userLevel === null) return 10; // Mặc định nếu chưa có level
+    if (userLevel >= 1 && userLevel < 2) return 10; // Standard
+    if (userLevel >= 2 && userLevel < 5) return 20; // Plus
+    if (userLevel >= 5 && userLevel < 10) return 30; // Pro
+    return 40; // Elite
+  };
+
+  // Tính toán pendingTokens dựa trên subscription.level
+  const getPendingTokens = () => {
+    if (userLevel === null) return userPoints.pendingTokens;
+    if (userLevel >= 1 && userLevel < 2) return userPoints.pendingTokens; // Standard
+    if (userLevel >= 2 && userLevel < 5) return userPoints.pendingTokens * 1.5; // Plus
+    if (userLevel >= 5 && userLevel < 10) return userPoints.pendingTokens * 2; // Pro
+    return userPoints.pendingTokens * 2.5; // Elite
+  };
+
+  const farmingStats = getFarmingStats();
+  const checkInReward = getCheckInReward();
+  const adjustedPendingTokens = getPendingTokens();
+
   return (
     <div className="w-full font-sans bg-gradient-to-br from-gray-50 to-white text-gray-800 min-h-screen relative overflow-hidden">
-      {/* Animated Particles Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {particles.map((particle) => (
           <div
@@ -371,10 +476,8 @@ const Farm = () => {
         ))}
       </div>
 
-      {/* Subtle Background Pattern */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMwMDAiIGZpbGwtb3BhY2l0eT0iLjAyIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCA0LTEuNzkgNC00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-30 pointer-events-none"></div>
 
-      {/* Header Section with curved design */}
       <div className="relative bg-gradient-to-r from-emerald-500 to-teal-600 pt-8 pb-16 px-6 md:px-10 rounded-b-[40px] shadow-lg">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -389,47 +492,46 @@ const Farm = () => {
           <div className="flex mt-8 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-lg rounded-2xl p-2.5 max-w-md border border-white/10 shadow-xl">
             <button
               onClick={() => setActiveTab("farming")}
-              className={`flex-1 py-3 px-6 mx-1 rounded-xl transition-all duration-300 text-white font-medium text-sm tracking-wide relative overflow-hidden group ${activeTab === "farming"
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg"
-                  : "bg-transparent hover:scale-105"
-                }`}
+              className={`flex-1 py-3 px-6 mx-1 rounded-xl transition-all duration-300 text-white font-medium text-sm tracking-wide relative overflow-hidden group ${
+                activeTab === "farming" ? "bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg" : "bg-transparent hover:scale-105"
+              }`}
             >
               <span className="relative z-10">Farming</span>
               <div
-                className={`absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${activeTab === "farming" ? "opacity-100" : ""
-                  }`}
+                className={`absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                  activeTab === "farming" ? "opacity-100" : ""
+                }`}
               ></div>
             </button>
             <button
               onClick={() => setActiveTab("games")}
-              className={`flex-1 py-3 px-6 mx-1 rounded-xl transition-all duration-300 text-white font-medium text-sm tracking-wide relative overflow-hidden group ${activeTab === "games"
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg"
-                  : "bg-transparent hover:scale-105"
-                }`}
+              className={`flex-1 py-3 px-6 mx-1 rounded-xl transition-all duration-300 text-white font-medium text-sm tracking-wide relative overflow-hidden group ${
+                activeTab === "games" ? "bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg" : "bg-transparent hover:scale-105"
+              }`}
             >
               <span className="relative z-10">Games</span>
               <div
-                className={`absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${activeTab === "games" ? "opacity-100" : ""
-                  }`}
+                className={`absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                  activeTab === "games" ? "opacity-100" : ""
+                }`}
               ></div>
             </button>
             <button
               onClick={() => setActiveTab("history")}
-              className={`flex-1 py-3 px-6 mx-1 rounded-xl transition-all duration-300 text-white font-medium text-sm tracking-wide relative overflow-hidden group ${activeTab === "history"
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg"
-                  : "bg-transparent hover:scale-105"
-                }`}
+              className={`flex-1 py-3 px-6 mx-1 rounded-xl transition-all duration-300 text-white font-medium text-sm tracking-wide relative overflow-hidden group ${
+                activeTab === "history" ? "bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg" : "bg-transparent hover:scale-105"
+              }`}
             >
               <span className="relative z-10">History</span>
               <div
-                className={`absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${activeTab === "history" ? "opacity-100" : ""
-                  }`}
+                className={`absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                  activeTab === "history" ? "opacity-100" : ""
+                }`}
               ></div>
             </button>
           </div>
         </div>
 
-        {/* Decorative wave shape at bottom of header */}
         <div className="absolute bottom-0 left-0 right-0 h-8 overflow-hidden">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -455,9 +557,7 @@ const Farm = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 -mt-10">
-        {/* Success/Error Messages */}
         {successMessage && (
           <div className="mb-6 bg-green-100 text-green-700 p-4 rounded-lg shadow-md flex justify-between items-center">
             <span>{successMessage}</span>
@@ -478,19 +578,16 @@ const Farm = () => {
         <div className="space-y-6">
           {activeTab === "farming" && (
             <>
-              {/* Row with Active Farming, Boosters, and Daily Check In */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Active Farming */}
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xl transition-all duration-300 hover:shadow-2xl group">
-                  <h3 className="font-bold text-xl mb-4 flex items-center text_gray-800">
+                  <h3 className="font-bold text-xl mb-4 flex items-center text-gray-800">
                     <FaFire className="mr-2 text-amber-500" /> Active Farming
                   </h3>
 
-                  {/* Pending Tokens */}
                   <div className="flex items-center mb-6">
                     <div className="flex items-center gap-2 bg-amber-50 px-4 py-2 rounded-lg border border-amber-100 shadow-sm">
                       <FaCoins className="text-amber-500 text-xl" />
-                      <span className="font-bold text-gray-800 text-lg">{userPoints.pendingTokens} Dx</span>
+                      <span className="font-bold text-gray-800 text-lg">{adjustedPendingTokens} Dx</span>
                     </div>
                   </div>
 
@@ -502,7 +599,6 @@ const Farm = () => {
                     </div>
                   </div>
 
-                  {/* Progress Bar */}
                   <div className="mb-3 bg-gray-100 rounded-full h-5 overflow-hidden shadow-inner">
                     <div
                       className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300 relative"
@@ -514,7 +610,6 @@ const Farm = () => {
                     </div>
                   </div>
 
-                  {/* Show timer or claim button */}
                   {farmingProgress < 100 ? (
                     <div className="bg-gray-50 rounded-lg p-3 text-center font-bold mb-4 text-gray-700 shadow-sm border border-gray-100">
                       {timeToNextClaim || "Farming in progress..."}
@@ -529,7 +624,6 @@ const Farm = () => {
                   )}
                 </div>
 
-                {/* Boosters */}
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xl transition-all duration-300 hover:shadow-2xl">
                   <h3 className="font-bold text-xl mb-4 flex items-center text-gray-800">
                     <FaBolt className="mr-2 text-amber-500" /> Boosters
@@ -543,9 +637,14 @@ const Farm = () => {
                         </div>
                       </div>
                       <p className="font-bold text-gray-800">2x Speed</p>
-                      <p className="text-sm text-emerald-600 mb-3">1 hour</p>
-                      <button className="w-full py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 transition-colors shadow-md">
-                        Activate
+                      <p className="text-sm text-emerald-600 mb-3">{userLevel && userLevel >= 2 ? "Active" : "1 hour"}</p>
+                      <button
+                        className={`w-full py-2 rounded-lg text-sm font-medium transition-colors shadow-md ${
+                          userLevel && userLevel >= 2 ? "bg-green-500 text-white cursor-not-allowed" : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600"
+                        }`}
+                        disabled={userLevel && userLevel >= 2}
+                      >
+                        {userLevel && userLevel >= 2 ? "Active" : "Activate"}
                       </button>
                     </div>
 
@@ -556,9 +655,14 @@ const Farm = () => {
                         </div>
                       </div>
                       <p className="font-bold text-gray-800">3x Rewards</p>
-                      <p className="text-sm text-emerald-600 mb-3">30 mins</p>
-                      <button className="w-full py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 transition-colors shadow-md">
-                        Activate
+                      <p className="text-sm text-emerald-600 mb-3">{userLevel && userLevel >= 10 ? "Active" : "30 mins"}</p>
+                      <button
+                        className={`w-full py-2 rounded-lg text-sm font-medium transition-colors shadow-md ${
+                          userLevel && userLevel >= 10 ? "bg-green-500 text-white cursor-not-allowed" : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600"
+                        }`}
+                        disabled={userLevel && userLevel >= 10}
+                      >
+                        {userLevel && userLevel >= 10 ? "Active" : "Activate"}
                       </button>
                     </div>
                   </div>
@@ -579,7 +683,6 @@ const Farm = () => {
                   </div>
                 </div>
 
-                {/* Daily Check In */}
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xl transition-all duration-300 hover:shadow-2xl">
                   <h3 className="font-bold text-xl mb-4 flex items-center text-gray-800">
                     <FaCalendarCheck className="mr-2 text-emerald-500" /> Daily Check In
@@ -607,10 +710,9 @@ const Farm = () => {
 
                   <button
                     onClick={handleCheckIn}
-                    className={`w-full py-3 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-95 shadow-lg ${claimed
-                        ? "bg-gray-200 text-gray-500"
-                        : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
-                      }`}
+                    className={`w-full py-3 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-95 shadow-lg ${
+                      claimed ? "bg-gray-200 text-gray-500" : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
+                    }`}
                     disabled={claimed}
                   >
                     {claimed ? "Claimed Today" : "Claim Daily Reward"}
@@ -620,16 +722,14 @@ const Farm = () => {
                     <p className="text-sm text-center mb-3 text-gray-600">Today's Points</p>
                     <div className="flex items-center justify-center gap-3 bg-amber-50 p-3 rounded-lg border border-amber-100">
                       <FaCoins className="text-amber-500 text-xl" />
-                      <span className="font-bold text-gray-800 text-lg">{userPoints.todayPoints} Points</span>
+                      <span className="font-bold text-gray-800 text-lg">{checkInReward} Points</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Row with Farming Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-start-3">
-                  {/* Farming Stats */}
                   <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xl transition-all duration-300 hover:shadow-2xl">
                     <h3 className="font-bold text-xl mb-4 flex items-center text-gray-800">
                       <FaChartLine className="mr-2 text-blue-500" /> Farming Stats
@@ -642,15 +742,15 @@ const Farm = () => {
                       </div>
                       <div className="flex justify-between items-center bg-gradient-to-br from-gray-50 to-white p-3 rounded-lg border border-gray-100">
                         <p className="text-gray-500">Current Rate:</p>
-                        <p className="font-bold text-gray-800">4,000 Dx/h</p>
+                        <p className="font-bold text-gray-800">{farmingStats.currentRate}</p>
                       </div>
                       <div className="flex justify-between items-center bg-gradient-to-br from-gray-50 to-white p-3 rounded-lg border border-gray-100">
                         <p className="text-gray-500">Active Boosters:</p>
-                        <p className="font-bold text-emerald-500">2x Speed</p>
+                        <p className="font-bold text-emerald-500">{farmingStats.activeBoosters}</p>
                       </div>
                       <div className="flex justify-between items-center bg-gradient-to-br from-gray-50 to-white p-3 rounded-lg border border-gray-100">
                         <p className="text-gray-500">Next Level:</p>
-                        <p className="font-bold text-gray-800">Level 15</p>
+                        <p className="font-bold text-gray-800">{farmingStats.nextLevel}</p>
                       </div>
                     </div>
 
@@ -659,7 +759,7 @@ const Farm = () => {
                       <div className="bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
                         <div
                           className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 relative"
-                          style={{ width: "65%" }}
+                          style={{ width: `${farmingStats.progressToNextLevel}%` }}
                         >
                           <div className="absolute inset-0 bg-white/20 overflow-hidden flex">
                             <div className="w-full h-full bg-stripes-white opacity-20"></div>
@@ -668,7 +768,7 @@ const Farm = () => {
                       </div>
                       <div className="flex justify-between items-center mt-2">
                         <p className="text-xs text-gray-500">0%</p>
-                        <p className="text-xs font-medium text-blue-500">65%</p>
+                        <p className="text-xs font-medium text-blue-500">{farmingStats.progressToNextLevel}%</p>
                         <p className="text-xs text-gray-500">100%</p>
                       </div>
                     </div>
@@ -678,10 +778,8 @@ const Farm = () => {
             </>
           )}
 
-          {/* Tab Games */}
           {activeTab === "games" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Featured Game */}
               <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-xl transition-all duration-300 hover:shadow-2xl group">
                 <div className="h-48 bg-gradient-to-r from-blue-500 to-indigo-600 relative overflow-hidden">
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -713,7 +811,6 @@ const Farm = () => {
                 </div>
               </div>
 
-              {/* Game List */}
               <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xl transition-all duration-300 hover:shadow-2xl">
                 <h3 className="font-bold text-xl mb-6 text-gray-800">More Games</h3>
 
@@ -767,10 +864,8 @@ const Farm = () => {
             </div>
           )}
 
-          {/* Tab History */}
           {activeTab === "history" && (
             <div className="grid grid-cols-1 gap-6">
-              {/* Combined Farming History */}
               <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xl transition-all duration-300 hover:shadow-2xl">
                 <h3 className="font-bold text-xl mb-4 flex items-center text-gray-800">
                   <FaHistory className="mr-2 text-blue-500" /> Farming History

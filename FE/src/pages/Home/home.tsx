@@ -3,143 +3,287 @@
 import "../../styles/home.css"
 import avtImage from "../../assets/default-avatar-profile-image-vector-social-media-user-icon-potrait-182347582.webp"
 import Nfttuimu from "../../assets/NFTtuimu.avif"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import "yet-another-react-lightbox/styles.css"
 import HeartButton from "../../Components/UI/HeartButton"
 import CommentModal, { type Comment } from "../../Components/UI/CommentModal"
-import { MessageCircle } from "lucide-react"
+import CreatePostModal from "../../Components/UI/CreatePostModal"
+import { MessageCircle, Flag, PlusCircle, RefreshCw } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { posts } from "../../data/posts"
 import InfiniteScroll from "../../Components/infinite-scroll"
 import PostSkeleton from "../../Components/post-skeleton"
+import { useSelector } from "react-redux"
+import type { RootState } from "../../store"
+import postApi, { type Post ,type PostMention } from "../../services/post.api"
+import IPFSImage from "../../Components/UI/IPFSImage"
+import BookmarkButton from "../../Components/UI/BookmarkButton"
+import { toast } from "react-hot-toast"
+import { WalletLoginModal } from "../../components/Login/wallet-login-modal"
+
 
 const Home = () => {
   const navigate = useNavigate()
   const [commentModalOpen, setCommentModalOpen] = useState(false)
+  const [createPostModalOpen, setCreatePostModalOpen] = useState(false)
   const [selectedPostComments, setSelectedPostComments] = useState<Comment[]>([])
-  const [selectedPostId, setSelectedPostId] = useState<number | null>(null)
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const [selectedPostTitle, setSelectedPostTitle] = useState<string>("")
   const [selectedPostImage, setSelectedPostImage] = useState<string>("")
   const [selectedPostContent, setSelectedPostContent] = useState<string>("")
   const [activeTab, setActiveTab] = useState<"discover" | "follow">("discover")
-  const [displayedPosts, setDisplayedPosts] = useState<typeof posts>([])
+  const [apiPosts, setApiPosts] = useState<Post[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [hasMorePosts, setHasMorePosts] = useState(true)
-  const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [page, setPage] = useState(1)
-  const postsPerPage = 3
   const [selectedPostAuthorAvatar, setSelectedPostAuthorAvatar] = useState<string>("")
   const [selectedPostTime, setSelectedPostTime] = useState<string>("")
+  // State cho WalletLoginModal
+const [WalletLoginModalOpen, setWalletLoginModalOpen] = useState(false);
 
-  // Lọc bài viết theo tab đang active
-  const allFilteredPosts = activeTab === "discover" ? posts : posts.filter((post) => post.isFollowed)
+  // Kiểm tra trạng thái đăng nhập từ Redux store
+  const isAuthenticated = useSelector((state: RootState) => !!state.auth.token)
+  const user = useSelector((state: RootState) => state.auth.user)
 
-  // Tải bài viết ban đầu
+  // Tải bài viết từ API
+  const fetchPosts = useCallback(async (pageNum = 1, replace = true) => {
+    try {
+      if (replace) {
+        setIsLoading(true)
+      }
+
+      const response = await postApi.getAllPosts(pageNum, 10)
+
+      if (response.success && response.data) {
+        let newPosts: Post[] = []
+
+        // Kiểm tra cấu trúc dữ liệu trả về
+        if (Array.isArray(response.data)) {
+          newPosts = response.data
+        } else if (response.data.posts && Array.isArray(response.data.posts)) {
+          newPosts = response.data.posts
+        }
+
+        if (replace) {
+          setApiPosts(newPosts)
+        } else {
+          setApiPosts((prev) => [...prev, ...newPosts])
+        }
+
+        setHasMorePosts(newPosts.length === 10)
+
+        if (!replace) {
+          setPage(pageNum)
+        }
+      } else {
+        if (replace) {
+          setApiPosts([])
+        }
+        setHasMorePosts(false)
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải bài viết:", error)
+      toast.error("Không thể tải bài viết. Vui lòng thử lại sau.")
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
+    }
+  }, [])
+
+  // Tải bài viết khi component mount hoặc khi tab thay đổi
   useEffect(() => {
-    // Giả lập việc tải dữ liệu ban đầu
-    const timer = setTimeout(() => {
-      const initialPosts = allFilteredPosts.slice(0, postsPerPage)
-      setDisplayedPosts(initialPosts)
-      setIsInitialLoading(false)
-      setHasMorePosts(allFilteredPosts.length > postsPerPage)
-    }, 1500)
+    setPage(1)
+    fetchPosts(1, true)
+  }, [activeTab, fetchPosts])
 
-    return () => clearTimeout(timer)
-  }, [activeTab, allFilteredPosts])
+  // Tải thêm bài viết khi cuộn xuống
+  const loadMorePosts = async (): Promise<boolean> => {
+    if (!hasMorePosts || isLoading) return false
+
+    try {
+      const nextPage = page + 1
+      await fetchPosts(nextPage, false)
+      return true
+    } catch (error) {
+      console.error("Lỗi khi tải thêm bài viết:", error)
+      return false
+    }
+  }
+
+  // Làm mới danh sách bài viết
+  const handleRefresh = () => {
+    if (isRefreshing) return
+    setIsRefreshing(true)
+    setPage(1)
+    fetchPosts(1, true)
+  }
 
   // Xử lý khi chuyển tab
   const handleTabChange = (tab: "discover" | "follow") => {
+    if (tab === activeTab) return
     setActiveTab(tab)
-    setIsInitialLoading(true)
     setPage(1)
-    setDisplayedPosts([])
+    setApiPosts([])
     setHasMorePosts(true)
+    setIsLoading(true)
   }
 
-  // Hàm tải thêm bài viết
-  const loadMorePosts = async (): Promise<boolean> => {
-    // Giả lập API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const nextPage = page + 1
-        const startIndex = page * postsPerPage
-        const endIndex = nextPage * postsPerPage
-        const newPosts = allFilteredPosts.slice(startIndex, endIndex)
+  // Xử lý khi mở modal bình luận
+  const handleOpenCommentModal = async (postId: string) => {
+    const post = apiPosts.find((p) => p._id === postId)
+    if (!post) return
 
-        if (newPosts.length > 0) {
-          setDisplayedPosts((prev) => [...prev, ...newPosts])
-          setPage(nextPage)
-          setHasMorePosts(endIndex < allFilteredPosts.length)
-          resolve(true)
-        } else {
-          setHasMorePosts(false)
-          resolve(false)
-        }
-      }, 1000)
-    })
-  }
+    setSelectedPostId(postId)
+    setSelectedPostTitle(`Bài viết của ${post.username || post.author}`)
+    setSelectedPostContent(post.content || "")
+    setSelectedPostAuthorAvatar("/placeholder.svg") // Thay bằng avatar thực tế nếu có
+    setSelectedPostTime(new Date(post.createdAt).toLocaleString())
 
-  const handleOpenCommentModal = (postId: number) => {
-    const post = posts.find((p) => p.id === postId)
-    if (post) {
-      setSelectedPostComments(post.commentsList || [])
-      setSelectedPostId(postId)
-      setSelectedPostTitle(`Bài viết của ${post.user.username}`)
-      // Lấy hình ảnh đầu tiên của bài viết (nếu có)
-      setSelectedPostImage(post.images && post.images.length > 0 ? post.images[0].src : "")
-      // Lấy nội dung bài viết
-      setSelectedPostContent(post.title || "")
-      // Lấy avatar của người đăng bài
-      setSelectedPostAuthorAvatar(post.user.avatar || "")
-      // Lấy thời gian đăng bài
-      setSelectedPostTime(post.time || "")
-      setCommentModalOpen(true)
-    }
-  }
-
-  // Update the handleAddComment function to support images in comments
-  const handleAddComment = (
-    postId: number,
-    comment: { user: string; text: string; replyTo?: string; image?: string },
-  ) => {
-    // In a real application, you would update your state or make an API call here
-    console.log(`Adding comment to post ${postId}:`, comment)
-
-    // For demo purposes, we'll just add it to the local state
-    if (comment.replyTo) {
-      // This is a reply to an existing comment
-      const updatedComments = selectedPostComments.map((existingComment) => {
-        if (existingComment.id === comment.replyTo) {
-          return {
-            ...existingComment,
-            replies: [
-              ...(existingComment.replies || []),
-              {
-                id: `reply-${Date.now()}`,
-                user: comment.user,
-                text: comment.text,
-                time: "Vừa xong",
-                likes: 0,
-                image: comment.image, // Add the image to the reply
-              },
-            ],
-          }
-        }
-        return existingComment
-      })
-      setSelectedPostComments(updatedComments)
+    // Nếu có media, lấy media đầu tiên làm ảnh đại diện
+    if (post.media && post.media.length > 0) {
+      setSelectedPostImage(post.media[0].uri)
+    } else if (post.contentURI) {
+      setSelectedPostImage(post.contentURI)
     } else {
-      // This is a new top-level comment
-      const newComment: Comment = {
-        id: `new-${Date.now()}`,
-        user: comment.user,
-        text: comment.text,
-        likes: 0,
-        time: "Vừa xong",
-        replies: [],
-        image: comment.image, // Add the image to the comment
-      }
-      setSelectedPostComments([...selectedPostComments, newComment])
+      setSelectedPostImage("")
     }
+
+    // Tải bình luận (trong thực tế, bạn sẽ gọi API để lấy bình luận)
+    setSelectedPostComments([])
+    setCommentModalOpen(true)
+  }
+
+  // Xử lý khi bài viết được tạo thành công
+  const handlePostCreated = () => {
+    toast.success("Đăng bài thành công!")
+    handleRefresh()
+  }
+   // Xử lý khi click vào mention
+     const handleMentionClick = (mention: PostMention) => {
+       navigate(`/user/${mention.walletAddress}`)
+     }
+
+  // Xử lý khi nhấn nút đăng bài
+  const handlePostButtonClick = () => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để đăng bài")
+      setWalletLoginModalOpen(true);
+    } else {
+      setCreatePostModalOpen(true)
+    }
+  }
+
+  // Xử lý thích bài viết
+  const handleLikePost = async (postId: string, isLiked: boolean) => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để thích bài viết")
+      navigate("/login")
+      return
+    }
+
+    try {
+      // Cập nhật UI ngay lập tức (optimistic update)
+      setApiPosts((posts) =>
+        posts.map((post) =>
+          post._id === postId
+            ? {
+                ...post,
+                isLiked: !post.isLiked, // Sử dụng trạng thái hiện tại của post
+                likeCount: post.likeCount ? post.likeCount - 1 : post.likeCount + 1,
+              }
+            : post,
+        ),
+      )
+
+      // Gọi API
+      if (!isLiked) {
+        await postApi.likePost(postId)
+      } else {
+        await postApi.unlikePost(postId)
+      }
+    } catch (error) {
+      console.error("Lỗi khi thích/bỏ thích bài viết:", error)
+      toast.error("Có lỗi xảy ra. Vui lòng thử lại.")
+
+      // Khôi phục trạng thái nếu có lỗi
+      fetchPosts(page, true)
+    }
+  }
+
+  // Xử lý lưu bài viết
+  const handleSavePost = async (postId: string, isSaved: boolean) => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để lưu bài viết")
+      navigate("/login")
+      return
+    }
+
+    try {
+      // Cập nhật UI ngay lập tức (optimistic update)
+      setApiPosts((posts) =>
+        posts.map((post) =>
+          post._id === postId
+            ? {
+                ...post,
+                isSaved: !post.isSaved, // Sử dụng trạng thái hiện tại của post
+                saveCount: post.isSaved ? post.saveCount - 1 : post.saveCount + 1,
+              }
+            : post,
+        ),
+      )
+
+      // Gọi API
+      if (!isSaved) {
+        await postApi.savePost(postId)
+      } else {
+        await postApi.unsavePost(postId)
+      }
+    } catch (error) {
+      console.error("Lỗi khi lưu/bỏ lưu bài viết:", error)
+      toast.error("Có lỗi xảy ra. Vui lòng thử lại.")
+
+      // Khôi phục trạng thái nếu có lỗi
+      fetchPosts(page, true)
+    }
+  }
+
+  // Xử lý báo cáo bài viết
+  const handleReportPost = (postId: string) => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để báo cáo bài viết")
+      navigate("/login")
+      return
+    }
+
+    // Hiển thị xác nhận báo cáo
+    if (confirm("Bạn có chắc chắn muốn báo cáo bài viết này không?")) {
+      // Trong thực tế, bạn sẽ gọi API để báo cáo bài viết
+      toast.success("Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét bài viết này.")
+    }
+  }
+
+  // Định dạng thời gian
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSecs = Math.floor(diffMs / 1000)
+    const diffMins = Math.floor(diffSecs / 60)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffSecs < 60) return "Vừa xong"
+    if (diffMins < 60) return `${diffMins} phút trước`
+    if (diffHours < 24) return `${diffHours} giờ trước`
+    if (diffDays < 7) return `${diffDays} ngày trước`
+
+    return date.toLocaleDateString("vi-VN")
+  }
+
+  const handleAddComment = () => {
+    // TODO: Implement handleAddComment
+    toast.success("Đã thêm bình luận!")
+    setCommentModalOpen(false)
   }
 
   return (
@@ -153,82 +297,157 @@ const Home = () => {
             <span className={activeTab === "follow" ? "active" : ""} onClick={() => handleTabChange("follow")}>
               Theo dõi
             </span>
+
+            {/* Nút làm mới */}
+            <button onClick={handleRefresh} className="refresh-button" disabled={isRefreshing} title="Làm mới">
+              <RefreshCw size={18} className={`${isRefreshing ? "animate-spin" : ""}`} />
+            </button>
           </div>
         </div>
 
         <div className="status-container">
           <div className="Status">
             <div className="tl">
-              <img src={avtImage || "/placeholder.svg"} alt="avatar" className="avatar" />
-              <p>Có gì mới ?</p>
+              <img src={user?.avatarURI || avtImage || "/placeholder.svg"} alt="avatar" className="avatar" />
+              <p>Có gì mới?</p>
             </div>
             <div className="bt">
-              <button>Đăng NFT</button>
+              <button onClick={handlePostButtonClick} className="flex items-center gap-2 justify-center">
+                <PlusCircle size={18} />
+                <span>{isAuthenticated ? "Đăng Bài" : "Đăng nhập để đăng bài"}</span>
+              </button>
             </div>
           </div>
         </div>
 
         <div className="posts-container">
-          {isInitialLoading ? (
-            // Hiển thị skeleton loading khi đang tải ban đầu
+          {isLoading ? (
+            // Hiển thị skeleton loading khi đang tải
             <>
               <PostSkeleton />
               <PostSkeleton />
               <PostSkeleton />
             </>
-          ) : displayedPosts.length > 0 ? (
-            // Hiển thị các bài viết đã tải
-            <>
-              {displayedPosts.map((post) => (
-                <div key={post.id} className="post">
+          ) : apiPosts.length > 0 ? (
+            // Hiển thị các bài viết từ API
+            <div>
+              {apiPosts.map((post) => (
+                <div key={post._id} className="post">
+                  {/* Thay đổi hiển thị username thay vì địa chỉ ví trong phần user-info */}
                   <div className="user-info">
-                    <img src={post.user.avatar || "/placeholder.svg"} alt="avatar" className="avatar" />
+                    <img src={avtImage || "/placeholder.svg"} alt="avatar" className="avatar" />
                     <div className="user-details">
-                      <p className="username">{post.user.username}</p>
-                      <p className="time">{post.time}</p>
+                      <p className="username">{post.authorDetails.username}</p>
+                      <p className="time">{formatTime(post.createdAt)}</p>
+                    </div>
+
+                    {/* Nút lưu và báo cáo */}
+                    <div className="flex items-center ml-auto gap-3">
+                      <BookmarkButton
+                        initialSaved={post.isSaved || false}
+                        saveCount={post.saveCount}
+                        postId={post._id}
+                        onToggle={() => handleSavePost(post._id, post.isSaved || false)}
+                      />
+                      <button
+                        onClick={() => handleReportPost(post._id)}
+                        className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                        title="Báo cáo bài viết"
+                      >
+                        <Flag size={18} className="text-gray-500" />
+                      </button>
                     </div>
                   </div>
-                  <p className="post-title">{post.title}</p>
 
-                  {/* Hình ảnh bài đăng */}
-                  <div
-                    className={`image-container ${
-                      post.images.length === 2
-                        ? "two"
-                        : post.images.length === 3
-                          ? "three"
-                          : post.images.length === 4
-                            ? "four"
-                            : ""
-                    }`}
-                  >
-                    {post.images.map((img, index) => {
-                      return (
-                        <img
+                  {/* Nội dung bài viết */}
+                  {post.content && <p className="post-title">{post.content}</p>}
+
+                  {/* Hiển thị tags và mentions */}
+                  {(post.tags?.length > 0 || post.mentions?.length > 0) && (
+                    <div className="flex flex-wrap gap-2 my-2">
+                      {/* Tags */}
+                      {post.tags &&
+                        post.tags.length > 0 &&
+                        post.tags.map((tag, index) => (
+                          <span
+                            key={`tag-${index}`}
+                            className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 cursor-pointer transition-colors"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+
+                      {/* Mentions */}
+                      {post.mentions &&
+                        post.mentions.length > 0 &&
+                        post.mentions.map((mention, index) => (
+                          <button
+                          key={`mention-${index}`}
+                          onClick={() => handleMentionClick(mention)}
+                          className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm hover:bg-green-200 transition-colors"
+                        >
+                          @{mention.username}
+                        </button>
+                        ))}
+                    </div>
+                  )}
+                  {/* Hiển thị hình ảnh từ IPFS */}
+                  {post.media && post.media.length > 0 && (
+                    <div
+                      className={`image-container ${
+                        post.media.length === 2
+                          ? "two"
+                          : post.media.length === 3
+                            ? "three"
+                            : post.media.length === 4
+                              ? "four"
+                              : ""
+                      }`}
+                    >
+                      {post.media.map((media, index) => (
+                        <IPFSImage
                           key={index}
-                          src={img.src || "/placeholder.svg"}
-                          alt="post image"
+                          hash={media.uri}
+                          alt={`Hình ảnh bài viết ${index + 1}`}
                           className="post-image"
-                          onClick={() => handleOpenCommentModal(post.id)}
+                          onClick={() => handleOpenCommentModal(post._id)}
                         />
-                      )
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  )}
 
+                  {/* Hiển thị hình ảnh từ contentURI nếu không có media */}
+                  {(!post.media || post.media.length === 0) && post.contentURI && (
+                    <div className="image-container">
+                      <IPFSImage
+                        hash={post.contentURI}
+                        alt="Hình ảnh bài viết"
+                        className="post-image"
+                        onClick={() => handleOpenCommentModal(post._id)}
+                      />
+                    </div>
+                  )}
+
+                  {/* Nút tương tác */}
                   <div className="actions">
                     <div className="icon-page">
                       <span className="like">
-                        <HeartButton />
-                        <span className="count">{post.likes}</span>
+                        <HeartButton
+                          initialLiked={post.isLiked || false}
+                          likeCount={post.likeCount}
+                          postId={post._id}
+                          onToggle={() => handleLikePost(post._id, post.isLiked || false)}
+                        />
                       </span>
-                      <span className="comment" onClick={() => handleOpenCommentModal(post.id)}>
+                      <span className="comment" onClick={() => handleOpenCommentModal(post._id)}>
                         <MessageCircle className="comment-icon" />
-                        <span className="count">{post.comments}</span>
+                        <span className="count">{post.commentCount}</span>
                       </span>
                     </div>
                     <div className="nft-bt">
-                      <button onClick={() => navigate("/add-nft/nft-view")}
-                      className="buy-nft">Buy NFT</button>
+                      <button onClick={() => navigate("/add-nft/nft-view")} className="buy-nft">
+                        Mua NFT
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -236,49 +455,60 @@ const Home = () => {
 
               {/* Component InfiniteScroll để tải thêm bài viết */}
               <InfiniteScroll onLoadMore={loadMorePosts} hasMoreData={hasMorePosts} />
-            </>
+            </div>
           ) : (
             // Hiển thị trạng thái trống nếu không có bài viết
             <div className="empty-follow-state">
               <div className="empty-follow-content">
-                <img src={avtImage || "/placeholder.svg"} alt="Empty state" className="empty-follow-image" />
+                <img src={avtImage || "/placeholder.svg"} alt="Trạng thái trống" className="empty-follow-image" />
                 <h3>Chưa có bài viết nào</h3>
-                <p>Hãy theo dõi những người dùng khác để xem bài viết của họ ở đây</p>
-                <button className="discover-more-btn" onClick={() => handleTabChange("discover")}>
-                  Khám phá thêm
-                </button>
+                <p>
+                  {activeTab === "follow"
+                    ? "Hãy theo dõi những người dùng khác để xem bài viết của họ ở đây"
+                    : "Chưa có bài viết nào trong hệ thống"}
+                </p>
+                {activeTab === "follow" && (
+                  <button className="discover-more-btn" onClick={() => handleTabChange("discover")}>
+                    Khám phá thêm
+                  </button>
+                )}
+                {activeTab === "discover" && isAuthenticated && (
+                  <button className="discover-more-btn" onClick={() => setCreatePostModalOpen(true)}>
+                    Tạo bài viết đầu tiên
+                  </button>
+                )}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Bảng bên phải */}
+      {/* Bảng bên phải - đã được cập nhật để sticky khi cuộn */}
       <div className="right-panel">
         <div className="balance">
           <p className="balance-amount">189.331.433 Dx</p>
           <div className="balance-checkin">
-            <p className="checkin">Check In</p>
-            <p className="day14">Day 14</p>
-            <button className="claim-checkin">Claim</button>
+            <p className="checkin">Điểm danh</p>
+            <p className="day14">Ngày 14</p>
+            <button className="claim-checkin">Nhận</button>
           </div>
           <p className="farming">🌱 Farming 400 Dx/h</p>
-          <button className="claim-farming">Claim</button>
+          <button className="claim-farming">Nhận</button>
         </div>
 
         <div className="referrals">
-          <h3>Referrals</h3>
-          <p>Refer users with your referral code to earn points.</p>
+          <h3>Giới thiệu</h3>
+          <p>Giới thiệu người dùng với mã giới thiệu của bạn để kiếm điểm.</p>
           <p className="total-referrals">
-            Total: <span>3</span>
+            Tổng: <span>3</span>
           </p>
-          <button className="invite">Invite Friends</button>
+          <button className="invite">Mời bạn bè</button>
         </div>
 
         <div className="nft-ad-card">
           <h3>🎁 Bốc Túi Mù NFT</h3>
           <p>Mở túi và nhận NFT hiếm!</p>
-          <img src={Nfttuimu || "/placeholder.svg"} alt="NFT Mystery Box" />
+          <img src={Nfttuimu || "/placeholder.svg"} alt="Túi mù NFT" />
           <button className="explore-btn">Khám phá ngay</button>
         </div>
       </div>
@@ -288,7 +518,7 @@ const Home = () => {
         isOpen={commentModalOpen}
         onClose={() => setCommentModalOpen(false)}
         comments={selectedPostComments}
-        postId={selectedPostId || 0}
+        postId={selectedPostId || "0"}
         postTitle={selectedPostTitle}
         postImage={selectedPostImage}
         postContent={selectedPostContent}
@@ -296,7 +526,21 @@ const Home = () => {
         postTime={selectedPostTime}
         onAddComment={handleAddComment}
       />
+
+      {/* Modal đăng bài */}
+      <CreatePostModal
+        isOpen={createPostModalOpen}
+        onClose={() => setCreatePostModalOpen(false)}
+        onPostCreated={handlePostCreated}
+      />
+        {WalletLoginModalOpen && (
+      <WalletLoginModal
+        isOpen={WalletLoginModalOpen}
+        onClose={() => setWalletLoginModalOpen(false)}
+      />
+    )}
     </div>
+    
   )
 }
 

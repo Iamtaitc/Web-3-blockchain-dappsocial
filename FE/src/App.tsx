@@ -1,12 +1,13 @@
 // src/App.tsx
 import { Provider } from "react-redux";
 import { BrowserRouter, useLocation } from "react-router-dom";
-import Navbar from "./Components/Navbar";
+import Navbar from "./components/Navbar";
 import AppRoutes from "./routers/routes";
 import AdminRoutes from "./routers/admin-routes";
 import { ThemeProvider } from "./context/theme-context";
 import { store } from "./store";
 import { useAuthCheck } from "./hooks/useAuthCheck";
+import { Toaster } from "react-hot-toast"
 
 // Layout wrapper component cho user routes (có Navbar)
 const MainLayout = ({ children }) => {
@@ -47,7 +48,17 @@ const AppContent = () => {
 
   return (
     <ThemeProvider>
-      <AppRouter />
+      {/* Sử dụng grid để layout chính xác hơn */}
+      <div className="grid grid-cols-[200px_1fr] min-h-screen bg-white">
+        {/* Navbar cố định bên trái */}
+       
+        {/* Nội dung chính - sử dụng left margin để tránh đè lên navbar */}
+        <div className="col-start-2 col-end-3 bg-white">
+          <div className="w-full px-6 py-4">
+            <AppRoutes />
+          </div>
+        </div>
+      </div>
     </ThemeProvider>
   );
 };
@@ -56,7 +67,18 @@ const App = () => {
   return (
     <Provider store={store}>
       <BrowserRouter>
-        <AppContent />
+      <AppRouter />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: "#363636",
+              color: "#fff",
+              borderRadius: "8px",
+            },
+          }}
+        />
       </BrowserRouter>
     </Provider>
   );

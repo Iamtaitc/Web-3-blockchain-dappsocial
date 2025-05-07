@@ -12,7 +12,7 @@ interface CompleteTaskResponse {
     rewardPoints: number;
     rewardTokens: number;
   };
-  message?: string; // Thêm trường message để xử lý lỗi
+  message?: string;
 }
 
 interface Quest {
@@ -157,16 +157,14 @@ const Quest = () => {
       setSuccessMessage(null);
       setError(null);
 
-      // Kiểm tra taskId trước khi gọi API
       if (!quest._id) {
         setError("Task ID không hợp lệ. Vui lòng thử lại.");
         return;
       }
 
-      console.log("Calling completeTask with taskId:", quest._id); // Debug taskId
+      console.log("Calling completeTask with taskId:", quest._id);
       const response = await TaskService.completeTask(quest._id);
 
-      // Kiểm tra cấu trúc response
       if (response.success) {
         const { rewardPoints, rewardTokens } = response.data || {};
         setSuccessMessage(
@@ -198,7 +196,7 @@ const Quest = () => {
           setError("Không thể điểm danh. Vui lòng thử lại.")
         }
       } else {
-        console.log("Calling completeTask for direct completion with taskId:", quest._id); // Debug taskId
+        console.log("Calling completeTask for direct completion with taskId:", quest._id);
         const response = await TaskService.completeTask(quest._id)
         if (response.success) {
           const { rewardPoints, rewardTokens } = response.data || {};
@@ -329,10 +327,10 @@ const Quest = () => {
           return (
             <div
               key={quest._id}
-              className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-md transition-all duration-300 hover:shadow-lg"
+              className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-md transition-all duration-300 hover:shadow-lg flex flex-col h-56" // Cố định chiều cao thẻ
             >
-              <div className="p-5">
-                <div className="flex justify-between items-start mb-4">
+              <div className="p-5 flex flex-col flex-1">
+                <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center">
                     <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center mr-3 shadow-sm">
                       {getQuestIcon(quest.icon!)}
@@ -347,8 +345,8 @@ const Quest = () => {
                     </div>
                   )}
                 </div>
-                <p className="text-gray-600 text-sm mb-4">{cleanDescription}</p>
-                <div className="flex justify-between items-center">
+                <p className="text-gray-600 text-sm mb-4 line-clamp-2 overflow-hidden text-ellipsis">{cleanDescription}</p> {/* Giới hạn 2 dòng cho description */}
+                <div className="flex justify-between items-center mt-auto"> {/* Đẩy phần thưởng và nút xuống dưới cùng */}
                   <div className="font-bold text-emerald-600">
                     {quest.rewardPoints} Điểm{" "}
                     {quest.rewardTokens > 0 ? `+ ${quest.rewardTokens} Tokens` : ""}

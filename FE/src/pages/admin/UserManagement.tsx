@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -24,7 +25,8 @@ interface User {
   avatar?: string;
   points: number;
   subscription: {
-    level: string;
+    level: number;
+    subscriptionName: string;
     autoRenew: boolean;
     paymentHistory: any[];
   } | null;
@@ -139,17 +141,41 @@ const UserManagement = () => {
     }
   };
 
-  // Get subscription badge color
-  const getSubscriptionBadgeColor = (level: string | null) => {
+  // Get level name and badge color based on subscription.level
+  const getLevelBadgeInfo = (level: number | undefined) => {
+    if (!level || level === 0) {
+      return {
+        name: "Free",
+        class: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+      };
+    }
+
     switch (level) {
-      case "Premium":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
-      case "Pro":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-      case "Free":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+      case 1:
+        return {
+          name: "Standard",
+          class: "bg-gradient-to-r from-blue-500 to-blue-600 text-white",
+        };
+      case 2:
+        return {
+          name: "Plus",
+          class: "bg-gradient-to-r from-emerald-500 to-teal-600 text-white",
+        };
+      case 5:
+        return {
+          name: "Pro",
+          class: "bg-gradient-to-r from-purple-500 to-indigo-600 text-white",
+        };
+      case 10:
+        return {
+          name: "Elite",
+          class: "bg-gradient-to-r from-rose-500 to-rose-600 text-white",
+        };
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+        return {
+          name: "Unknown",
+          class: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+        };
     }
   };
 
@@ -231,7 +257,7 @@ const UserManagement = () => {
               <option value="inactive">Inactive</option>
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              
+              <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
             </div>
           </div>
         </div>
@@ -276,7 +302,7 @@ const UserManagement = () => {
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                   >
-                    Subscription
+                    Level
                   </th>
                   <th
                     scope="col"
@@ -296,70 +322,73 @@ const UserManagement = () => {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {users.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 relative">
-                          <img
-                            className="h-10 w-10 rounded-full"
-                            src={user.avatar || "/placeholder.svg?height=40&width=40"}
-                            alt={user.username}
-                          />
-                          {user.verified && (
-                            <div className="absolute bottom-0 right-0 h-4 w-4 bg-blue-500 rounded-full border-2 border-white dark:border-gray-800"></div>
-                          )}
+                {users.map((user) => {
+                  const levelInfo = getLevelBadgeInfo(user.subscription?.level);
+                  return (
+                    <tr key={user._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10 relative">
+                            <img
+                              className="h-10 w-10 rounded-full"
+                              src={user.avatar || "/placeholder.svg?height=40&width=40"}
+                              alt={user.username}
+                            />
+                            {user.verified && (
+                              <div className="absolute bottom-0 right-0 h-4 w-4 bg-blue-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">{user.username}</div>
+                            {user.ensName && (
+                              <div className="text-sm text-gray-500 dark:text-gray-400">{user.ensName}</div>
+                            )}
+                          </div>
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">{user.username}</div>
-                          {user.ensName && (
-                            <div className="text-sm text-gray-500 dark:text-gray-400">{user.ensName}</div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{user.walletAddress}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-white">{user.points.toLocaleString()}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {user.subscription ? (
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{user.walletAddress}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 dark:text-white">{user.points.toLocaleString()}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {user.subscription ? (
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${levelInfo.class}`}
+                          >
+                            {levelInfo.name}
+                          </span>
+                        ) : (
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            Free
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getSubscriptionBadgeColor(
-                            user.subscription.level
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(
+                            user.status
                           )}`}
                         >
-                          {user.subscription.level}
+                          {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                         </span>
-                      ) : (
-                        <span className="text-sm text-gray-500 dark:text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(
-                          user.status
-                        )}`}
-                      >
-                        {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                        onClick={() => viewUserDetails(user)}
-                        disabled={isLoading}
-                      >
-                        <MoreHorizontal className="h-5 w-5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                          onClick={() => viewUserDetails(user)}
+                          disabled={isLoading}
+                        >
+                          <MoreHorizontal className="h-5 w-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -474,9 +503,19 @@ const UserManagement = () => {
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Subscription</p>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                            {selectedUser.subscription ? selectedUser.subscription.level : "None"}
+                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Level</p>
+                          <p className="mt-1 text-sm">
+                            {selectedUser.subscription ? (
+                              <span
+                                className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getLevelBadgeInfo(selectedUser.subscription.level).class}`}
+                              >
+                                {getLevelBadgeInfo(selectedUser.subscription.level).name}
+                              </span>
+                            ) : (
+                              <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                Free
+                              </span>
+                            )}
                           </p>
                         </div>
                         <div>

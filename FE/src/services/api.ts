@@ -2,7 +2,7 @@ import instance from "./instance"
 import { store } from "../store"
 import { logout, refreshToken } from "../store/slices/authSlice"
 
-// Interceptor cho request - thêm token và header ngrok-skip-browser-warning vào header
+// Interceptor cho request - thêm token vào header nếu có
 instance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token")

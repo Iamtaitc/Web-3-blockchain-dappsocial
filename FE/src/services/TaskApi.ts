@@ -1,4 +1,4 @@
-import instance from "./api"
+import instance from "./instance"
 
 interface Task {
   _id: string

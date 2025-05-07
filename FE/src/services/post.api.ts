@@ -5,8 +5,14 @@ interface CreatePostPayload {
   content: string
   author?: string
   tags?: string[]
-  mentions?: string[]
-  media?: File[] // Thay đổi thành mảng File thay vì object
+  mentions?: MentionedUser[] // Thay đổi kiểu dữ liệu
+  media?: File[]
+}
+
+// Interface cho người dùng được mention
+interface MentionedUser {
+  username: string
+  walletAddress: string
 }
 
 // Interface cho phản hồi từ API
@@ -21,7 +27,12 @@ interface PostResponse {
 export interface Post {
   _id: string
   author: string
-  username?: string // Thêm trường username
+  username?: string
+  authorDetails: {
+    username: string
+    walletAddress?: string
+    avatarURI?: string
+  }
   content: string
   contentURI?: string
   media: {
@@ -31,7 +42,7 @@ export interface Post {
     _id?: string
   }[]
   tags: string[]
-  mentions: string[]
+  mentions: string[] | MentionedUser[]  // Hỗ trợ cả hai định dạng
   likeCount: number
   commentCount: number
   saveCount: number
@@ -103,6 +114,36 @@ const postApi = {
   getAllPosts: async (page = 1, limit = 20): Promise<PostResponse> => {
     try {
       const response = await instance.get(`/post/all?page=${page}&limit=${limit}`)
+
+      // Thêm trạng thái từ localStorage cho mỗi bài viết
+      if (response.data.success && response.data.data) {
+        let posts = []
+
+        if (Array.isArray(response.data.data)) {
+          posts = response.data.data
+        } else if (response.data.data.posts && Array.isArray(response.data.data.posts)) {
+          posts = response.data.data.posts
+        }
+
+        // Cập nhật trạng thái từ localStorage
+        posts = posts.map((post: Post) => {
+          const savedLiked = localStorage.getItem(`post_liked_${post._id}`)
+          const savedSaved = localStorage.getItem(`post_saved_${post._id}`)
+
+          return {
+            ...post,
+            isLiked: savedLiked !== null ? savedLiked === "true" : post.isLiked,
+            isSaved: savedSaved !== null ? savedSaved === "true" : post.isSaved,
+          }
+        })
+
+        if (Array.isArray(response.data.data)) {
+          response.data.data = posts
+        } else if (response.data.data.posts) {
+          response.data.data.posts = posts
+        }
+      }
+
       return response.data
     } catch (error: any) {
       throw error.response?.data || { success: false, message: "Lỗi khi tải bài viết" }
@@ -143,6 +184,8 @@ const postApi = {
   likePost: async (postId: string): Promise<PostResponse> => {
     try {
       const response = await instance.patch(`/post/${postId}/like`)
+      // Lưu trạng thái vào localStorage
+      localStorage.setItem(`post_liked_${postId}`, "true")
       return response.data
     } catch (error: any) {
       throw error.response?.data || { success: false, message: "Lỗi khi thích bài viết" }
@@ -153,6 +196,8 @@ const postApi = {
   unlikePost: async (postId: string): Promise<PostResponse> => {
     try {
       const response = await instance.patch(`/post/${postId}/unlike`)
+      // Lưu trạng thái vào localStorage
+      localStorage.setItem(`post_liked_${postId}`, "false")
       return response.data
     } catch (error: any) {
       throw error.response?.data || { success: false, message: "Lỗi khi bỏ thích bài viết" }
@@ -163,6 +208,8 @@ const postApi = {
   savePost: async (postId: string): Promise<PostResponse> => {
     try {
       const response = await instance.patch(`/post/${postId}/save`)
+      // Lưu trạng thái vào localStorage
+      localStorage.setItem(`post_saved_${postId}`, "true")
       return response.data
     } catch (error: any) {
       throw error.response?.data || { success: false, message: "Lỗi khi lưu bài viết" }
@@ -173,6 +220,8 @@ const postApi = {
   unsavePost: async (postId: string): Promise<PostResponse> => {
     try {
       const response = await instance.patch(`/post/${postId}/unsave`)
+      // Lưu trạng thái vào localStorage
+      localStorage.setItem(`post_saved_${postId}`, "false")
       return response.data
     } catch (error: any) {
       throw error.response?.data || { success: false, message: "Lỗi khi bỏ lưu bài viết" }
@@ -188,17 +237,6 @@ const postApi = {
       throw error.response?.data || { success: false, message: "Lỗi khi tải bài viết đã lưu" }
     }
   },
-
-  // Kiểm tra trạng thái thích và lưu của bài viết
-  // getPostStatus: async (postId: string): Promise<{ isLiked: boolean; isSaved: boolean }> => {
-  //   try {
-  //     const response = await instance.get(`/post/${postId}/status`)
-  //     return response.data.data || { isLiked: false, isSaved: false }
-  //   } catch (error: any) {
-  //     console.error("Lỗi khi kiểm tra trạng thái bài viết:", error)
-  //     return { isLiked: false, isSaved: false }  
-  //   }
-  // },
 
   // Báo cáo bài viết
   reportPost: async (postId: string, reason: string): Promise<PostResponse> => {

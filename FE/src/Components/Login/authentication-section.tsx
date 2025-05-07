@@ -175,7 +175,7 @@ export function AuthenticationSection({
       <Separator className="my-4" />
       <div className="text-center ">
         <p className="text-sm text-muted-foreground mb-3">Vui lòng ký tin nhắn để xác thực ví của bạn</p>
-        <Button onClick={authenticateUser} disabled={isConnecting} className="w-full">
+        <Button onClick={authenticateUser} disabled={isConnecting} className="text-white w-full">
           {isConnecting ? "Đang ký..." : "Ký tin nhắn"}
         </Button>
       </div>

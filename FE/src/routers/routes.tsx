@@ -1,10 +1,11 @@
 // src/routes/AppRoutes.tsx
 import { Routes, Route } from "react-router-dom";
-import ProfileNFT from "../pages/ProfileNFT";
+// import Collections from "../pages/Collections";
+import ProfileNFT from "../pages/Profileuser";
 import Home from "../pages/Home/home";
 import CreateNFT from "../pages/NFT/CreateNFT";
 import Dashboard from "../pages/Dashboard";
-import WalletLogin from "../Components/Login";
+import WalletLogin from "../components/Login";
 import Quest from "../pages/Quest";
 import NFTDetail from "../pages/NFTDetail";
 import NTFview from "../pages/NFT/nft-view";
@@ -14,8 +15,10 @@ import Farm from "../pages/NFT/Farm";
 import SnakeGame from "../pages/game/SnakeGame";
 import DropGame from "../pages/game/DropGame";
 import Settings from "../pages/Settings";
+import Profileuser from "../pages/Profileuser";
+import PostDetail from "../pages/PostDetail";
 import TaskDetail from "../pages/TaskDetail";
-import Notification from "../pages/Notification";
+// import Notification from "../pages/Notification";
 
 const AppRoutes = () => {
   return (
@@ -26,6 +29,10 @@ const AppRoutes = () => {
       <Route path="/add-nft" element={<CreateNFT />} />
       <Route path="/add-nft/nft-view" element={<NTFview />} />
       <Route path="/login" element={<WalletLogin />} />
+      {/* <Route path="/collections" element={<Collections/>} /> */}
+      <Route path="/user/:address" element={<Profileuser />} />
+      <Route path="/nft" element={<NFTDetail />} />
+      <Route path="/post/:postId" element={<PostDetail />} />
       <Route path="/premium" element={<Premium />} />
       <Route path="/quest" element={<Quest />} />
       <Route path="/task/:taskId" element={<TaskDetail />} />
@@ -36,7 +43,7 @@ const AppRoutes = () => {
       <Route path="/SnakeGame" element={<SnakeGame />} />
       <Route path="/DropGame" element={<DropGame />} />
       <Route path="/Setting" element={<Settings />} />
-      <Route path="/notifications" element={<Notification />} />
+      {/* <Route path="/notifications" element={<Notification />} /> */}
     </Routes>
   );
 };
