@@ -1,709 +1,672 @@
 
 "use client"
 
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Crown, Rocket, Shield, TrendingUp, Check, Star, Zap, Award, Diamond, Gift, CreditCard, X } from "lucide-react";
-import SubscriptionService from "../../services/subscriptionAPI";
-import userApi from "../../services/user.api"; // Giả định tệp userApi nằm trong services/userApi
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+import { useSelector, useDispatch } from "react-redux" // Thêm useDispatch
+import { Loader2, CheckCircle, Info, Wallet, Clock, Shield, Zap, Diamond, Star } from "lucide-react"
+import { ethers } from "ethers"
 
-const Premium = () => {
-  const [activePlan, setActivePlan] = useState<keyof typeof pricingTiers>("monthly");
-  const [selectedMonths, setSelectedMonths] = useState<number>(1);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [userLevel, setUserLevel] = useState<number | null>(null); // Lưu level của người dùng
-  const [isSubscriptionActive, setIsSubscriptionActive] = useState<boolean>(false); // Lưu trạng thái active của subscription
-  const [showPurchaseModal, setShowPurchaseModal] = useState<boolean>(false); // State để hiển thị modal
-  const [selectedTier, setSelectedTier] = useState<any>(null); // Gói đang được chọn để mua
-  const [modalSelectedMonths, setModalSelectedMonths] = useState<number>(1); // Số tháng được chọn trong modal
-  const pricingRef = useRef<HTMLElement>(null); // Tham chiếu đến Pricing Section
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Separator,
+} from "../../components/subscription/premium-ui-components"
 
-  // Lấy thông tin hồ sơ người dùng khi component mount
+import SubscriptionBadge from "../../components/subscription/subscription-badge"
+import TransactionError from "../../components/subscription/transaction-error"
+import CurrentSubscription from "../../components/subscription/current-subscription"
+
+import SubscriptionService from "../../services/subscriptionApi"
+import { checkNetwork } from "../../services/blockchain-services"
+import { fetchUserProfile } from "../../store/slices/userSlice" // Import action fetchUserProfile
+
+export default function Premium() {
+  const navigate = useNavigate()
+  const dispatch = useDispatch() // Thêm dispatch
+  const { isAuthenticated, walletAddress, token, user } = useSelector((state) => state.auth)
+  const { currentProfile, loading: profileLoading } = useSelector((state) => state.user)
+
+  // Lấy level subscription từ currentProfile nếu có
+  const userSubscriptionLevel = currentProfile?.subscription?.level || 1
+
+  const [selectedPlan, setSelectedPlan] = useState<number>(5) // Default to Pro plan
+  const [months, setMonths] = useState<number>(1)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<any>(null)
+  const [success, setSuccess] = useState<boolean>(false)
+  const [paymentStep, setPaymentStep] = useState<number>(1)
+  const [paymentData, setPaymentData] = useState<any>(null)
+  const [fetchingProfile, setFetchingProfile] = useState<boolean>(false)
+  const [subscriptionPlans, setSubscriptionPlans] = useState<any>({
+    1: {
+      name: "Standard",
+      pricePerMonth: 0,
+      currency: "ETH",
+      benefits: [
+        "Reward multiplier 1.5x",
+        "Truy cập tính năng cơ bản",
+        "Giới hạn claim token hàng ngày: 12 tokens",
+        "Tối đa 3 bài đăng mỗi ngày",
+      ],
+      icon: Shield,
+      color: "blue",
+    },
+    2: {
+      name: "Plus",
+      pricePerMonth: 0.000002,
+      currency: "ETH",
+      benefits: [
+        "Reward multiplier 2x",
+        "Tất cả tính năng Standard",
+        "Giới hạn claim token hàng ngày: 16 tokens",
+        "Tối đa 10 bài đăng mỗi ngày",
+        "Truy cập nội dung độc quyền",
+      ],
+      icon: Zap,
+      color: "purple",
+    },
+    5: {
+      name: "Pro",
+      pricePerMonth: 0.00001,
+      currency: "ETH",
+      benefits: [
+        "Reward multiplier 3x",
+        "Tất cả tính năng Plus",
+        "Giới hạn claim token hàng ngày: 24 tokens",
+        "Không giới hạn bài đăng",
+        "Hỗ trợ ưu tiên",
+        "Huy hiệu Premium",
+      ],
+      icon: Star,
+      color: "amber",
+    },
+    10: {
+      name: "Elite",
+      pricePerMonth: 0.0001,
+      currency: "ETH",
+      benefits: [
+        "Reward multiplier 5x",
+        "Tất cả tính năng Pro",
+        "Giới hạn claim token hàng ngày: 40 tokens",
+        "Truy cập NFT độc quyền",
+        "Tham gia sự kiện VIP",
+        "Kênh hỗ trợ riêng",
+        "Tính năng hồ sơ tùy chỉnh",
+      ],
+      icon: Diamond,
+      color: "rose",
+    },
+  })
+
+  // Thêm state để hiển thị thông tin gói hiện tại
+  const [showCurrentPlan, setShowCurrentPlan] = useState<boolean>(false)
+
+  // Thêm useEffect để fetch profile khi component mount
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const walletAddress = "0xd90cc9fca6563801a8505e8fc5c1194c011534c3"; // Cập nhật đúng ví của bạn
-        const profile = await userApi.getUserProfile(walletAddress);
-        setUserLevel(profile.subscription.level);
-        setIsSubscriptionActive(profile.subscription.isActive && profile.subscription.expiration !== null);
-      } catch (err: any) {
-        console.error("Error fetching user profile:", err);
-        setError("Failed to load user profile. Please try again.");
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
-
-  // Hàm cuộn đến Pricing Section
-  const scrollToPricing = () => {
-    if (pricingRef.current) {
-      pricingRef.current.scrollIntoView({ behavior: "smooth" });
+    if (!isAuthenticated || !walletAddress) {
+      navigate("/login")
+      return
     }
-  };
 
-  // Utility function to validate transaction hash
-  const isValidTxHash = (hash: string): boolean => {
-    if (!hash) return false;
-    const txHashRegex = /^0x([A-Fa-f0-9]{64})$/;
-    return txHashRegex.test(hash);
-  };
-
-  const makePayment = async (paymentDetails: any) => {
-    try {
-      if (!window.ethereum) {
-        throw new Error("Please install MetaMask or OKX wallet to continue.");
-      }
-
-      let accounts;
+    // Fetch profile khi component mount
+    const fetchProfile = async () => {
       try {
-        accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      } catch (connectError: any) {
-        throw new Error(`Failed to connect wallet: ${connectError.message}. Please check your MetaMask or OKX wallet.`);
+        setFetchingProfile(true)
+        await dispatch(fetchUserProfile(walletAddress))
+        setFetchingProfile(false)
+      } catch (error) {
+        console.error("Lỗi khi lấy thông tin profile:", error)
+        setFetchingProfile(false)
       }
-
-      if (!accounts || accounts.length === 0) {
-        throw new Error("No wallet accounts found. Please connect your MetaMask or OKX wallet.");
-      }
-
-      const chainId = "0xaa36a7"; // Sepolia
-      const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
-      if (currentChainId !== chainId) {
-        try {
-          await window.ethereum.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId }],
-          });
-        } catch (switchError: any) {
-          if (switchError.code === 4902) {
-            await window.ethereum.request({
-              method: "wallet_addEthereumChain",
-              params: [
-                {
-                  chainId,
-                  chainName: "Sepolia Test Network",
-                  rpcUrls: ["https://rpc.sepolia.org"],
-                  nativeCurrency: { name: "SepoliaETH", symbol: "ETH", decimals: 18 },
-                  blockExplorerUrls: ["https://sepolia.etherscan.io"],
-                },
-              ],
-            });
-          } else {
-            throw new Error("Failed to switch to Sepolia network. Please check your MetaMask or OKX wallet.");
-          }
-        }
-      }
-
-      const { paymentId, transactionHash } = paymentDetails;
-      if (!isValidTxHash(transactionHash)) {
-        throw new Error(`Invalid transaction hash: ${transactionHash}`);
-      }
-
-      return { paymentId, transactionHash };
-    } catch (error: any) {
-      console.error("makePayment - Error:", error);
-      throw new Error(error.message || "An error occurred while processing payment. Please try again.");
     }
-  };
 
-  const pricingTiers = {
-    monthly: [
-      {
-        title: "Standard",
-        level: 1,
-        priceETH: "0.0001",
-        period: "month",
-        features: [
-          "1.5x Reward Multiplier",
-          "Access Basic Features",
-          "12 Tokens Daily Claim Limit",
-          "Up to 3 Posts/Day",
-        ],
-        popular: false,
-        cta: "Get Started",
-        color: "from-blue-500 to-blue-600", // Gradient cho Standard
-        borderColor: "blue-500", // Màu viền cho Standard
-      },
-      {
-        title: "Plus",
-        level: 2,
-        priceETH: "0.0002",
-        period: "month",
-        features: [
-          "2x Reward Multiplier",
-          "All Standard Features",
-          "16 Tokens Daily Claim Limit",
-          "Up to 10 Posts/Day",
-          "Exclusive Content Access",
-        ],
-        popular: true,
-        cta: "Get Started",
-        color: "from-emerald-500 to-teal-600", // Gradient cho Plus
-        borderColor: "emerald-500", // Màu viền cho Plus
-      },
-      {
-        title: "Pro",
-        level: 5,
-        priceETH: "0.0005",
-        period: "month",
-        features: [
-          "3x Reward Multiplier",
-          "All Plus Features",
-          "24 Tokens Daily Claim Limit",
-          "Unlimited Posts",
-          "Priority Support",
-          "Premium Profile Badge",
-        ],
-        popular: false,
-        cta: "Get Started",
-        color: "from-purple-500 to-indigo-600", // Gradient cho Pro
-        borderColor: "purple-500", // Màu viền cho Pro
-      },
-      {
-        title: "Elite",
-        level: 10,
-        priceETH: "0.001",
-        period: "month",
-        features: [
-          "5x Reward Multiplier",
-          "All Pro Features",
-          "40 Tokens Daily Claim Limit",
-          "Exclusive NFTs Access",
-          "VIP Events Access",
-          "Dedicated Support Channel",
-          "Special Profile Customization",
-        ],
-        popular: false,
-        cta: "Get Started",
-        color: "from-rose-500 to-rose-600", // Gradient cho Elite
-        borderColor: "rose-500", // Màu viền cho Elite
-      },
-    ],
-  };
+    fetchProfile()
+  }, [isAuthenticated, walletAddress, navigate, dispatch])
 
-  const calculateTotalPrice = (tier: any, months: number) => {
-    const price = parseFloat(tier.priceETH);
-    let total = price * months;
-    if (months >= 6 && months < 12) total *= 0.95; // 5% discount
-    else if (months === 12) total *= 0.85; // 15% discount
-    return total.toFixed(4);
-  };
+  // useEffect để kiểm tra và hiển thị gói hiện tại sau khi fetch profile
+  useEffect(() => {
+    if (userSubscriptionLevel > 1) {
+      setShowCurrentPlan(true)
+    }
+  }, [userSubscriptionLevel])
 
-  const handleUpgrade = async (tier: any, months: number) => {
-    setError(null);
-    setSuccessMessage(null);
-    setLoading(true);
-
+  const createSubscriptionRequest = async () => {
     try {
-      console.log("handleUpgrade - Creating subscription request for tier:", tier);
-      const response = await SubscriptionService.createSubscriptionRequest({
-        level: tier.level,
-        months: months,
-      });
-      console.log("handleUpgrade - Subscription request response:", response);
+      setLoading(true)
+      setError(null)
+      setPaymentStep(1)
 
-      if (response.success) {
-        const paymentDetails = response.data;
-        console.log("handleUpgrade - Payment details:", paymentDetails);
-
-        const { paymentId, transactionHash } = await makePayment(paymentDetails);
-        console.log("handleUpgrade - makePayment result:", { paymentId, transactionHash });
-
-        if (!isValidTxHash(transactionHash)) {
-          throw new Error(`Invalid transaction hash before confirm: ${transactionHash}`);
-        }
-
-        const confirmPayload = { paymentId, transactionHash };
-        console.log("Calling /subscription/confirm with:", confirmPayload);
-        const confirmResponse = await SubscriptionService.confirmPayment(confirmPayload);
-        console.log("handleUpgrade - Confirm payment response:", confirmResponse);
-
-        if (confirmResponse.success) {
-          setSuccessMessage(`Subscription activated successfully! Level: ${tier.title}, Months: ${months}`);
-          const walletAddress = "0xd90cc9fca6563801a8505e8fc5c1194c011534c3"; // Cập nhật đúng ví của bạn
-          const profile = await userApi.getUserProfile(walletAddress);
-          setUserLevel(profile.subscription.level);
-          setIsSubscriptionActive(profile.subscription.isActive && profile.subscription.expiration !== null);
-        } else {
-          setError(confirmResponse.message || `Failed to confirm payment: ${JSON.stringify(confirmResponse)}`);
-        }
-      } else {
-        setError(response.message || "Failed to create subscription request. Please try again.");
+      if (!token) {
+        setError("Bạn cần đăng nhập để mua gói Premium")
+        return
       }
-    } catch (err: any) {
-      console.error("handleUpgrade - Error during subscription process:", err);
-      setError(err.response?.data?.message || err.message || `An error occurred while processing your request: ${JSON.stringify(err)}`);
+
+      const response = await SubscriptionService.createSubscriptionRequest(selectedPlan, months)
+
+      if (!response.success) {
+        throw new Error(response.message || "Không thể tạo yêu cầu đăng ký")
+      }
+
+      // Kiểm tra địa chỉ nhận thanh toán
+      if (!response.data || !response.data.recipientAddress) {
+        throw new Error("API không trả về địa chỉ nhận thanh toán")
+      }
+
+      if (!ethers.isAddress(response.data.recipientAddress)) {
+        throw new Error("Địa chỉ nhận thanh toán không hợp lệ")
+      }
+
+      setPaymentData(response.data)
+      setPaymentStep(2)
+    } catch (error) {
+      console.error("Lỗi khi tạo yêu cầu đăng ký:", error)
+      setError(error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const openPurchaseModal = (tier: any) => {
-    setSelectedTier(tier);
-    setModalSelectedMonths(1); // Mặc định chọn 1 tháng
-    setShowPurchaseModal(true);
-  };
+  const processPayment = async () => {
+    if (!paymentData) return
 
-  const confirmPurchase = () => {
-    if (selectedTier) {
-      handleUpgrade(selectedTier, modalSelectedMonths);
-      setShowPurchaseModal(false);
+    try {
+      setLoading(true)
+      setError(null)
+
+      if (!paymentData.recipientAddress) {
+        throw new Error("Không có địa chỉ nhận thanh toán")
+      }
+
+      const networkCheck = await checkNetwork(paymentData.network)
+      if (!networkCheck.success) {
+        console.warn(networkCheck.message)
+      }
+
+      const paymentResult = await SubscriptionService.processPayment(
+        paymentData.recipientAddress,
+        paymentData.totalPrice.toString(),
+        paymentData.network,
+      )
+
+      setPaymentStep(3)
+
+      // Kiểm tra trạng thái giao dịch
+      let txStatus = await SubscriptionService.checkTransactionStatus(paymentResult.transactionHash)
+      let attempts = 0
+      const maxAttempts = 30
+
+      while (!txStatus.success && attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 5000))
+        txStatus = await SubscriptionService.checkTransactionStatus(paymentResult.transactionHash)
+        attempts++
+      }
+
+      if (!txStatus.success) {
+        throw new Error("Giao dịch không được xác nhận sau nhiều lần thử")
+      }
+
+      const confirmData = await SubscriptionService.confirmPayment(paymentData.paymentId, paymentResult.transactionHash)
+
+      if (!confirmData.success) {
+        throw new Error(confirmData.message || "Không thể xác nhận thanh toán")
+      }
+
+      const subscriptionData = {
+        level: confirmData.data.level,
+        name: confirmData.data.subscriptionName,
+        benefits: confirmData.data.subscriptionBenefits,
+        expiration: confirmData.data.expiration,
+      }
+
+      // Lưu vào localStorage
+      localStorage.setItem("subscription", JSON.stringify(subscriptionData))
+
+      // Fetch lại profile để cập nhật thông tin subscription trong Redux
+      await dispatch(fetchUserProfile(walletAddress))
+
+      setSuccess(true)
+      setPaymentStep(4)
+    } catch (error) {
+      console.error("Lỗi khi xử lý thanh toán:", error)
+      setError(error)
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
-  const testimonials = [
-    {
-      quote: "The Elite plan has given me access to exclusive NFTs and events that are worth every penny!",
-      author: "Alex Chen",
-      role: "Crypto Enthusiast",
-    },
-    {
-      quote: "Upgrading to Pro was a game-changer. The priority support and unlimited posts are fantastic.",
-      author: "Sarah Johnson",
-      role: "Professional Trader",
-    },
-    {
-      quote: "The Plus plan offers great value with exclusive content and a higher reward multiplier.",
-      author: "Michael Rodriguez",
-      role: "Digital Asset Manager",
-    },
-  ];
+  const calculateTotalPrice = () => {
+    const plan = subscriptionPlans[selectedPlan]
+    if (!plan) return 0
+    return (plan.pricePerMonth * months).toFixed(8)
+  }
+
+  const getPlanColor = (level: number) => {
+    switch (level) {
+      case 1:
+        return "blue"
+      case 2:
+        return "purple"
+      case 5:
+        return "amber"
+      case 10:
+        return "rose"
+      default:
+        return "gray"
+    }
+  }
+
+  const renderPlanIcon = (level: number) => {
+    switch (level) {
+      case 1:
+        return <Shield className="h-5 w-5 mr-2 text-blue-500" />
+      case 2:
+        return <Zap className="h-5 w-5 mr-2 text-purple-500" />
+      case 5:
+        return <Star className="h-5 w-5 mr-2 text-amber-500" />
+      case 10:
+        return <Diamond className="h-5 w-5 mr-2 text-rose-500" />
+      default:
+        return null
+    }
+  }
+
+  const renderBenefitList = (benefits: string[], level: number) => {
+    const iconColor = getPlanColor(level)
+
+    return (
+      <ul className="space-y-2">
+        {benefits.map((benefit, index) => (
+          <li key={index} className="flex items-start">
+            <CheckCircle className={`h-5 w-5 mr-2 shrink-0 text-${iconColor}-500`} />
+            <span>{benefit}</span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-white font-mono overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative py-16 px-6">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA6MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMwMDAiIGZpbGwtb3BhY2l0eT0iLjAyIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCA0LTEuNzkgNC00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-30 pointer-events-none"></div>
-        <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-emerald-50 to-transparent opacity-70"></div>
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-200 rounded-full filter blur-3xl opacity-20"></div>
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-200 rounded-full filter blur-3xl opacity-20"></div>
+    <div className="w-full min-h-screen bg-gray-50">
+      <div className="w-full max-w-screen-2xl mx-auto px-4 py-8">
+        {/* Header section - Moved to top */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Nâng cấp tài khoản của bạn</h1>
+          <p className="text-gray-600 text-lg mb-6 max-w-3xl mx-auto">
+            Mở khóa các tính năng cao cấp và tăng cường trải nghiệm của bạn với các gói Premium
+          </p>
 
-        <div className="max-w-5xl mx-auto relative z-10">
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <div className="inline-block mb-6 p-3 bg-white rounded-2xl shadow-md">
-              <Crown className="h-12 w-12 text-amber-500" />
-            </div>
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500">
-              Elevate Your Experience
-            </h1>
-            <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto mb-10 leading-relaxed">
-              Unlock premium features, boost your rewards, and gain access to exclusive benefits tailored for you.
-            </p>
-            <motion.button
-              className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all duration-300"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={scrollToPricing}
-            >
-              Upgrade Now
-            </motion.button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="inline-block mb-4">
-              <Star className="h-8 w-8 text-amber-500" />
-            </div>
-            <h2 className="text-4xl font-bold mb-4 text-gray-800">Premium Features</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Discover powerful tools to enhance your experience and maximize your rewards.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                icon: <Rocket className="w-6 h-6 text-white" />,
-                title: "Reward Multiplier",
-                description: "Boost your reward multiplier up to 5x with premium plans.",
-              },
-              {
-                icon: <Shield className="w-6 h-6 text-white" />,
-                title: "Priority Support",
-                description: "Get faster support and dedicated channels with higher plans.",
-              },
-              {
-                icon: <TrendingUp className="w-6 h-6 text-white" />,
-                title: "Exclusive Content",
-                description: "Access exclusive content, events, and NFTs with premium plans.",
-              },
-              {
-                icon: <Diamond className="w-6 h-6 text-white" />,
-                title: "Profile Customization",
-                description: "Unlock premium badges and customization options for your profile.",
-              },
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 relative overflow-hidden group"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * index, duration: 0.5 }}
-                whileHover={{ y: -5 }}
-              >
-                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500 rounded-xl blur-lg opacity-0 group-hover:opacity-20 transition-opacity duration-700"></div>
-                <div className="bg-gradient-to-r from-emerald-500 to-teal-500 w-12 h-12 rounded-xl flex items-center justify-center mb-4 shadow-md">
-                  {feature.icon}
-                </div>
-                <h3 className="text-lg font-bold mb-2 text-gray-800 group-hover:text-emerald-600 transition-colors">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600 text-sm">{feature.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section ref={pricingRef} className="py-16 px-6 bg-gray-50 relative">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            className="text-center mb-10"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="inline-block mb-4">
-              <Diamond className="h-8 w-8 text-amber-500" />
-            </div>
-            <h2 className="text-4xl font-bold mb-4 text-gray-800">Choose Your Plan</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
-              Select the perfect premium plan to suit your needs and budget.
-            </p>
-          </motion.div>
-
-          {successMessage && (
-            <div className="mb-6 bg-green-100 text-green-700 p-4 rounded-lg shadow-md flex justify-between items-center">
-              <span>{successMessage}</span>
-              <button onClick={() => setSuccessMessage(null)} className="text-green-700 hover:text-green-900">
-                ✕
-              </button>
-            </div>
-          )}
-          {error && (
-            <div className="mb-6 bg-red-100 text-red-700 p-4 rounded-lg shadow-md flex justify-between items-center">
-              <span>{error}</span>
-              <button onClick={() => setError(null)} className="text-red-700 hover:text-red-900">
-                ✕
-              </button>
+          {/* Hiển thị loading khi đang fetch profile */}
+          {fetchingProfile && (
+            <div className="flex justify-center items-center mb-6">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-500 mr-2" />
+              <span className="text-gray-500">Đang tải thông tin gói Premium...</span>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
-            {pricingTiers[activePlan].map((tier, index) => {
-              const isLowerLevel = userLevel !== null && tier.level < userLevel;
-              const isCurrentLevel = userLevel !== null && tier.level === userLevel && isSubscriptionActive;
-              const isHigherLevel = userLevel !== null && tier.level > userLevel;
-
-              let buttonText = tier.cta;
-              let buttonClass = `bg-gradient-to-r ${tier.color} text-white hover:from-${tier.borderColor}-600 hover:to-${tier.borderColor === 'blue-500' ? 'blue-700' : tier.borderColor === 'emerald-500' ? 'teal-700' : tier.borderColor === 'purple-500' ? 'indigo-700' : 'rose-700'}`;
-              let buttonDisabled = loading;
-              let cardClass = `bg-white rounded-xl shadow-md border-2 border-${tier.borderColor}`; // Đảm bảo áp dụng viền cho tất cả thẻ
-
-              if (isLowerLevel) {
-                buttonText = "Not Available";
-                buttonClass = "bg-gray-300 text-gray-600 cursor-not-allowed opacity-50";
-                buttonDisabled = true;
-              } else if (isCurrentLevel) {
-                buttonText = "Active";
-                buttonClass = `bg-gradient-to-r ${tier.color} text-white cursor-not-allowed`;
-                buttonDisabled = true;
-                cardClass = `bg-white rounded-xl shadow-lg border-2 border-${tier.borderColor} scale-105`; // Viền vẫn được áp dụng
-              }
-
-              return (
-                <motion.div
-                  key={index}
-                  className={cardClass}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * index, duration: 0.5 }}
-                >
-                  {tier.popular && (
-                    <div className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-green-500 text-white px-3 py-1 rounded-bl-lg text-xs font-bold shadow-md">
-                      Most Popular
-                    </div>
-                  )}
-                  <div className="p-6 flex flex-col h-full">
-                    <h3 className={`text-xl font-bold mb-2 uppercase bg-clip-text text-transparent bg-gradient-to-r ${tier.color}`}>
-                      {tier.title}
-                    </h3>
-                    <div className="flex items-end gap-1 mb-4">
-                      <span className="text-4xl font-bold text-gray-800">{calculateTotalPrice(tier, 1)}</span>
-                      <span className="text-gray-500 text-sm">/ETH</span>
-                    </div>
-
-                    <ul className="space-y-2 mb-4 flex-grow">
-                      {tier.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <Check className={`text-${tier.borderColor} mt-1 flex-shrink-0 h-4 w-4`} />
-                          <span className="text-gray-600 text-sm">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <button
-                      onClick={() => openPurchaseModal(tier)}
-                      className={`w-full py-2 rounded-lg font-medium transition-all duration-300 text-sm ${buttonClass} flex items-center justify-center gap-2 mt-auto`}
-                      disabled={buttonDisabled}
-                    >
-                      {buttonText}
-                      <CreditCard className="h-4 w-4" />
-                    </button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Purchase Modal */}
-        <AnimatePresence>
-          {showPurchaseModal && selectedTier && (
-            <motion.div
-              className="absolute inset-0 z-50 flex items-center justify-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* Overlay chỉ che phủ nội dung chính, không che sidebar */}
-              <motion.div
-                className="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                onClick={() => setShowPurchaseModal(false)}
+          {/* Hiển thị thông tin gói hiện tại nếu người dùng đã có subscription */}
+          {showCurrentPlan && userSubscriptionLevel > 1 && !fetchingProfile && (
+            <div className="max-w-md mx-auto mb-8">
+              <CurrentSubscription
+                level={userSubscriptionLevel}
+                expiration={currentProfile?.subscription?.expiration}
+                username={currentProfile?.username}
               />
-              <motion.div
-                className={`relative bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-2xl sm:max-w-lg sm:w-full border-2 border-${selectedTier.borderColor}`}
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                transition={{ duration: 0.3 }}
+            </div>
+          )}
+
+          {/* Payment steps indicator */}
+          <div className="flex items-center justify-center max-w-md mx-auto mt-8">
+            <div className={`flex flex-col items-center ${paymentStep >= 1 ? "text-blue-600" : "text-gray-400"}`}>
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center ${paymentStep >= 1 ? "bg-blue-100" : "bg-gray-100"}`}
               >
-                <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                  <div className="sm:flex sm:items-start">
-                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                      <h3 className={`text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r ${selectedTier.color}`}>
-                        Purchase {selectedTier.title} Plan
-                      </h3>
-                      <div className="mt-4 space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Select Duration
-                          </label>
-                          <select
-                            value={modalSelectedMonths}
-                            onChange={(e) => setModalSelectedMonths(Number(e.target.value))}
-                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                          >
-                            {[...Array(12)].map((_, i) => (
-                              <option key={i + 1} value={i + 1}>
-                                {i + 1} Month{i + 1 > 1 ? "s" : ""}{i + 1 >= 6 ? ` (${i + 1 === 12 ? "15%" : "5%"} Discount)` : ""}
-                              </option>
-                            ))}
-                          </select>
+                <span className="text-lg font-medium">1</span>
+              </div>
+              <span className="text-sm mt-2">Chọn gói</span>
+            </div>
+            <div className={`w-16 h-0.5 mx-2 ${paymentStep >= 2 ? "bg-blue-500" : "bg-gray-200"}`}></div>
+            <div className={`flex flex-col items-center ${paymentStep >= 2 ? "text-blue-600" : "text-gray-400"}`}>
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center ${paymentStep >= 2 ? "bg-blue-100" : "bg-gray-100"}`}
+              >
+                <span className="text-lg font-medium">2</span>
+              </div>
+              <span className="text-sm mt-2">Thanh toán</span>
+            </div>
+            <div className={`w-16 h-0.5 mx-2 ${paymentStep >= 3 ? "bg-blue-500" : "bg-gray-200"}`}></div>
+            <div className={`flex flex-col items-center ${paymentStep >= 3 ? "text-blue-600" : "text-gray-400"}`}>
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center ${paymentStep >= 3 ? "bg-blue-100" : "bg-gray-100"}`}
+              >
+                <span className="text-lg font-medium">3</span>
+              </div>
+              <span className="text-sm mt-2">Xác nhận</span>
+            </div>
+          </div>
+        </div>
+
+        {error && <TransactionError error={error} />}
+
+        {success && (
+          <Alert className="mb-6 bg-green-50 border-green-200 max-w-3xl mx-auto">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-600">Thành công!</AlertTitle>
+            <AlertDescription>
+              Gói Premium của bạn đã được kích hoạt thành công! Hãy tận hưởng các quyền lợi Premium.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Main content */}
+        <div className="max-w-5xl mx-auto">
+          {paymentStep === 1 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100">
+                <h2 className="text-xl font-semibold">Chọn gói Premium</h2>
+                <p className="text-gray-500 text-sm mt-1">Chọn gói phù hợp với nhu cầu của bạn</p>
+              </div>
+
+              <div className="p-6">
+                <Tabs defaultValue={selectedPlan.toString()} onValueChange={(value) => setSelectedPlan(Number(value))}>
+                  <TabsList className="grid grid-cols-4 mb-6">
+                    <TabsTrigger value="1">Standard</TabsTrigger>
+                    <TabsTrigger value="2">Plus</TabsTrigger>
+                    <TabsTrigger value="5">Pro</TabsTrigger>
+                    <TabsTrigger value="10">Elite</TabsTrigger>
+                  </TabsList>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Plan details */}
+                    <div>
+                      {Object.entries(subscriptionPlans).map(([level, plan]) => (
+                        <TabsContent key={level} value={level}>
+                          <Card className={`border-${getPlanColor(Number(level))}-200 shadow-sm`}>
+                            <CardHeader
+                              className={`bg-gradient-to-r from-${getPlanColor(Number(level))}-50 to-white pb-3`}
+                            >
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center">
+                                  {renderPlanIcon(Number(level))}
+                                  <CardTitle className="text-xl">{plan.name}</CardTitle>
+                                </div>
+                                <SubscriptionBadge level={Number(level)} />
+                              </div>
+                              <CardDescription>
+                                {plan.pricePerMonth > 0
+                                  ? `${plan.pricePerMonth} ${plan.currency} mỗi tháng`
+                                  : "Gói miễn phí"}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>{renderBenefitList(plan.benefits, Number(level))}</CardContent>
+                          </Card>
+                        </TabsContent>
+                      ))}
+                    </div>
+
+                    {/* Subscription details */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Thông tin đăng ký</CardTitle>
+                        <CardDescription>Xem lại chi tiết gói Premium của bạn</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="font-medium mb-2">Gói đã chọn</h3>
+                            <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                              {renderPlanIcon(selectedPlan)}
+                              <SubscriptionBadge level={selectedPlan} size="md" />
+                              <span className="ml-2">
+                                {subscriptionPlans[selectedPlan]?.pricePerMonth}{" "}
+                                {subscriptionPlans[selectedPlan]?.currency}
+                                /tháng
+                              </span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <h3 className="font-medium mb-2">Thời hạn đăng ký</h3>
+                            <div className="grid grid-cols-4 gap-2">
+                              {[1, 3, 6, 12].map((m) => (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  onClick={() => setMonths(m)}
+                                  className={`py-2 px-3 rounded-md text-center transition-colors ${
+                                    months === m
+                                      ? `bg-${getPlanColor(selectedPlan)}-100 border border-${getPlanColor(
+                                          selectedPlan,
+                                        )}-300 text-${getPlanColor(selectedPlan)}-700`
+                                      : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
+                                  }`}
+                                >
+                                  {m} tháng
+                                </button>
+                              ))}
+                            </div>
+
+                            <div className="mt-2 flex items-center text-sm text-gray-500">
+                              <Clock className="w-4 h-4 mr-1" />
+                              <span>Thời hạn dài hơn = giá trị tốt hơn</span>
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          <div className="pt-2">
+                            <div className="flex justify-between font-medium">
+                              <span>Tổng tiền:</span>
+                              <span className="text-lg font-semibold">
+                                {calculateTotalPrice()} {subscriptionPlans[selectedPlan]?.currency}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500 mt-1">
+                              Thanh toán một lần cho toàn bộ thời hạn đăng ký
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Price</p>
-                          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
-                            {calculateTotalPrice(selectedTier, modalSelectedMonths)} ETH
-                          </p>
-                        </div>
+                      </CardContent>
+                      <CardFooter>
+                        <Button
+                          className={`w-full ${
+                            selectedPlan === 1
+                              ? "bg-blue-600 hover:bg-blue-700"
+                              : selectedPlan === 2
+                                ? "bg-purple-600 hover:bg-purple-700"
+                                : selectedPlan === 5
+                                  ? "bg-amber-600 hover:bg-amber-700"
+                                  : "bg-rose-600 hover:bg-rose-700"
+                          }`}
+                          onClick={createSubscriptionRequest}
+                          disabled={
+                            loading || selectedPlan === 1 || userSubscriptionLevel >= selectedPlan || fetchingProfile
+                          }
+                        >
+                          {loading || fetchingProfile ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Đang xử lý...
+                            </>
+                          ) : selectedPlan === 1 ? (
+                            "Gói miễn phí - Không cần thanh toán"
+                          ) : userSubscriptionLevel >= selectedPlan ? (
+                            "Bạn đã có gói cao hơn hoặc tương đương"
+                          ) : (
+                            "Tiếp tục thanh toán"
+                          )}
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  </div>
+                </Tabs>
+              </div>
+            </div>
+          )}
+
+          {paymentStep === 2 && paymentData && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100">
+                <h2 className="text-xl font-semibold">Hoàn tất thanh toán</h2>
+                <p className="text-gray-500 text-sm mt-1">Gửi thanh toán để kích hoạt gói Premium</p>
+              </div>
+
+              <div className="p-6">
+                <Alert className="mb-4 bg-blue-50 border-blue-100">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <AlertTitle className="text-blue-700">Thông tin thanh toán</AlertTitle>
+                  <AlertDescription className="text-blue-600">
+                    Bạn sẽ được yêu cầu xác nhận giao dịch trong ví của mình để hoàn tất thanh toán.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="text-sm font-medium text-gray-500">Gói:</div>
+                      <div className="font-medium">{paymentData.subscriptionName}</div>
+
+                      <div className="text-sm font-medium text-gray-500">Thời hạn:</div>
+                      <div>
+                        {paymentData.months} {paymentData.months === 1 ? "tháng" : "tháng"}
                       </div>
+
+                      <div className="text-sm font-medium text-gray-500">Số tiền:</div>
+                      <div className="font-medium">
+                        {paymentData.totalPrice} {paymentData.currency}
+                      </div>
+
+                      <div className="text-sm font-medium text-gray-500">Địa chỉ nhận:</div>
+                      <div className="truncate text-xs">{paymentData.recipientAddress}</div>
+
+                      <div className="text-sm font-medium text-gray-500">Mạng:</div>
+                      <div>{paymentData.network}</div>
                     </div>
                   </div>
+
+                  <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                    <Wallet className="h-5 w-5 text-gray-500 mr-2" />
+                    <span className="text-sm">Thanh toán bằng ví MetaMask của bạn</span>
+                  </div>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                  <button
-                    type="button"
-                    className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-gradient-to-r ${selectedTier.color} text-base font-medium text-white hover:from-${selectedTier.borderColor}-600 hover:to-${selectedTier.borderColor === 'blue-500' ? 'blue-700' : selectedTier.borderColor === 'emerald-500' ? 'teal-700' : selectedTier.borderColor === 'purple-500' ? 'indigo-700' : 'rose-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:ml-3 sm:w-auto sm:text-sm`}
-                    onClick={confirmPurchase}
+
+                <div className="flex flex-col space-y-2 mt-6">
+                  <Button
+                    className={`w-full ${
+                      selectedPlan === 2
+                        ? "bg-purple-600 hover:bg-purple-700"
+                        : selectedPlan === 5
+                          ? "bg-amber-600 hover:bg-amber-700"
+                          : selectedPlan === 10
+                            ? "bg-rose-600 hover:bg-rose-700"
+                            : "bg-blue-600 hover:bg-blue-700"
+                    }`}
+                    onClick={processPayment}
                     disabled={loading}
                   >
                     {loading ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                        Processing...
-                      </div>
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Đang xử lý thanh toán...
+                      </>
                     ) : (
-                      "Confirm Purchase"
+                      "Thanh toán ngay"
                     )}
-                  </button>
-                  <button
-                    type="button"
-                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                    onClick={() => setShowPurchaseModal(false)}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Cancel
-                  </button>
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => setPaymentStep(1)}>
+                    Quay lại
+                  </Button>
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-16 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="inline-block mb-4">
-              <Award className="h-8 w-8 text-amber-500" />
-            </div>
-            <h2 className="text-4xl font-bold mb-4 text-gray-800">What Our Members Say</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Join thousands of satisfied premium members who have transformed their experience.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * index, duration: 0.5 }}
-                whileHover={{ y: -5 }}
-              >
-                <div className="mb-4 text-amber-500">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="inline-block h-5 w-5 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-6 italic text-sm">"{testimonial.quote}"</p>
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
-                    {testimonial.author.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-800">{testimonial.author}</p>
-                    <p className="text-sm text-gray-500">{testimonial.role}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 px-6 bg-gray-50">
-        <motion.div
-          className="max-w-4xl mx-auto bg-white p-12 rounded-2xl shadow-xl border border-gray-100 relative overflow-hidden"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          whileHover={{ boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
-        >
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-200 rounded-full filter blur-3xl opacity-20"></div>
-          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-200 rounded-full filter blur-3xl opacity-20"></div>
-
-          <div className="relative z-10 text-center">
-            <div className="inline-block mb-6">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 mx-auto flex items-center justify-center shadow-lg">
-                <Gift className="text-white h-10 w-10" />
               </div>
             </div>
-            <h2 className="text-4xl font-bold mb-6 text-gray-800">Ready to Upgrade?</h2>
-            <p className="text-xl text-gray-600 mb-10">
-              Join thousands of users who have already unlocked premium features and are experiencing the benefits.
-            </p>
-            <motion.button
-              className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all duration-300"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={scrollToPricing}
-            >
-              Upgrade to Premium
-            </motion.button>
-          </div>
-        </motion.div>
-      </section>
+          )}
 
-      {/* FAQ Section */}
-      <section className="py-16 px-6 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="inline-block mb-4">
-              <Zap className="h-8 w-8 text-amber-500" />
+          {paymentStep === 3 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100">
+                <h2 className="text-xl font-semibold">Đang xử lý thanh toán</h2>
+                <p className="text-gray-500 text-sm mt-1">Giao dịch của bạn đang được xử lý</p>
+              </div>
+
+              <div className="p-6 flex flex-col items-center justify-center py-8">
+                <div className="relative">
+                  <div className="w-20 h-20 border border-blue-200 rounded-full flex items-center justify-center bg-blue-50">
+                    <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 bg-blue-100 rounded-full p-1">
+                    <Wallet className="h-4 w-4 text-blue-600" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-medium mt-6 mb-2">Đang xác nhận giao dịch</h3>
+                <p className="text-center text-gray-600 max-w-md">
+                  Vui lòng đợi trong khi chúng tôi xác nhận giao dịch của bạn trên blockchain. Quá trình này có thể mất
+                  vài phút.
+                </p>
+                <div className="w-full max-w-md bg-gray-100 h-2 rounded-full mt-6 overflow-hidden">
+                  <div className="bg-blue-500 h-full animate-pulse" style={{ width: "60%" }}></div>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">Đang xác nhận giao dịch...</p>
+              </div>
             </div>
-            <h2 className="text-4xl font-bold mb-4 text-gray-800">Frequently Asked Questions</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Everything you need to know about our premium membership.
-            </p>
-          </motion.div>
+          )}
 
-          <div className="space-y-6">
-            {[
-              {
-                question: "How does the reward multiplier work?",
-                answer:
-                  "The reward multiplier increases your daily token claims. For example, the Elite plan offers a 5x multiplier, meaning you earn 5 times more rewards compared to the Free plan.",
-              },
-              {
-                question: "Can I upgrade or downgrade my plan later?",
-                answer:
-                  "Yes, you can upgrade or downgrade your plan at any time. Changes will be applied at the start of your next billing cycle.",
-              },
-              {
-                question: "What payment methods are supported?",
-                answer:
-                  "You can pay with ETH. Choose your preferred method when selecting a plan.",
-              },
-              {
-                question: "What are the benefits of longer subscriptions?",
-                answer:
-                  "Subscribing for 6-11 months gives you a 5% discount, and a 12-month subscription offers a 15% discount on the total price.",
-              },
-            ].map((faq, index) => (
-              <motion.div
-                key={index}
-                className="bg-gray-50 rounded-xl p-6 shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * index, duration: 0.5 }}
-              >
-                <h3 className="text-xl font-bold mb-3 text-gray-800">{faq.question}</h3>
-                <p className="text-gray-600">{faq.answer}</p>
-              </motion.div>
-            ))}
-          </div>
+          {paymentStep === 4 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100">
+                <h2 className="text-xl font-semibold">Gói Premium đã được kích hoạt!</h2>
+                <p className="text-gray-500 text-sm mt-1">Gói Premium của bạn đã được kích hoạt thành công</p>
+              </div>
+
+              <div className="p-6 flex flex-col items-center justify-center py-8">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                  <CheckCircle className="h-10 w-10 text-green-500" />
+                </div>
+                <h3 className="text-xl font-medium mb-2">Cảm ơn bạn!</h3>
+                <p className="text-center text-gray-600 mb-6">
+                  Gói {subscriptionPlans[selectedPlan]?.name} của bạn đã được kích hoạt. Hãy tận hưởng các quyền lợi
+                  Premium!
+                </p>
+                <div className="bg-gray-50 p-4 rounded-lg w-full max-w-md mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-gray-500">Gói đăng ký:</span>
+                    <SubscriptionBadge level={selectedPlan} />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Thời hạn:</span>
+                    <span>{months} tháng</span>
+                  </div>
+                </div>
+                <Button
+                  className={`w-full max-w-md ${
+                    selectedPlan === 2
+                      ? "bg-purple-600 hover:bg-purple-700"
+                      : selectedPlan === 5
+                        ? "bg-amber-600 hover:bg-amber-700"
+                        : selectedPlan === 10
+                          ? "bg-rose-600 hover:bg-rose-700"
+                          : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                  onClick={() => navigate("/Dashboard")}
+                >
+                  Đi đến Dashboard
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
-      </section>
+      </div>
     </div>
-  );
-};
-
-export default Premium;
+  )
+}

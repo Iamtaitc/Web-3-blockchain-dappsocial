@@ -1,7 +1,7 @@
 // controllers/user.controller.js
 const { validationResult } = require("express-validator");
 const ApiResponse = require("../utils/apiResponse.utils");
-const userServices = require("../services/user.services");
+const userServices = require("../services/user/index");
 
 class UserController {
   

@@ -1,49 +1,100 @@
 "use client"
 
+import { useState, useEffect, useCallback, useRef } from "react"
 import "../../styles/home.css"
+import "../../styles/comment-section.css"
+import "../../styles/sticky-panel.css"
 import avtImage from "../../assets/default-avatar-profile-image-vector-social-media-user-icon-potrait-182347582.webp"
 import Nfttuimu from "../../assets/NFTtuimu.avif"
-import { useState, useEffect, useCallback } from "react"
-import "yet-another-react-lightbox/styles.css"
 import HeartButton from "../../Components/UI/HeartButton"
-import CommentModal, { type Comment } from "../../Components/UI/CommentModal"
 import CreatePostModal from "../../Components/UI/CreatePostModal"
-import { MessageCircle, Flag, PlusCircle, RefreshCw } from "lucide-react"
+import { Flag, PlusCircle, RefreshCw, MessageCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import InfiniteScroll from "../../Components/infinite-scroll"
 import PostSkeleton from "../../Components/post-skeleton"
 import { useSelector } from "react-redux"
 import type { RootState } from "../../store"
-import postApi, { type Post ,type PostMention } from "../../services/post.api"
+import postApi, { type Post, type PostMention } from "../../services/post.api"
 import IPFSImage from "../../Components/UI/IPFSImage"
 import BookmarkButton from "../../Components/UI/BookmarkButton"
 import { toast } from "react-hot-toast"
-import { WalletLoginModal } from "../../components/Login/wallet-login-modal"
-
+import { WalletLoginModal } from "../../Components/Login/wallet-login-modal"
+import CommentSection from "../../Components/Comment/CommentSection"
+import NFTButton from "../../Components/NFT/UI/NFTButton"
+import PostAvatarFallback from "../../Components/UI/post-avatar-fallback"
+import { hasPostImages } from "../../lib/utils"
 
 const Home = () => {
   const navigate = useNavigate()
-  const [commentModalOpen, setCommentModalOpen] = useState(false)
   const [createPostModalOpen, setCreatePostModalOpen] = useState(false)
-  const [selectedPostComments, setSelectedPostComments] = useState<Comment[]>([])
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
-  const [selectedPostTitle, setSelectedPostTitle] = useState<string>("")
-  const [selectedPostImage, setSelectedPostImage] = useState<string>("")
-  const [selectedPostContent, setSelectedPostContent] = useState<string>("")
   const [activeTab, setActiveTab] = useState<"discover" | "follow">("discover")
   const [apiPosts, setApiPosts] = useState<Post[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [hasMorePosts, setHasMorePosts] = useState(true)
   const [page, setPage] = useState(1)
-  const [selectedPostAuthorAvatar, setSelectedPostAuthorAvatar] = useState<string>("")
-  const [selectedPostTime, setSelectedPostTime] = useState<string>("")
-  // State cho WalletLoginModal
-const [WalletLoginModalOpen, setWalletLoginModalOpen] = useState(false);
+  const [walletLoginModalOpen, setWalletLoginModalOpen] = useState(false)
+  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null)
+
+  // Thêm refs để tham chiếu đến DOM elements
+  const rightPanelRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   // Kiểm tra trạng thái đăng nhập từ Redux store
   const isAuthenticated = useSelector((state: RootState) => !!state.auth.token)
   const user = useSelector((state: RootState) => state.auth.user)
+
+  // Xử lý scroll để right-panel di chuyển theo bài đăng
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!rightPanelRef.current || !containerRef.current) return
+
+      const containerRect = containerRef.current.getBoundingClientRect()
+      const rightPanel = rightPanelRef.current
+      const rightPanelParent = rightPanel.parentElement
+
+      if (!rightPanelParent) return
+
+      const rightPanelWidth = rightPanelParent.offsetWidth
+      const scrollY = window.scrollY
+      const viewportHeight = window.innerHeight
+
+      // Tính toán vị trí của container
+      const containerTop = containerRect.top + scrollY
+      const containerBottom = containerRect.bottom + scrollY
+
+      // Chiều cao của right panel
+      const rightPanelHeight = rightPanel.offsetHeight
+
+      // Nếu đã scroll quá header (100px)
+      if (scrollY > containerTop) {
+        rightPanel.style.position = "fixed"
+        rightPanel.style.top = "20px"
+        rightPanel.style.width = `${rightPanelWidth}px`
+
+        // Kiểm tra nếu đã scroll đến cuối container
+        const bottomLimit = containerBottom - rightPanelHeight - 20
+        if (scrollY > bottomLimit) {
+          rightPanel.style.top = `${bottomLimit - scrollY + 20}px`
+        }
+      } else {
+        rightPanel.style.position = "static"
+        rightPanel.style.width = "100%"
+        rightPanel.style.top = "0"
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    window.addEventListener("resize", handleScroll)
+
+    // Gọi một lần để thiết lập ban đầu
+    setTimeout(handleScroll, 100)
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+      window.removeEventListener("resize", handleScroll)
+    }
+  }, [apiPosts]) // Chạy lại khi apiPosts thay đổi để cập nhật kích thước
 
   // Tải bài viết từ API
   const fetchPosts = useCallback(async (pageNum = 1, replace = true) => {
@@ -128,24 +179,13 @@ const [WalletLoginModalOpen, setWalletLoginModalOpen] = useState(false);
     setIsLoading(true)
   }
 
-  // Xử lý khi mở modal bình luận
-  const handleOpenCommentModal = async (postId: string) => {
-    const post = apiPosts.find((p) => p._id === postId)
-    if (!post) return
-
-    setSelectedPostId(postId)
-    setSelectedPostTitle(`Bài viết của ${post.username || post.author}`)
-    setSelectedPostContent(post.content || "")
-    setSelectedPostAuthorAvatar("/placeholder.svg") // Thay bằng avatar thực tế nếu có
-    setSelectedPostTime(new Date(post.createdAt).toLocaleString())
-
-    // Nếu có media, lấy media đầu tiên làm ảnh đại diện
-    if (post.media && post.media.length > 0) {
-      setSelectedPostImage(post.media[0].uri)
-    } else if (post.contentURI) {
-      setSelectedPostImage(post.contentURI)
+  // Xử lý khi nhấn nút đăng bài
+  const handlePostButtonClick = () => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để đăng bài")
+      setWalletLoginModalOpen(true)
     } else {
-      setSelectedPostImage("")
+      setCreatePostModalOpen(true)
     }
 
     // Tải bình luận (trong thực tế, bạn sẽ gọi API để lấy bình luận)
@@ -286,8 +326,131 @@ const [WalletLoginModalOpen, setWalletLoginModalOpen] = useState(false);
     setCommentModalOpen(false)
   }
 
+  // Xử lý khi bài viết được tạo thành công
+  const handlePostCreated = () => {
+    toast.success("Đăng bài thành công!")
+    handleRefresh()
+  }
+
+  // Xử lý khi click vào mention
+  const handleMentionClick = (mention: PostMention) => {
+    navigate(`/user/${mention.walletAddress}`)
+  }
+
+  // Xử lý thích bài viết
+  const handleLikePost = async (postId: string, isLiked: boolean) => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để thích bài viết")
+      setWalletLoginModalOpen(true)
+      return
+    }
+
+    try {
+      // Cập nhật UI ngay lập tức (optimistic update)
+      setApiPosts((posts) =>
+        posts.map((post) =>
+          post._id === postId
+            ? {
+                ...post,
+                isLiked: !post.isLiked,
+                likeCount: post.isLiked ? post.likeCount - 1 : post.likeCount + 1,
+              }
+            : post,
+        ),
+      )
+
+      // Gọi API
+      if (!isLiked) {
+        await postApi.likePost(postId)
+      } else {
+        await postApi.unlikePost(postId)
+      }
+    } catch (error) {
+      console.error("Lỗi khi thích/bỏ thích bài viết:", error)
+      toast.error("Có lỗi xảy ra. Vui lòng thử lại.")
+
+      // Khôi phục trạng thái nếu có lỗi
+      fetchPosts(page, true)
+    }
+  }
+
+  // Xử lý lưu bài viết
+  const handleSavePost = async (postId: string, isSaved: boolean) => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để lưu bài viết")
+      setWalletLoginModalOpen(true)
+      return
+    }
+
+    try {
+      // Cập nhật UI ngay lập tức (optimistic update)
+      setApiPosts((posts) =>
+        posts.map((post) =>
+          post._id === postId
+            ? {
+                ...post,
+                isSaved: !post.isSaved,
+                saveCount: post.isSaved ? post.saveCount - 1 : post.saveCount + 1,
+              }
+            : post,
+        ),
+      )
+
+      // Gọi API
+      if (!isSaved) {
+        await postApi.savePost(postId)
+      } else {
+        await postApi.unsavePost(postId)
+      }
+    } catch (error) {
+      console.error("Lỗi khi lưu/bỏ lưu bài viết:", error)
+      toast.error("Có lỗi xảy ra. Vui lòng thử lại.")
+
+      // Khôi phục trạng thái nếu có lỗi
+      fetchPosts(page, true)
+    }
+  }
+
+  // Xử lý báo cáo bài viết
+  const handleReportPost = (postId: string) => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để báo cáo bài viết")
+      setWalletLoginModalOpen(true)
+      return
+    }
+
+    // Hiển thị xác nhận báo cáo
+    if (confirm("Bạn có chắc chắn muốn báo cáo bài viết này không?")) {
+      // Trong thực tế, bạn sẽ gọi API để báo cáo bài viết
+      toast.success("Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét bài viết này.")
+    }
+  }
+
+  // Định dạng thời gian
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSecs = Math.floor(diffMs / 1000)
+    const diffMins = Math.floor(diffSecs / 60)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffSecs < 60) return "Vừa xong"
+    if (diffMins < 60) return `${diffMins} phút trước`
+    if (diffHours < 24) return `${diffHours} giờ trước`
+    if (diffDays < 7) return `${diffDays} ngày trước`
+
+    return date.toLocaleDateString("vi-VN")
+  }
+
+  // Xử lý khi click vào icon comment
+  const handleCommentClick = (postId: string) => {
+    setActiveCommentPostId(activeCommentPostId === postId ? null : postId)
+  }
+
   return (
-    <div className="container">
+    <div className="container" ref={containerRef}>
       <div className="left-panel">
         <div className="tabs-container">
           <div className="discover">
@@ -308,7 +471,11 @@ const [WalletLoginModalOpen, setWalletLoginModalOpen] = useState(false);
         <div className="status-container">
           <div className="Status">
             <div className="tl">
-              <img src={user?.avatarURI || avtImage || "/placeholder.svg"} alt="avatar" className="avatar" />
+              <img
+                src={user?.avatarURI || avtImage || "/placeholder.svg?height=42&width=42"}
+                alt="avatar"
+                className="avatar"
+              />
               <p>Có gì mới?</p>
             </div>
             <div className="bt">
@@ -335,7 +502,11 @@ const [WalletLoginModalOpen, setWalletLoginModalOpen] = useState(false);
                 <div key={post._id} className="post">
                   {/* Thay đổi hiển thị username thay vì địa chỉ ví trong phần user-info */}
                   <div className="user-info">
-                    <img src={avtImage || "/placeholder.svg"} alt="avatar" className="avatar" />
+                    <img
+                      src={post.authorDetails?.avatarURI || avtImage || "/placeholder.svg?height=42&width=42"}
+                      alt="avatar"
+                      className="avatar"
+                    />
                     <div className="user-details">
                       <p className="username">{post.authorDetails.username}</p>
                       <p className="time">{formatTime(post.createdAt)}</p>
@@ -382,48 +553,56 @@ const [WalletLoginModalOpen, setWalletLoginModalOpen] = useState(false);
                         post.mentions.length > 0 &&
                         post.mentions.map((mention, index) => (
                           <button
-                          key={`mention-${index}`}
-                          onClick={() => handleMentionClick(mention)}
-                          className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm hover:bg-green-200 transition-colors"
-                        >
-                          @{mention.username}
-                        </button>
+                            key={`mention-${index}`}
+                            onClick={() => handleMentionClick(mention)}
+                            className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm hover:bg-green-200 transition-colors"
+                          >
+                            @{mention.username}
+                          </button>
                         ))}
                     </div>
                   )}
-                  {/* Hiển thị hình ảnh từ IPFS */}
-                  {post.media && post.media.length > 0 && (
-                    <div
-                      className={`image-container ${
-                        post.media.length === 2
-                          ? "two"
-                          : post.media.length === 3
-                            ? "three"
-                            : post.media.length === 4
-                              ? "four"
-                              : ""
-                      }`}
-                    >
-                      {post.media.map((media, index) => (
-                        <IPFSImage
-                          key={index}
-                          hash={media.uri}
-                          alt={`Hình ảnh bài viết ${index + 1}`}
-                          className="post-image"
-                          onClick={() => handleOpenCommentModal(post._id)}
-                        />
-                      ))}
-                    </div>
-                  )}
 
-                  {/* Hiển thị hình ảnh từ contentURI nếu không có media */}
-                  {(!post.media || post.media.length === 0) && post.contentURI && (
-                    <div className="image-container">
-                      <IPFSImage
-                        hash={post.contentURI}
-                        alt="Hình ảnh bài viết"
-                        className="post-image"
-                        onClick={() => handleOpenCommentModal(post._id)}
+                  {/* THAY ĐỔI: Kiểm tra nếu bài đăng có hình ảnh hoặc không */}
+                  {hasPostImages(post) ? (
+                    <>
+                      {/* Hiển thị hình ảnh từ IPFS nếu có media */}
+                      {post.media && post.media.length > 0 && (
+                        <div
+                          className={`image-container ${
+                            post.media.length === 2
+                              ? "two"
+                              : post.media.length === 3
+                                ? "three"
+                                : post.media.length === 4
+                                  ? "four"
+                                  : ""
+                          }`}
+                        >
+                          {post.media.map((media, index) => (
+                            <IPFSImage
+                              key={index}
+                              hash={media.uri}
+                              alt={`Hình ảnh bài viết ${index + 1}`}
+                              className="post-image"
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Hiển thị hình ảnh từ contentURI nếu không có media */}
+                      {(!post.media || post.media.length === 0) && post.contentURI && (
+                        <div className="image-container">
+                          <IPFSImage hash={post.contentURI} alt="Hình ảnh bài viết" className="post-image" />
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    // THAY ĐỔI: Hiển thị avatar lớn của người đăng nếu không có hình ảnh
+                    <div className="avatar-fallback-container">
+                      <PostAvatarFallback 
+                        avatarURI={post.authorDetails?.avatarURI} 
+                        username={post.authorDetails?.username} 
                       />
                     </div>
                   )}
@@ -439,17 +618,28 @@ const [WalletLoginModalOpen, setWalletLoginModalOpen] = useState(false);
                           onToggle={() => handleLikePost(post._id, post.isLiked || false)}
                         />
                       </span>
-                      <span className="comment" onClick={() => handleOpenCommentModal(post._id)}>
+                      <span className="comment" onClick={() => handleCommentClick(post._id)}>
                         <MessageCircle className="comment-icon" />
                         <span className="count">{post.commentCount}</span>
                       </span>
                     </div>
                     <div className="nft-bt">
-                      <button onClick={() => navigate("/add-nft/nft-view")} className="buy-nft">
-                        Mua NFT
-                      </button>
+                      <NFTButton
+                        postId={post._id}
+                        hasMedia={!!(post.media && post.media.length > 0)}
+                        onNFTCreated={handleRefresh} // Truyền handleRefresh để làm mới danh sách
+                      />
+                      {post.nfts && post.nfts.some((nft) => nft.forSale) && (
+                        <button onClick={() => navigate(`/marketplacea?postId=${post._id}`)} className="buy-nft">
+                          MUA NFT
+                        </button>
+                      )}
                     </div>
                   </div>
+                  {/* Hiển thị phần comments khi người dùng click vào icon comment */}
+                  {activeCommentPostId === post._id && (
+                    <CommentSection postId={post._id} isOpen={true} onClose={() => setActiveCommentPostId(null)} />
+                  )}
                 </div>
               ))}
 
@@ -460,7 +650,11 @@ const [WalletLoginModalOpen, setWalletLoginModalOpen] = useState(false);
             // Hiển thị trạng thái trống nếu không có bài viết
             <div className="empty-follow-state">
               <div className="empty-follow-content">
-                <img src={avtImage || "/placeholder.svg"} alt="Trạng thái trống" className="empty-follow-image" />
+                <img
+                  src={PostAvatarFallback || "/placeholder.svg?height=120&width=120"}
+                  alt="Trạng thái trống"
+                  className="empty-follow-image"
+                />
                 <h3>Chưa có bài viết nào</h3>
                 <p>
                   {activeTab === "follow"
@@ -484,48 +678,36 @@ const [WalletLoginModalOpen, setWalletLoginModalOpen] = useState(false);
       </div>
 
       {/* Bảng bên phải - đã được cập nhật để sticky khi cuộn */}
-      <div className="right-panel">
-        <div className="balance">
-          <p className="balance-amount">189.331.433 Dx</p>
-          <div className="balance-checkin">
-            <p className="checkin">Điểm danh</p>
-            <p className="day14">Ngày 14</p>
-            <button className="claim-checkin">Nhận</button>
+      <div className="right-panel-container">
+        <div className="right-panel" ref={rightPanelRef}>
+          <div className="balance">
+            <p className="balance-amount">189.331.433 Dx</p>
+            <div className="balance-checkin">
+              <p className="checkin">Điểm danh</p>
+              <p className="day14">Ngày 14</p>
+              <button className="claim-checkin">Nhận</button>
+            </div>
+            <p className="farming">🌱 Farming 400 Dx/h</p>
+            <button className="claim-farming">Nhận</button>
           </div>
-          <p className="farming">🌱 Farming 400 Dx/h</p>
-          <button className="claim-farming">Nhận</button>
-        </div>
 
-        <div className="referrals">
-          <h3>Giới thiệu</h3>
-          <p>Giới thiệu người dùng với mã giới thiệu của bạn để kiếm điểm.</p>
-          <p className="total-referrals">
-            Tổng: <span>3</span>
-          </p>
-          <button className="invite">Mời bạn bè</button>
-        </div>
+          <div className="referrals">
+            <h3>Giới thiệu</h3>
+            <p>Giới thiệu người dùng với mã giới thiệu của bạn để kiếm điểm.</p>
+            <p className="total-referrals">
+              Tổng: <span>3</span>
+            </p>
+            <button className="invite">Mời bạn bè</button>
+          </div>
 
-        <div className="nft-ad-card">
-          <h3>🎁 Bốc Túi Mù NFT</h3>
-          <p>Mở túi và nhận NFT hiếm!</p>
-          <img src={Nfttuimu || "/placeholder.svg"} alt="Túi mù NFT" />
-          <button className="explore-btn">Khám phá ngay</button>
+          <div className="nft-ad-card">
+            <h3>🎁 Bốc Túi Mù NFT</h3>
+            <p>Mở túi và nhận NFT hiếm!</p>
+            <img src={Nfttuimu || "/placeholder.svg?height=80&width=80"} alt="Túi mù NFT" />
+            <button className="explore-btn">Khám phá ngay</button>
+          </div>
         </div>
       </div>
-
-      {/* Comment Modal */}
-      <CommentModal
-        isOpen={commentModalOpen}
-        onClose={() => setCommentModalOpen(false)}
-        comments={selectedPostComments}
-        postId={selectedPostId || "0"}
-        postTitle={selectedPostTitle}
-        postImage={selectedPostImage}
-        postContent={selectedPostContent}
-        postAuthorAvatar={selectedPostAuthorAvatar}
-        postTime={selectedPostTime}
-        onAddComment={handleAddComment}
-      />
 
       {/* Modal đăng bài */}
       <CreatePostModal
@@ -533,12 +715,11 @@ const [WalletLoginModalOpen, setWalletLoginModalOpen] = useState(false);
         onClose={() => setCreatePostModalOpen(false)}
         onPostCreated={handlePostCreated}
       />
-        {WalletLoginModalOpen && (
-      <WalletLoginModal
-        isOpen={WalletLoginModalOpen}
-        onClose={() => setWalletLoginModalOpen(false)}
-      />
-    )}
+
+      {/* Modal đăng nhập */}
+      {walletLoginModalOpen && (
+        <WalletLoginModal isOpen={walletLoginModalOpen} onClose={() => setWalletLoginModalOpen(false)} />
+      )}
     </div>
     
   )

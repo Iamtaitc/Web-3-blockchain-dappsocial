@@ -18,7 +18,6 @@ const FollowSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Compound index để đảm bảo mỗi cặp follower-following chỉ tồn tại một lần
 FollowSchema.index({ follower: 1, following: 1 }, { unique: true });
 
 // Index riêng để tối ưu truy vấn

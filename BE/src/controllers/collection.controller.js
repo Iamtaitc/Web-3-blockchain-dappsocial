@@ -1,13 +1,12 @@
 const { validationResult } = require("express-validator");
 const ApiResponse = require("../utils/apiResponse.utils");
-const CollectionService = require("../services/collection.services");
+const CollectionService = require("../services/collection/index");
 const config = require("../configs/config.env");
 
 /**
  * Controller xử lý các chức năng bộ sưu tập NFT
  */
 class CollectionController {
-
   /**
    * Tạo bộ sưu tập NFT mới
    * @param {Object} req - Request object
@@ -402,8 +401,7 @@ class CollectionController {
       );
     }
 
-    const result =
-      await CollectionService.updateCollectionStats(collectionId);
+    const result = await CollectionService.updateCollectionStats(collectionId);
 
     if (!result.success) {
       return ApiResponse.error(

@@ -8,6 +8,7 @@ const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const initializeJwtSecrets  = require("./utils/initializeJwtSecrets");
 const { swaggerUi, swaggerDocs } = require('./docs/swagger');
+// const logger = require('./utils/logger');
 require("dotenv").config();
 
 const connectDB = require("./configs/configs.mongoose");
@@ -20,7 +21,7 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: true,
     credentials: true,
     optionsSuccessStatus: 200,
   })
@@ -31,14 +32,13 @@ initializeJwtSecrets();
 app.use('/api-docs', swaggerUi.serve);
 app.get('/api-docs', swaggerUi.setup(swaggerDocs));
 connectDB();
+// // Sử dụng HTTP logger middleware
+// app.use(logger.httpLoggerMiddleware);
+
+// // Cài đặt routes admin cho logs
+// logger.setupAdminRoutes(app);
 // Routes
 app.use("", require("./routers"));
-
-// console.log(listEndpoints(app));
-
-// error handler
-// app.use(notFoundHandler);
-// app.use(errorHandler);
 
 app.use((error, req, res, next) => {
   res.status(error.statusCode || 500);

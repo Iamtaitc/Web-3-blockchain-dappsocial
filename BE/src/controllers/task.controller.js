@@ -41,7 +41,6 @@ class TaskController {
         res,
         result.message,
         result.status,
-        result.error
       );
     }
 
@@ -49,34 +48,6 @@ class TaskController {
       tasks: result.data.tasks,
       completedCount: result.data.completedCount,
       totalTasks: result.data.totalTasks,
-    });
-  }
-
-  /**
-   * Check-in hàng ngày
-   * @param {Object} req - Request object
-   * @param {Object} res - Response object
-   */
-  async checkIn(req, res) {
-    const address = req.user.address;
-
-    const result = await TaskService.checkIn(address);
-
-    if (!result.success) {
-      return ApiResponse.error(
-        res,
-        result.message,
-        result.status,
-        result.error
-      );
-    }
-
-    return ApiResponse.success(res, {
-      message: "Check-in successful",
-      streak: result.data.streak,
-      pointsEarned: result.data.pointsEarned,
-      tokensEarned: result.data.tokensEarned,
-      checkIn: result.data.checkIn,
     });
   }
 
@@ -101,54 +72,6 @@ class TaskController {
 
     return ApiResponse.success(res, {
       subscription: result.data,
-    });
-  }
-
-  /**
-   * Lấy thông tin points của user
-   * @param {Object} req - Request object
-   * @param {Object} res - Response object
-   */
-  async getUserPoints(req, res) {
-    const address = req.user.address;
-
-    const result = await TaskService.getUserPoints(address);
-
-    if (!result.success) {
-      return ApiResponse.error(
-        res,
-        result.message,
-        result.status,
-        result.error
-      );
-    }
-
-    return ApiResponse.success(res, result.data);
-  }
-
-  /**
-   * Claim tokens
-   * @param {Object} req - Request object
-   * @param {Object} res - Response object
-   */
-  async claimTokens(req, res) {
-    const walletAddress = req.user.address;
-
-    const result = await TaskService.claimTokens(walletAddress);
-
-    if (!result.success) {
-      return ApiResponse.error(
-        res,
-        result.message,
-        result.status,
-        result.error
-      );
-    }
-
-    return ApiResponse.success(res, {
-      message: "Claim token thành công",
-      amount: result.data.amount,
-      transactionHash: result.data.transactionHash,
     });
   }
 }

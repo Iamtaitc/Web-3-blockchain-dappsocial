@@ -14,6 +14,8 @@ router.use("/v1", require("./nft"));
 router.use("/v1", require("./comments"));
 router.use("/v1", require("./learderBoad"));
 router.use("/v1", require("./collection"));
+router.use("/v1", require("./rewardPoints"));
+router.use("/v1", require("./subscription"));
 
 router.use("/v1", require("./admin"));
 

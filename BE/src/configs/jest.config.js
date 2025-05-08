@@ -1,3 +1,4 @@
+// BE\src\configs\jest.config.js
 module.exports = {
   // Set the test environment
   testEnvironment: "node",
@@ -25,13 +26,13 @@ module.exports = {
   collectCoverage: true,
 
   // Cấu hình teardown toàn cục sau khi tất cả các test chạy xong
-  globalTeardown: "./test/setup/runTestWithReport.js",
+  // globalTeardown: "./test/runTest.js",
 
   // Cấu hình setup toàn cục trước khi các test chạy
-  globalSetup: "./test/setup/globalSetup.js",
+  // globalSetup: "./test/setup/globalSetup.js",
 
   // Cấu hình setup cho mỗi test file
-  setupFilesAfterEnv: ["./test/setup/setupTests.js"],
+  // setupFilesAfterEnv: ["./test/setup/setupTests.js"],
 
   // Test environment
   testEnvironment: "node",
@@ -54,5 +55,5 @@ module.exports = {
       statements: 80,
     },
   },
-  reporters: ["default", "../../src/utils/testReporter.js"],
+  // reporters: ["default", "../../src/utils/testReporter.js"],
 };

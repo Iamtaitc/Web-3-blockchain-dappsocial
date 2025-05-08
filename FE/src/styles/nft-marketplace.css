@@ -1,0 +1,245 @@
+/* NFT Marketplace specific styles */
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .nft-animate-fadeIn {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+  
+  /* Hide scrollbar for horizontal scrolling elements */
+  .nft-scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .nft-scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Pulse animation for empty state */
+  @keyframes nft-pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.3;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.5;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0.3;
+    }
+  }
+  
+  .nft-animate-pulse {
+    animation: nft-pulse 2s infinite ease-in-out;
+  }
+  
+  /* Ping animation for empty state */
+  @keyframes nft-ping {
+    0% {
+      transform: scale(0.95);
+      opacity: 0.5;
+    }
+    75%,
+    100% {
+      transform: scale(1.1);
+      opacity: 0;
+    }
+  }
+  
+  .nft-animate-ping {
+    animation: nft-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  
+  /* Hover effects for NFT cards */
+  .nft-card {
+    transition: all 0.3s ease;
+  }
+  
+  .nft-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  .nft-card-image {
+    transition: transform 0.5s ease;
+  }
+  
+  .nft-card:hover .nft-card-image {
+    transform: scale(1.1);
+  }
+  
+  .nft-card-overlay {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .nft-card:hover .nft-card-overlay {
+    opacity: 1;
+  }
+  
+  .nft-quick-view {
+    opacity: 0;
+    transform: scale(0.75);
+    transition: all 0.3s ease;
+  }
+  
+  .nft-card:hover .nft-quick-view {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  /* Gradient backgrounds */
+  .nft-gradient-primary {
+    background: linear-gradient(to right, #10b981, #0d9488);
+  }
+  
+  .nft-gradient-card {
+    background: linear-gradient(to bottom right, #ffffff, #f0fdf4);
+  }
+  
+  .nft-gradient-featured {
+    background: linear-gradient(to bottom right, #10b981, #0d9488);
+  }
+  
+  /* Stats cards */
+  .nft-stats-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .nft-stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+  
+  /* Filter buttons */
+  .nft-filter-button {
+    transition: all 0.2s ease;
+  }
+  
+  .nft-filter-button:hover {
+    transform: translateY(-1px);
+  }
+  
+  .nft-filter-button-active {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+  
+  /* Featured NFT */
+  .nft-featured-countdown {
+    background-color: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+  }
+  
+  /* Staggered animation for grid items */
+  .nft-grid-item {
+    opacity: 0;
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+  
+  /* Utility classes */
+  .nft-border-gradient {
+    border-left: 4px solid;
+  }
+  
+  .nft-border-emerald {
+    border-color: #10b981;
+  }
+  
+  .nft-border-purple {
+    border-color: #8b5cf6;
+  }
+  
+  .nft-border-amber {
+    border-color: #f59e0b;
+  }
+  
+  .nft-border-blue {
+    border-color: #3b82f6;
+  }
+  .nft-gradient-primary {
+    background: linear-gradient(to right, #10b981, #059669);
+  }
+  
+  .nft-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .nft-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .nft-card-image {
+    transition: transform 0.5s ease;
+  }
+  
+  .nft-card:hover .nft-card-image {
+    transform: scale(1.05);
+  }
+  
+  .nft-card-overlay {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .nft-card:hover .nft-card-overlay {
+    opacity: 1;
+  }
+  
+  .nft-quick-view {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+  
+  .nft-card:hover .nft-quick-view {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  
+  /* Animations for purchase process */
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+  }
+  
+  .purchase-pulse {
+    animation: pulse 2s infinite;
+  }
+  
+  /* Status badge animations */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .status-badge {
+    animation: fadeIn 0.3s ease-out;
+  }
