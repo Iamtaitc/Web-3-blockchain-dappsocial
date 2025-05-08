@@ -1,9 +1,9 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\contracts\\DXToken.sol": {
-      "lastModificationDate": 1742799409487,
-      "contentHash": "e7446933db7b7657c66673ffd9327100",
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\contracts\\DXToken.sol": {
+      "lastModificationDate": 1744355526062,
+      "contentHash": "9507e0122a40f739f59f12fb6cd1abbe",
       "sourceName": "contracts/DXToken.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -42,8 +42,8 @@
         "DXToken"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\access\\AccessControl.sol": {
-      "lastModificationDate": 1742799932731,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\access\\AccessControl.sol": {
+      "lastModificationDate": 1742645844851,
       "contentHash": "4c80b7fdf559a9a348e832a57d072a0b",
       "sourceName": "@openzeppelin/contracts/access/AccessControl.sol",
       "solcConfig": {
@@ -82,8 +82,8 @@
         "AccessControl"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\Pausable.sol": {
-      "lastModificationDate": 1742799934486,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\Pausable.sol": {
+      "lastModificationDate": 1742645849887,
       "contentHash": "24e52f6ef3868e6fca664a423140bee9",
       "sourceName": "@openzeppelin/contracts/utils/Pausable.sol",
       "solcConfig": {
@@ -120,8 +120,8 @@
         "Pausable"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\ERC20.sol": {
-      "lastModificationDate": 1742799933363,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\ERC20.sol": {
+      "lastModificationDate": 1742645846294,
       "contentHash": "227a6eb2225701c12d9c959b758b6333",
       "sourceName": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
       "solcConfig": {
@@ -161,8 +161,8 @@
         "ERC20"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\ERC20Burnable.sol": {
-      "lastModificationDate": 1742799933374,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\ERC20Burnable.sol": {
+      "lastModificationDate": 1742645846305,
       "contentHash": "273d8d24b06f67207dd5f35c3a0c1086",
       "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol",
       "solcConfig": {
@@ -200,8 +200,8 @@
         "ERC20Burnable"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
-      "lastModificationDate": 1742799932986,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
+      "lastModificationDate": 1742645845476,
       "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
       "sourceName": "@openzeppelin/contracts/utils/Context.sol",
       "solcConfig": {
@@ -236,8 +236,8 @@
         "Context"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\access\\IAccessControl.sol": {
-      "lastModificationDate": 1742799933814,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\access\\IAccessControl.sol": {
+      "lastModificationDate": 1742645848634,
       "contentHash": "6f7fac9fa0df6004375e18b7ff7edf4e",
       "sourceName": "@openzeppelin/contracts/access/IAccessControl.sol",
       "solcConfig": {
@@ -272,8 +272,8 @@
         "IAccessControl"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\ERC165.sol": {
-      "lastModificationDate": 1742799933319,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\ERC165.sol": {
+      "lastModificationDate": 1742645846207,
       "contentHash": "7c03c1e37c3dc24eafb76dc2b8a5c3a6",
       "sourceName": "@openzeppelin/contracts/utils/introspection/ERC165.sol",
       "solcConfig": {
@@ -310,8 +310,8 @@
         "ERC165"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\IERC165.sol": {
-      "lastModificationDate": 1742799934030,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\IERC165.sol": {
+      "lastModificationDate": 1742645849130,
       "contentHash": "bf0119eb2a570f219729ff38b6cd1df8",
       "sourceName": "@openzeppelin/contracts/utils/introspection/IERC165.sol",
       "solcConfig": {
@@ -346,8 +346,8 @@
         "IERC165"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\interfaces\\draft-IERC6093.sol": {
-      "lastModificationDate": 1742799933085,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\interfaces\\draft-IERC6093.sol": {
+      "lastModificationDate": 1742645845761,
       "contentHash": "267d92fe4de67b1bdb3302c08f387dbf",
       "sourceName": "@openzeppelin/contracts/interfaces/draft-IERC6093.sol",
       "solcConfig": {
@@ -384,8 +384,8 @@
         "IERC721Errors"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
-      "lastModificationDate": 1742799934192,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
+      "lastModificationDate": 1742645849190,
       "contentHash": "8f19f64d2adadf448840908bbaf431c8",
       "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
       "solcConfig": {
@@ -420,8 +420,8 @@
         "IERC20"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
-      "lastModificationDate": 1742799934219,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
+      "lastModificationDate": 1742645849203,
       "contentHash": "794db3115001aa372c79326fcfd44b1f",
       "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
       "solcConfig": {
@@ -458,9 +458,9 @@
         "IERC20Metadata"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\contracts\\Subscription.sol": {
-      "lastModificationDate": 1742799409488,
-      "contentHash": "21d58674d961767ca77d30e9fc025871",
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\contracts\\Subscription.sol": {
+      "lastModificationDate": 1745140711344,
+      "contentHash": "b907b7ac07c77c64cde2527fdddb7f1c",
       "sourceName": "contracts/Subscription.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -499,8 +499,8 @@
         "Subscription"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
-      "lastModificationDate": 1742799934467,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
+      "lastModificationDate": 1742645849674,
       "contentHash": "d3c790edc9ccf808a17c5a6cd13614fd",
       "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
       "solcConfig": {
@@ -537,8 +537,8 @@
         "Ownable"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\ReentrancyGuard.sol": {
-      "lastModificationDate": 1742799934498,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\ReentrancyGuard.sol": {
+      "lastModificationDate": 1742645849926,
       "contentHash": "190613e556d509d9e9a0ea43dc5d891d",
       "sourceName": "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
       "solcConfig": {
@@ -573,8 +573,8 @@
         "ReentrancyGuard"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\utils\\SafeERC20.sol": {
-      "lastModificationDate": 1742799934513,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\utils\\SafeERC20.sol": {
+      "lastModificationDate": 1742645849990,
       "contentHash": "b6c6348d1c4d3e890f8d8a885b2477c0",
       "sourceName": "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
       "solcConfig": {
@@ -612,8 +612,8 @@
         "SafeERC20"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC1363.sol": {
-      "lastModificationDate": 1742799933969,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC1363.sol": {
+      "lastModificationDate": 1742645849020,
       "contentHash": "6b7c5ee7a59c981072a804c99ab0fac9",
       "sourceName": "@openzeppelin/contracts/interfaces/IERC1363.sol",
       "solcConfig": {
@@ -651,8 +651,8 @@
         "IERC1363"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC165.sol": {
-      "lastModificationDate": 1742799934006,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC165.sol": {
+      "lastModificationDate": 1742645849111,
       "contentHash": "f808b485ee0cdc6768ee8385ae5f9a2a",
       "sourceName": "@openzeppelin/contracts/interfaces/IERC165.sol",
       "solcConfig": {
@@ -687,8 +687,8 @@
       ],
       "artifacts": []
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC20.sol": {
-      "lastModificationDate": 1742799934173,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC20.sol": {
+      "lastModificationDate": 1742645849177,
       "contentHash": "79af12d64eacc7d77b9ee2ac4b4d51ee",
       "sourceName": "@openzeppelin/contracts/interfaces/IERC20.sol",
       "solcConfig": {
@@ -723,83 +723,8 @@
       ],
       "artifacts": []
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC4906.sol": {
-      "lastModificationDate": 1742799934301,
-      "contentHash": "273c26c9c728a6052d1175ace81d10b4",
-      "sourceName": "@openzeppelin/contracts/interfaces/IERC4906.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./IERC165.sol",
-        "./IERC721.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "IERC4906"
-      ]
-    },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC721.sol": {
-      "lastModificationDate": 1742799934349,
-      "contentHash": "d8d23fc2f55ed934d1a1b91c9afd8526",
-      "sourceName": "@openzeppelin/contracts/interfaces/IERC721.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../token/ERC721/IERC721.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": []
-    },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721.sol": {
-      "lastModificationDate": 1742799934354,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721.sol": {
+      "lastModificationDate": 1742645849375,
       "contentHash": "1fdc621cd6747e8985e11fc76ce74511",
       "sourceName": "@openzeppelin/contracts/token/ERC721/IERC721.sol",
       "solcConfig": {
@@ -836,8 +761,46 @@
         "IERC721"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\ERC721.sol": {
-      "lastModificationDate": 1742799933476,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Metadata.sol": {
+      "lastModificationDate": 1742645849419,
+      "contentHash": "12c206f185cb951213799561fdcaa40d",
+      "sourceName": "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../IERC721.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "IERC721Metadata"
+      ]
+    },
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\ERC721.sol": {
+      "lastModificationDate": 1742645846479,
       "contentHash": "a7951c81f7037d558c6d2f220b0cb38e",
       "sourceName": "@openzeppelin/contracts/token/ERC721/ERC721.sol",
       "solcConfig": {
@@ -880,8 +843,8 @@
         "ERC721"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\Strings.sol": {
-      "lastModificationDate": 1742799934535,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\Strings.sol": {
+      "lastModificationDate": 1742645850111,
       "contentHash": "a55fef2557b35bac18a1880d3c2e6740",
       "sourceName": "@openzeppelin/contracts/utils/Strings.sol",
       "solcConfig": {
@@ -920,46 +883,8 @@
         "Strings"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Metadata.sol": {
-      "lastModificationDate": 1742799934373,
-      "contentHash": "12c206f185cb951213799561fdcaa40d",
-      "sourceName": "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../IERC721.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "IERC721Metadata"
-      ]
-    },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\utils\\ERC721Utils.sol": {
-      "lastModificationDate": 1742799933563,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\utils\\ERC721Utils.sol": {
+      "lastModificationDate": 1742645846982,
       "contentHash": "f4b67273e290784d0e155f004ae52f0b",
       "sourceName": "@openzeppelin/contracts/token/ERC721/utils/ERC721Utils.sol",
       "solcConfig": {
@@ -997,8 +922,82 @@
         "ERC721Utils"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\math\\Math.sol": {
-      "lastModificationDate": 1742799934437,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SignedMath.sol": {
+      "lastModificationDate": 1742645850060,
+      "contentHash": "ae3528afb8bdb0a7dcfba5b115ee8074",
+      "sourceName": "@openzeppelin/contracts/utils/math/SignedMath.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./SafeCast.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SignedMath"
+      ]
+    },
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SafeCast.sol": {
+      "lastModificationDate": 1742645849965,
+      "contentHash": "2adca1150f58fc6f3d1f0a0f22ee7cca",
+      "sourceName": "@openzeppelin/contracts/utils/math/SafeCast.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SafeCast"
+      ]
+    },
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\math\\Math.sol": {
+      "lastModificationDate": 1742645849578,
       "contentHash": "2b2665ae9bdb1af440658741a77fe213",
       "sourceName": "@openzeppelin/contracts/utils/math/Math.sol",
       "solcConfig": {
@@ -1036,82 +1035,8 @@
         "Math"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SafeCast.sol": {
-      "lastModificationDate": 1742799934509,
-      "contentHash": "2adca1150f58fc6f3d1f0a0f22ee7cca",
-      "sourceName": "@openzeppelin/contracts/utils/math/SafeCast.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "SafeCast"
-      ]
-    },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SignedMath.sol": {
-      "lastModificationDate": 1742799934524,
-      "contentHash": "ae3528afb8bdb0a7dcfba5b115ee8074",
-      "sourceName": "@openzeppelin/contracts/utils/math/SignedMath.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./SafeCast.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "SignedMath"
-      ]
-    },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\Panic.sol": {
-      "lastModificationDate": 1742799934482,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\utils\\Panic.sol": {
+      "lastModificationDate": 1742645849871,
       "contentHash": "2133dc13536b4a6a98131e431fac59e1",
       "sourceName": "@openzeppelin/contracts/utils/Panic.sol",
       "solcConfig": {
@@ -1146,8 +1071,8 @@
         "Panic"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721Receiver.sol": {
-      "lastModificationDate": 1742799934384,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721Receiver.sol": {
+      "lastModificationDate": 1742645849434,
       "contentHash": "729ce0904eb533489ffcc3bfe91237d4",
       "sourceName": "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol",
       "solcConfig": {
@@ -1182,8 +1107,8 @@
         "IERC721Receiver"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\contracts\\NFTMedia.sol": {
-      "lastModificationDate": 1742799409488,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\contracts\\NFTMedia.sol": {
+      "lastModificationDate": 1742644105158,
       "contentHash": "54f0c0e2b4c15362bd0e6ee4a0d2f801",
       "sourceName": "contracts/NFTMedia.sol",
       "solcConfig": {
@@ -1221,8 +1146,8 @@
         "NFTMedia"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\ERC721URIStorage.sol": {
-      "lastModificationDate": 1742799933557,
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\ERC721URIStorage.sol": {
+      "lastModificationDate": 1742645846923,
       "contentHash": "ba4a727732c179b4dfd6f8846c52c856",
       "sourceName": "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol",
       "solcConfig": {
@@ -1262,9 +1187,84 @@
         "ERC721URIStorage"
       ]
     },
-    "D:\\WorkSpace\\Web-3-blockchain-dappsocial\\BE\\contracts\\Marketplace.sol": {
-      "lastModificationDate": 1742799409488,
-      "contentHash": "e7129b2f236187e77e99f4de82fbfab1",
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC4906.sol": {
+      "lastModificationDate": 1742645849313,
+      "contentHash": "273c26c9c728a6052d1175ace81d10b4",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC4906.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IERC165.sol",
+        "./IERC721.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "IERC4906"
+      ]
+    },
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC721.sol": {
+      "lastModificationDate": 1742645849362,
+      "contentHash": "d8d23fc2f55ed934d1a1b91c9afd8526",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC721.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../token/ERC721/IERC721.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": []
+    },
+    "D:\\web3-blockchain\\Web-3-blockchain-dappsocial\\BE\\contracts\\Marketplace.sol": {
+      "lastModificationDate": 1746429493898,
+      "contentHash": "1f7516ae36415a37e9ffec750fe27ab0",
       "sourceName": "contracts/Marketplace.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -1293,8 +1293,6 @@
       "imports": [
         "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
         "@openzeppelin/contracts/access/Ownable.sol",
-        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "./DXToken.sol",
         "./NFTMedia.sol"
       ],
       "versionPragmas": [

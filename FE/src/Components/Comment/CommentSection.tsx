@@ -3,13 +3,14 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { Send, X, Heart, ImageIcon } from "lucide-react"
+import { Send, X, Heart, ImageIcon, ArrowLeft } from "lucide-react"
 import commentApi, { type Comment, type CommentFetchOptions } from "../../services/commentApi"
 import { useSelector } from "react-redux"
 import type { RootState } from "../../store"
 import { toast } from "react-hot-toast"
 import { WalletLoginModal } from "../Login/wallet-login-modal"
 import IPFSImage from "../UI/IPFSImage"
+import CommentSkeleton from "./comment-skeleton"
 
 interface CommentSectionProps {
   postId: string
@@ -26,9 +27,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({ postId, isOpen, onClose
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [walletLoginModalOpen, setWalletLoginModalOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [replyingTo, setReplyingTo] = useState<Comment | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const commentContainerRef = useRef<HTMLDivElement>(null)
+  const commentInputRef = useRef<HTMLInputElement>(null)
 
   const isAuthenticated = useSelector((state: RootState) => !!state.auth.token)
   const user = useSelector((state: RootState) => state.auth.user)
@@ -39,6 +43,15 @@ const CommentSection: React.FC<CommentSectionProps> = ({ postId, isOpen, onClose
       fetchComments()
     }
   }, [isOpen, postId])
+
+  // Focus vào input khi mở comment section
+  useEffect(() => {
+    if (isOpen && commentInputRef.current) {
+      setTimeout(() => {
+        commentInputRef.current?.focus()
+      }, 300)
+    }
+  }, [isOpen])
 
   // Tải comments từ API
   const fetchComments = async (reset = true) => {
@@ -93,26 +106,48 @@ const CommentSection: React.FC<CommentSectionProps> = ({ postId, isOpen, onClose
       return
     }
 
-    if (!newComment.trim()) {
-      toast.error("Nội dung bình luận không được để trống")
+    if (!newComment.trim() && mediaFiles.length === 0) {
+      toast.error("Vui lòng nhập nội dung hoặc đính kèm hình ảnh")
       return
     }
 
     try {
-      const result = await commentApi.createComment(postId, newComment, mediaFiles)
+      setSubmitting(true)
+      let result
 
-      // Thêm comment mới vào đầu danh sách
-      setComments((prev) => [result, ...prev])
+      if (replyingTo) {
+        // Trả lời comment
+        result = await commentApi.replyToComment(replyingTo._id, newComment, mediaFiles)
+        toast.success("Đã trả lời bình luận")
+
+        // Cập nhật UI để hiển thị reply mới
+        setComments((prev) =>
+          prev.map((comment) =>
+            comment._id === replyingTo._id
+              ? { ...comment, stats: { ...comment.stats, replyCount: comment.stats.replyCount + 1 }, hasReplies: true }
+              : comment,
+          ),
+        )
+
+        setReplyingTo(null)
+      } else {
+        // Tạo comment mới
+        result = await commentApi.createComment(postId, newComment, mediaFiles)
+
+        // Thêm comment mới vào đầu danh sách
+        setComments((prev) => [result, ...prev])
+        toast.success("Đã thêm bình luận")
+      }
 
       // Reset form
       setNewComment("")
       setMediaFiles([])
       setMediaPreview([])
-
-      toast.success("Đã thêm bình luận")
     } catch (error) {
       console.error("Lỗi khi thêm bình luận:", error)
       toast.error("Không thể thêm bình luận")
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -200,6 +235,30 @@ const CommentSection: React.FC<CommentSectionProps> = ({ postId, isOpen, onClose
     }
   }
 
+  // Xử lý khi người dùng muốn trả lời comment
+  const handleReplyClick = (comment: Comment) => {
+    if (!isAuthenticated) {
+      setWalletLoginModalOpen(true)
+      return
+    }
+
+    setReplyingTo(comment)
+    setNewComment(`@${comment.authorDetails?.username || "user"} `)
+
+    // Focus vào input
+    setTimeout(() => {
+      if (commentInputRef.current) {
+        commentInputRef.current.focus()
+      }
+    }, 100)
+  }
+
+  // Hủy trả lời
+  const cancelReply = () => {
+    setReplyingTo(null)
+    setNewComment("")
+  }
+
   // Format thời gian
   const formatTime = (dateString: string) => {
     const date = new Date(dateString)
@@ -225,13 +284,26 @@ const CommentSection: React.FC<CommentSectionProps> = ({ postId, isOpen, onClose
       <div className="comment-section" ref={commentContainerRef}>
         <div className="comment-section-header">
           <h3>Bình luận ({comments.length})</h3>
-          <button className="close-button" onClick={onClose}>
+          <button className="close-button" onClick={onClose} aria-label="Đóng">
             <X size={20} />
           </button>
         </div>
 
         <div className="comment-form">
           <form onSubmit={handleSubmitComment}>
+            {replyingTo && (
+              <div className="replying-to">
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={cancelReply} className="cancel-reply">
+                    <ArrowLeft size={16} />
+                  </button>
+                  <span>
+                    Đang trả lời <strong>{replyingTo.authorDetails?.username || "người dùng"}</strong>
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="input-container">
               <div className="avatar-container">
                 <img
@@ -248,14 +320,25 @@ const CommentSection: React.FC<CommentSectionProps> = ({ postId, isOpen, onClose
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   className="comment-input"
+                  ref={commentInputRef}
                 />
 
                 <div className="input-actions">
-                  <button type="button" className="attach-button" onClick={() => fileInputRef.current?.click()}>
+                  <button
+                    type="button"
+                    className="attach-button"
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label="Đính kèm hình ảnh"
+                  >
                     <ImageIcon size={20} />
                   </button>
 
-                  <button type="submit" className="send-button" disabled={!newComment.trim()}>
+                  <button
+                    type="submit"
+                    className="send-button"
+                    disabled={(!newComment.trim() && mediaFiles.length === 0) || submitting}
+                    aria-label="Gửi bình luận"
+                  >
                     <Send size={20} />
                   </button>
                 </div>
@@ -266,10 +349,15 @@ const CommentSection: React.FC<CommentSectionProps> = ({ postId, isOpen, onClose
               <div className="media-preview">
                 {mediaPreview.map((url, index) => (
                   <div key={index} className="preview-item">
-                    <button type="button" className="remove-preview" onClick={() => removeFile(index)}>
+                    <button
+                      type="button"
+                      className="remove-preview"
+                      onClick={() => removeFile(index)}
+                      aria-label="Xóa hình ảnh"
+                    >
                       <X size={16} />
                     </button>
-                    <img src={url || "/placeholder.svg?height=80&width=80"} alt={`Preview ${index + 1}`} />
+                    <img src={url || "/placeholder.svg"} alt={`Preview ${index + 1}`} />
                   </div>
                 ))}
               </div>
@@ -287,8 +375,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({ postId, isOpen, onClose
         </div>
 
         <div className="comments-list">
-          {loading ? (
-            <div className="loading">Đang tải bình luận...</div>
+          {loading && page === 1 ? (
+            <>
+              <CommentSkeleton />
+              <CommentSkeleton />
+              <CommentSkeleton />
+            </>
           ) : comments.length > 0 ? (
             <>
               {comments.map((comment) => (
@@ -335,17 +427,33 @@ const CommentSection: React.FC<CommentSectionProps> = ({ postId, isOpen, onClose
                       <button
                         className={`like-button ${comment.isLiked ? "liked" : ""}`}
                         onClick={() => handleLikeComment(comment._id, comment.isLiked)}
+                        aria-label={comment.isLiked ? "Bỏ thích" : "Thích"}
                       >
                         <Heart size={16} className={comment.isLiked ? "text-red-500 fill-red-500" : ""} />
                         <span>{comment.stats.likeCount}</span>
                       </button>
+
+                      <button className="reply-button" onClick={() => handleReplyClick(comment)} aria-label="Trả lời">
+                        Trả lời
+                      </button>
+
+                      {comment.hasReplies && (
+                        <button className="view-replies-button" aria-label="Xem trả lời">
+                          Xem {comment.stats.replyCount} trả lời
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
               ))}
 
               {hasMore && (
-                <button className="load-more" onClick={loadMoreComments} disabled={loading}>
+                <button
+                  className="load-more"
+                  onClick={loadMoreComments}
+                  disabled={loading}
+                  aria-label="Tải thêm bình luận"
+                >
                   {loading ? "Đang tải..." : "Tải thêm bình luận"}
                 </button>
               )}

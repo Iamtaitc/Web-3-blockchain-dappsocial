@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { useSelector } from "react-redux"
+import { useSelector, useDispatch } from "react-redux" // Thêm useDispatch
 import { Loader2, CheckCircle, Info, Wallet, Clock, Shield, Zap, Diamond, Star } from "lucide-react"
 import { ethers } from "ethers"
 
@@ -22,24 +22,24 @@ import {
   AlertDescription,
   AlertTitle,
   Separator,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "../../components/subscription/premium-ui-components"
 
 import SubscriptionBadge from "../../components/subscription/subscription-badge"
 import TransactionError from "../../components/subscription/transaction-error"
-import PlanCard from "../../components/subscription/plan-card"
-import PaymentProgress from "../../components/subscription/payment-progress"
+import CurrentSubscription from "../../components/subscription/current-subscription"
 
 import SubscriptionService from "../../services/subscriptionApi"
 import { checkNetwork } from "../../services/blockchain-services"
+import { fetchUserProfile } from "../../store/slices/userSlice" // Import action fetchUserProfile
 
 export default function Premium() {
   const navigate = useNavigate()
+  const dispatch = useDispatch() // Thêm dispatch
   const { isAuthenticated, walletAddress, token, user } = useSelector((state) => state.auth)
+  const { currentProfile, loading: profileLoading } = useSelector((state) => state.user)
+
+  // Lấy level subscription từ currentProfile nếu có
+  const userSubscriptionLevel = currentProfile?.subscription?.level || 1
 
   const [selectedPlan, setSelectedPlan] = useState<number>(5) // Default to Pro plan
   const [months, setMonths] = useState<number>(1)
@@ -48,6 +48,7 @@ export default function Premium() {
   const [success, setSuccess] = useState<boolean>(false)
   const [paymentStep, setPaymentStep] = useState<number>(1)
   const [paymentData, setPaymentData] = useState<any>(null)
+  const [fetchingProfile, setFetchingProfile] = useState<boolean>(false)
   const [subscriptionPlans, setSubscriptionPlans] = useState<any>({
     1: {
       name: "Standard",
@@ -69,7 +70,7 @@ export default function Premium() {
       benefits: [
         "Reward multiplier 2x",
         "Tất cả tính năng Standard",
-        "Giới h���n claim token hàng ngày: 16 tokens",
+        "Giới hạn claim token hàng ngày: 16 tokens",
         "Tối đa 10 bài đăng mỗi ngày",
         "Truy cập nội dung độc quyền",
       ],
@@ -109,11 +110,37 @@ export default function Premium() {
     },
   })
 
+  // Thêm state để hiển thị thông tin gói hiện tại
+  const [showCurrentPlan, setShowCurrentPlan] = useState<boolean>(false)
+
+  // Thêm useEffect để fetch profile khi component mount
   useEffect(() => {
     if (!isAuthenticated || !walletAddress) {
       navigate("/login")
+      return
     }
-  }, [isAuthenticated, walletAddress, navigate])
+
+    // Fetch profile khi component mount
+    const fetchProfile = async () => {
+      try {
+        setFetchingProfile(true)
+        await dispatch(fetchUserProfile(walletAddress))
+        setFetchingProfile(false)
+      } catch (error) {
+        console.error("Lỗi khi lấy thông tin profile:", error)
+        setFetchingProfile(false)
+      }
+    }
+
+    fetchProfile()
+  }, [isAuthenticated, walletAddress, navigate, dispatch])
+
+  // useEffect để kiểm tra và hiển thị gói hiện tại sau khi fetch profile
+  useEffect(() => {
+    if (userSubscriptionLevel > 1) {
+      setShowCurrentPlan(true)
+    }
+  }, [userSubscriptionLevel])
 
   const createSubscriptionRequest = async () => {
     try {
@@ -202,7 +229,12 @@ export default function Premium() {
         benefits: confirmData.data.subscriptionBenefits,
         expiration: confirmData.data.expiration,
       }
+
+      // Lưu vào localStorage
       localStorage.setItem("subscription", JSON.stringify(subscriptionData))
+
+      // Fetch lại profile để cập nhật thông tin subscription trong Redux
+      await dispatch(fetchUserProfile(walletAddress))
 
       setSuccess(true)
       setPaymentStep(4)
@@ -274,6 +306,25 @@ export default function Premium() {
           <p className="text-gray-600 text-lg mb-6 max-w-3xl mx-auto">
             Mở khóa các tính năng cao cấp và tăng cường trải nghiệm của bạn với các gói Premium
           </p>
+
+          {/* Hiển thị loading khi đang fetch profile */}
+          {fetchingProfile && (
+            <div className="flex justify-center items-center mb-6">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-500 mr-2" />
+              <span className="text-gray-500">Đang tải thông tin gói Premium...</span>
+            </div>
+          )}
+
+          {/* Hiển thị thông tin gói hiện tại nếu người dùng đã có subscription */}
+          {showCurrentPlan && userSubscriptionLevel > 1 && !fetchingProfile && (
+            <div className="max-w-md mx-auto mb-8">
+              <CurrentSubscription
+                level={userSubscriptionLevel}
+                expiration={currentProfile?.subscription?.expiration}
+                username={currentProfile?.username}
+              />
+            </div>
+          )}
 
           {/* Payment steps indicator */}
           <div className="flex items-center justify-center max-w-md mx-auto mt-8">
@@ -439,15 +490,19 @@ export default function Premium() {
                                   : "bg-rose-600 hover:bg-rose-700"
                           }`}
                           onClick={createSubscriptionRequest}
-                          disabled={loading || selectedPlan === 1}
+                          disabled={
+                            loading || selectedPlan === 1 || userSubscriptionLevel >= selectedPlan || fetchingProfile
+                          }
                         >
-                          {loading ? (
+                          {loading || fetchingProfile ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Đang xử lý...
                             </>
                           ) : selectedPlan === 1 ? (
                             "Gói miễn phí - Không cần thanh toán"
+                          ) : userSubscriptionLevel >= selectedPlan ? (
+                            "Bạn đã có gói cao hơn hoặc tương đương"
                           ) : (
                             "Tiếp tục thanh toán"
                           )}

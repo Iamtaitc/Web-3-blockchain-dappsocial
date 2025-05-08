@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:report": "node test/runTestWithReport.js"
+    "test": "npx jest --config=src/configs/jest.config.js && node generate-report.js"
   },
   "keywords": [],
   "author": "",
@@ -49,6 +48,9 @@
   "devDependencies": {
     "dateformat": "^5.0.3",
     "dotenv": "^16.5.0",
-    "jest": "^29.7.0"
+    "fs-extra": "^11.3.0",
+    "jest": "^29.7.0",
+    "jest-junit": "^16.0.0",
+    "xml2js": "^0.6.2"
   }
 }

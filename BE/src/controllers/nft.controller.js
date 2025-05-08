@@ -155,7 +155,26 @@ class NFTController {
           );
     }
   }
-  async purchaseComplete(req, res) {
+
+  // Chuẩn bị thông tin để mua NFT
+
+  async prepareNFTPurchase(req, res) {
+    try {
+      const { tokenId } = req.params;
+      const buyerAddress = req.user.address;
+
+      const result = await NFTService.prepareNFTPurchase(tokenId, buyerAddress);
+      return ApiResponse.success(
+        res,
+        result,
+        "Thông tin mua NFT đã được chuẩn bị"
+      );
+    } catch (error) {
+      return this.handleNFTError(res, error);
+    }
+  }
+  // Xử lý kết quả giao dịch mua NFT từ frontend
+  async processNFTPurchase(req, res) {
     try {
       const { tokenId, txHash, buyer } = req.body;
 
@@ -163,7 +182,11 @@ class NFTController {
         return ApiResponse.badRequest(res, "Thiếu thông tin cần thiết");
       }
 
-      const result = await NFTService.purchaseComplete(tokenId, txHash, buyer);
+      const result = await NFTService.processNFTPurchase(
+        txHash,
+        tokenId,
+        buyer
+      );
       return ApiResponse.success(
         res,
         result,
