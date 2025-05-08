@@ -1,30 +1,42 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { ArrowLeft, ShieldCheck, AlertTriangle, Loader2, Tag, Info } from 'lucide-react';
-import { buyNFT, fetchNFTById } from '../../store/slices/nftSlice';
-import { AppDispatch, RootState } from '../../store';
-import { toast } from 'react-hot-toast';
-import IPFSImage from '../../components/UI/IPFSImage';
+"use client";
 
-interface AuthState {
-  walletAddress: string;
-  balance: {
-    dx: string;
-  };
-}
+import type React from "react";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch, RootState } from "../../store";
+import { fetchNFTById } from "../../store/slices/nftSlice";
+import { toast } from "react-hot-toast";
+import {
+  ArrowLeft,
+  Tag,
+  Wallet,
+  Award,
+  Clock,
+  User,
+  Shield,
+  AlertTriangle,
+  CheckCircle,
+  Loader2,
+} from "lucide-react";
+import IPFSImage from "../../components/UI/IPFSImage";
+import useWalletTransaction from "../../services/useWalletTransaction"; // Import hook xử lý giao dịch
 
 const NFTBuyPage: React.FC = () => {
   const { tokenId } = useParams<{ tokenId: string }>();
-  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
 
-  const { selectedNFT, loading, error } = useSelector((state: RootState) => state.nft);
-  const { walletAddress, balance } = useSelector((state: RootState) => state.auth as AuthState);
-  
-  const [purchaseState, setPurchaseState] = useState<'initial' | 'processing' | 'success' | 'failed'>('initial');
-  const [transactionData, setTransactionData] = useState<any>(null);
-  const [hasSufficientBalance, setHasSufficientBalance] = useState<boolean>(true);
+  const { selectedNFT, loading } = useSelector((state: RootState) => state.nft);
+  const { walletAddress } = useSelector((state: RootState) => state.auth);
+
+  const [transactionStatus, setTransactionStatus] = useState<
+    "idle" | "preparing" | "confirming" | "processing" | "success" | "error"
+  >("idle");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [txHash, setTxHash] = useState<string>("");
+
+  const { executePurchase } = useWalletTransaction();
 
   useEffect(() => {
     if (tokenId) {
@@ -32,202 +44,243 @@ const NFTBuyPage: React.FC = () => {
     }
   }, [dispatch, tokenId]);
 
-  useEffect(() => {
-    console.log("nftshowredux", selectedNFT); // Log khi selectedNFT thay đổi
-    if (selectedNFT && balance?.dx) {
-      const price = selectedNFT.price ?? 0;
-      setHasSufficientBalance(Number(balance.dx) >= Number(price));
+  const handleBuyNFT = async () => {
+    if (!tokenId || !walletAddress || !selectedNFT || !selectedNFT.forSale) {
+      toast.error(
+        !selectedNFT?.forSale ? "NFT không được đăng bán" : "Thiếu thông tin cần thiết để mua NFT"
+      );
+      return;
     }
-  }, [selectedNFT, balance]);
+
+    setTransactionStatus("confirming");
+
+    const token = localStorage.getItem('token') || '';
+    const result = await executePurchase(tokenId, walletAddress, token);
+
+    if (result.success) {
+      setTxHash(result.txHash!);
+      setTransactionStatus("success");
+      toast.success("Mua NFT thành công!");
+      navigate(`/nft/${tokenId}/complete?txHash=${result.txHash}`);
+    } else {
+      setTransactionStatus("error");
+      setErrorMessage(result.error || "Đã xảy ra lỗi khi thực hiện giao dịch");
+    }
+  };
 
   const formatPrice = (price: string | number | undefined) => {
-    if (!price) return '0';
-    const numericPrice = typeof price === 'string' ? Number.parseFloat(price) : price;
-    return new Intl.NumberFormat('vi-VN').format(numericPrice);
+    if (!price) return "0";
+    const numericPrice = typeof price === "string" ? Number.parseFloat(price) : price;
+    return new Intl.NumberFormat("vi-VN").format(numericPrice);
   };
 
-  const handlePurchase = async () => {
-    if (!tokenId || !selectedNFT) return;
-    
-    try {
-      setPurchaseState('processing');
-      
-      const result = await dispatch(buyNFT(tokenId)).unwrap();
-      setTransactionData(result);
-      setPurchaseState('success');
-      
-      toast.success('Đã mua NFT thành công!');
-      
-      setTimeout(() => {
-        navigate('/marketplace');
-      }, 3000);
-    } catch (error: any) {
-      console.error('Lỗi khi mua NFT:', error);
-      setPurchaseState('failed');
-      toast.error(error.message || 'Có lỗi xảy ra khi mua NFT');
-    }
-  };
-
-  const handleGoBack = () => {
-    navigate(-1);
-  };
-
-  if (loading) {
+  if (loading || !selectedNFT) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh]">
-        <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-4" />
-        <p className="text-gray-600">Đang tải thông tin NFT...</p>
+      <div className="max-w-4xl mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 size={48} className="text-emerald-500 animate-spin mb-4" />
+        <h2 className="text-xl font-semibold text-gray-700">Đang tải thông tin NFT...</h2>
       </div>
     );
   }
 
-  if (error) {
+  if (transactionStatus === "error") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh]">
-        <AlertTriangle className="w-12 h-12 text-amber-500 mb-4" />
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Lỗi</h2>
-        <p className="text-gray-600 mb-4">{error}</p>
-        <button 
-          onClick={handleGoBack}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-        >
-          <ArrowLeft size={18} />
-          Quay lại
-        </button>
-      </div>
-    );
-  }
-
-  if (!selectedNFT) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh]">
-        <AlertTriangle className="w-12 h-12 text-amber-500 mb-4" />
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Không tìm thấy NFT</h2>
-        <p className="text-gray-600 mb-4">NFT bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.</p>
-        <button 
-          onClick={handleGoBack}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-        >
-          <ArrowLeft size={18} />
-          Quay lại
-        </button>
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <div className="bg-rose-50 border border-rose-200 rounded-xl p-8 text-center">
+          <AlertTriangle size={48} className="text-rose-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Đã xảy ra lỗi</h2>
+          <p className="text-gray-600 mb-6">{errorMessage || "Không thể hoàn tất giao dịch mua NFT"}</p>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Quay lại
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <button 
-        onClick={handleGoBack}
-        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors mb-6"
-      >
-        <ArrowLeft size={18} />
-        Quay lại
-      </button>
+    <div className="max-w-6xl mx-auto px-4 py-12">
+      {/* Header */}
+      <div className="mb-8">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-gray-600 hover:text-emerald-600 transition-colors mb-4"
+        >
+          <ArrowLeft size={20} className="mr-2" />
+          Quay lại
+        </button>
+        <h1 className="text-3xl font-bold text-gray-800">Mua NFT</h1>
+      </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-          <h1 className="text-2xl font-bold text-gray-800">Mua NFT</h1>
-          <p className="text-gray-600">Xem lại thông tin và xác nhận giao dịch</p>
-        </div>
-
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* NFT Preview */}
-            <div className="space-y-4">
-              <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50 aspect-square">
-                <IPFSImage 
-                  hash={selectedNFT.metadata?.image || selectedNFT.imageUrl || selectedNFT.tokenId || ''}
-                  alt={selectedNFT.name}
-                  className="w-full h-full object-cover" 
-                />
-              </div>
-
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">
-                  {selectedNFT.metadata?.name || selectedNFT.name || 'Untitled'}
-                </h2>
-                <p className="text-gray-600 mt-1 text-sm">
-                  {selectedNFT.metadata?.description || selectedNFT.description || 'No description'}
-                </p>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* NFT Preview */}
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+          <div className="relative aspect-square overflow-hidden">
+            <IPFSImage
+              hash={selectedNFT.metadata?.image || selectedNFT.imageUrl || ""}
+              alt={selectedNFT.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-2">
+              <h2 className="text-2xl font-bold text-gray-800">{selectedNFT.name}</h2>
+              {selectedNFT.metadata?.rare && <Award size={24} className="text-amber-500" title="Rare NFT" />}
             </div>
+            <p className="text-gray-600 mb-6">{selectedNFT.description}</p>
 
-            {/* Transaction Details */}
-            <div className="space-y-6">
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <h3 className="font-medium text-gray-800 mb-3">Chi tiết giao dịch</h3>
-                
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Giá NFT</span>
-                    <span className="font-medium text-gray-900">{formatPrice(selectedNFT.price)} DX</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Phí giao dịch</span>
-                    <span className="font-medium text-gray-900">0 DX</span>
-                  </div>
-                  <div className="border-t border-gray-200 my-2"></div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-800 font-medium">Tổng cộng</span>
-                    <span className="font-bold text-gray-900">{formatPrice(selectedNFT.price)} DX</span>
-                  </div>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Người tạo</p>
+                <div className="flex items-center">
+                  <User size={16} className="text-gray-400 mr-2" />
+                  <p className="text-sm font-medium text-gray-700">
+                    {selectedNFT.creator
+                      ? `${selectedNFT.creator.slice(0, 6)}...${selectedNFT.creator.slice(-4)}`
+                      : "Unknown"}
+                  </p>
                 </div>
               </div>
-              
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <h3 className="font-medium text-gray-800 mb-3">Thông tin ví</h3>
-                
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Địa chỉ ví</span>
-                    <span className="font-medium text-gray-900">
-                      {walletAddress 
-                        ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-                        : 'Chưa kết nối'
-                      }
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Số dư DX</span>
-                    <span className={`font-medium ${hasSufficientBalance ? 'text-gray-900' : 'text-rose-600'}`}>
-                      {formatPrice(balance?.dx || 0)} DX
-                    </span>
-                  </div>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Chủ sở hữu</p>
+                <div className="flex items-center">
+                  <Wallet size={16} className="text-gray-400 mr-2" />
+                  <p className="text-sm font-medium text-gray-700">
+                    {selectedNFT.owner
+                      ? `${selectedNFT.owner.slice(0, 6)}...${selectedNFT.owner.slice(-4)}`
+                      : "Unknown"}
+                  </p>
                 </div>
               </div>
-
-              {!hasSufficientBalance && (
-                <div className="bg-rose-50 text-rose-800 p-3 rounded-lg border border-rose-200 flex items-start gap-2">
-                  <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Số dư không đủ</p>
-                    <p className="text-sm">Bạn cần ít nhất {formatPrice(selectedNFT.price)} DX để mua NFT này.</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-amber-50 text-amber-800 p-3 rounded-lg border border-amber-200 flex items-start gap-2">
-                <Info size={20} className="flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Lưu ý quan trọng</p>
-                  <p className="text-sm">Giao dịch mua NFT không thể hoàn tác. Vui lòng kiểm tra kỹ thông tin trước khi xác nhận.</p>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Phí royalty</p>
+                <p className="text-sm font-medium text-gray-700">{selectedNFT.royaltyPercent || 0}%</p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Ngày tạo</p>
+                <div className="flex items-center">
+                  <Clock size={16} className="text-gray-400 mr-2" />
+                  <p className="text-sm font-medium text-gray-700">
+                    {new Date(selectedNFT.mintedAt).toLocaleDateString("vi-VN")}
+                  </p>
                 </div>
               </div>
-
-              <button
-                onClick={handlePurchase}
-                disabled={!hasSufficientBalance || !(selectedNFT?.forSale ?? false)}
-                className="w-full py-3 nft-gradient-primary text-white rounded-lg transition-all duration-300 font-medium flex items-center justify-center gap-2 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Tag size={18} />
-                {hasSufficientBalance 
-                  ? ((selectedNFT?.forSale ?? false) ? 'Xác nhận mua NFT' : 'NFT không được đăng bán')
-                  : 'Số dư không đủ'
-                }
-              </button>
             </div>
           </div>
+        </div>
+
+        {/* Purchase Form */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">Xác nhận mua NFT</h2>
+
+          <div className="mb-8">
+            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border border-emerald-100 mb-4">
+              <span className="text-gray-700">Giá</span>
+              <span className="text-xl font-bold text-emerald-600 flex items-center">
+                <Tag size={18} className="mr-2" />
+                {formatPrice(selectedNFT.price)} DX
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border border-gray-100 mb-4">
+              <span className="text-gray-700">Phí giao dịch</span>
+              <span className="font-medium text-gray-700">
+                {formatPrice(selectedNFT.price ? selectedNFT.price * 0.025 : 0)} DX
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border border-gray-100 mb-4">
+              <span className="text-gray-700">Phí royalty ({selectedNFT.royaltyPercent || 0}%)</span>
+              <span className="font-medium text-gray-700">
+                {formatPrice(selectedNFT.price ? (selectedNFT.price * (selectedNFT.royaltyPercent || 0)) / 100 : 0)} DX
+              </span>
+            </div>
+
+            <div className="h-px bg-gray-200 my-4"></div>
+
+            <div className="flex justify-between items-center p-4 bg-gray-800 text-white rounded-lg">
+              <span className="font-medium">Tổng thanh toán</span>
+              <span className="text-xl font-bold">
+                {formatPrice(
+                  selectedNFT.price
+                    ? selectedNFT.price +
+                        selectedNFT.price * 0.025 +
+                        (selectedNFT.price * (selectedNFT.royaltyPercent || 0)) / 100
+                    : 0
+                )}{" "}
+                DX
+              </span>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <div className="flex items-start mb-4">
+              <Shield className="text-emerald-500 mr-3 mt-0.5 flex-shrink-0" size={20} />
+              <p className="text-sm text-gray-600">
+                Giao dịch này được bảo vệ bởi smart contract. Sau khi xác nhận, NFT sẽ được chuyển trực tiếp vào ví của bạn.
+              </p>
+            </div>
+
+            <div className="flex items-start">
+              <AlertTriangle className="text-amber-500 mr-3 mt-0.5 flex-shrink-0" size={20} />
+              <p className="text-sm text-gray-600">
+                Vui lòng kiểm tra kỹ thông tin trước khi xác nhận. Giao dịch blockchain không thể hoàn tác sau khi đã được xác nhận.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleBuyNFT}
+            disabled={transactionStatus !== "idle"}
+            className={`w-full py-4 rounded-xl font-bold text-white flex items-center justify-center ${
+              transactionStatus !== "idle"
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-emerald-600 hover:bg-emerald-700"
+            } transition-colors`}
+          >
+            {transactionStatus === "idle" && (
+              <>
+                <Tag size={20} className="mr-2" />
+                Xác nhận mua NFT
+              </>
+            )}
+            {transactionStatus === "confirming" && (
+              <>
+                <Loader2 size={20} className="mr-2 animate-spin" />
+                Đang chờ xác nhận...
+              </>
+            )}
+            {transactionStatus === "processing" && (
+              <>
+                <Loader2 size={20} className="mr-2 animate-spin" />
+                Đang xử lý giao dịch...
+              </>
+            )}
+            {transactionStatus === "success" && (
+              <>
+                <CheckCircle size={20} className="mr-2" />
+                Giao dịch thành công!
+              </>
+            )}
+          </button>
+
+          {transactionStatus === "processing" && txHash && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+              <p className="text-sm text-blue-800 mb-1 font-medium">Giao dịch đang được xử lý</p>
+              <p className="text-xs text-blue-600 break-all">Transaction Hash: {txHash}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

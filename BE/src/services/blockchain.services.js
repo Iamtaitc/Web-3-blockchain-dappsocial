@@ -385,34 +385,199 @@ const unlistNFT = async (privateKey, tokenId) => {
   }
 };
 
-// Mua NFT bằng ETH
-const buyNFT = async (privateKey, tokenId) => {
+// Phiên bản tối giản của hàm buyNFT để debug
+const buyNFTMinimal = async (privateKey, tokenId) => {
+  // Object để theo dõi quá trình thực hiện
+  const debug = {
+    steps: [],
+    errors: []
+  };
+
   try {
+    debug.steps.push("Bắt đầu quá trình mua NFT");
+    
+    // Lấy các đối tượng cần thiết
+    debug.steps.push("Đang lấy các contract đã ký");
     const { marketplace, wallet } = getSignedContracts(privateKey);
-
-    // Lấy thông tin listing để biết giá
-    const listing = await marketplace.listings(tokenId);
-
-    if (!listing.active) {
-      throw new Error("NFT is not for sale");
+    const provider = getProvider();
+    
+    debug.steps.push("Đã lấy contract và ví: " + wallet.address);
+    
+    // Kiểm tra số dư
+    debug.steps.push("Đang kiểm tra số dư ví");
+    const balance = await provider.getBalance(wallet.address);
+    debug.steps.push(`Số dư ví: ${ethers.formatEther(balance)} ETH`);
+    
+    // Lấy thông tin listing một cách an toàn
+    debug.steps.push(`Đang lấy thông tin listing cho tokenId ${tokenId}`);
+    
+    let listing;
+    try {
+      listing = await marketplace.listings(tokenId);
+      debug.steps.push("Đã lấy thông tin listing");
+    } catch (listingError) {
+      debug.errors.push("Lỗi khi lấy thông tin listing: " + listingError.message);
+      return {
+        success: false,
+        error: "Không thể lấy thông tin listing",
+        debug: debug
+      };
     }
-
-    // Gọi hàm buyNFT trên smart contract với ETH value
-    const tx = await marketplace.buyNFT(tokenId, {
-      value: listing.price,
-    });
-
-    const receipt = await tx.wait();
-
-    return {
-      success: true,
-      transactionHash: receipt.hash,
+    
+    // Log thông tin listing
+    debug.steps.push({
+      tokenId: listing.tokenId.toString(),
       price: ethers.formatEther(listing.price),
-      buyer: wallet.address,
-    };
+      seller: listing.seller,
+      active: listing.active
+    });
+    
+    // Chỉ thực hiện các bước tối thiểu để mua NFT
+    debug.steps.push("Đang gửi giao dịch mua NFT");
+    
+    try {
+      // Gửi giao dịch với gasLimit cao
+      const tx = await marketplace.buyNFT(tokenId, {
+        value: listing.price,
+        gasLimit: 1000000  // Sử dụng gas limit cao để đảm bảo có đủ gas
+      });
+      
+      debug.steps.push("Đã gửi giao dịch: " + tx.hash);
+      
+      // Trả về ngay sau khi gửi giao dịch
+      return {
+        success: true,
+        transactionHash: tx.hash,
+        price: ethers.formatEther(listing.price),
+        debug: debug
+      };
+    } catch (txError) {
+      // Chi tiết hóa lỗi
+      debug.errors.push("Lỗi khi gửi giao dịch: " + txError.message);
+      
+      // Thử lấy thêm thông tin lỗi
+      if (txError.code) {
+        debug.errors.push("Error code: " + txError.code);
+      }
+      
+      if (txError.reason) {
+        debug.errors.push("Error reason: " + txError.reason);
+      }
+      
+      if (txError.error) {
+        debug.errors.push("Inner error: " + JSON.stringify(txError.error));
+      }
+      
+      if (txError.transaction) {
+        debug.errors.push("Transaction data: " + JSON.stringify({
+          from: txError.transaction.from,
+          to: txError.transaction.to,
+          value: txError.transaction.value,
+          data: txError.transaction.data?.substring(0, 64) + "..." // Chỉ hiển thị một phần của data
+        }));
+      }
+      
+      return {
+        success: false,
+        error: "Lỗi khi gửi giao dịch mua NFT",
+        errorDetails: txError.message,
+        errorCode: txError.code,
+        debug: debug
+      };
+    }
   } catch (error) {
-    console.error("Blockchain error buying NFT:", error);
-    throw error;
+    debug.errors.push("Lỗi không mong đợi: " + error.message);
+    
+    return {
+      success: false,
+      error: "Lỗi không mong đợi",
+      errorDetails: error.message,
+      debug: debug
+    };
+  }
+};
+
+// Sử dụng hàm để gọi API debug
+const buyNFT= async (privateKey, tokenId) => {
+  try {
+    console.log(`Đang debug mua NFT với tokenId ${tokenId}`);
+    const result = await buyNFTMinimal(privateKey, tokenId);
+    console.log("KẾT QUẢ DEBUG:", JSON.stringify(result, null, 2));
+    return result;
+  } catch (error) {
+    console.error("LỖI DEBUG:", error);
+    return {
+      success: false,
+      error: "Lỗi khi debug",
+      errorDetails: error.message
+    };
+  }
+};
+
+// Hàm theo dõi transaction trong background
+const trackTransaction = async (txHash, initialData) => {
+  try {
+    const provider = getProvider();
+    let attempts = 0;
+    const maxAttempts = 30; // Khoảng 5 phút với 10 giây mỗi lần kiểm tra
+
+    const checkTransaction = async () => {
+      try {
+        attempts++;
+        console.log(
+          `Checking transaction ${txHash} - Attempt ${attempts}/${maxAttempts}`
+        );
+
+        const receipt = await provider.getTransactionReceipt(txHash);
+
+        if (receipt) {
+          console.log(
+            `Transaction ${txHash} confirmed with status:`,
+            receipt.status
+          );
+
+          // Thêm logic ở đây để cập nhật trạng thái giao dịch trong hệ thống của bạn
+          // Ví dụ: gọi API để cập nhật trạng thái
+
+          if (receipt.status === 1) {
+            // Giao dịch thành công
+            console.log("Transaction successful!");
+            // updateTransactionStatus(txHash, "success", receipt);
+          } else {
+            // Giao dịch thất bại
+            console.log("Transaction failed!");
+            // updateTransactionStatus(txHash, "failed", receipt);
+          }
+
+          return; // Kết thúc quá trình theo dõi
+        }
+
+        if (attempts >= maxAttempts) {
+          console.log(`Giving up after ${maxAttempts} attempts`);
+          // updateTransactionStatus(txHash, "unknown", null);
+          return;
+        }
+
+        // Chờ 10 giây và kiểm tra lại
+        setTimeout(checkTransaction, 10000);
+      } catch (error) {
+        console.error("Error checking transaction:", error);
+
+        if (attempts >= maxAttempts) {
+          console.log(`Giving up after ${maxAttempts} attempts due to error`);
+          // updateTransactionStatus(txHash, "error", error);
+          return;
+        }
+
+        // Chờ và thử lại
+        setTimeout(checkTransaction, 10000);
+      }
+    };
+
+    // Bắt đầu theo dõi
+    checkTransaction();
+  } catch (error) {
+    console.error("Error starting transaction tracking:", error);
   }
 };
 
@@ -423,11 +588,75 @@ const verifyTransaction = async (txHash, buyer, tokenId) => {
     // Lấy transaction receipt
     const receipt = await provider.getTransactionReceipt(txHash);
 
-    // Kiểm tra transaction có tồn tại và thành công
-    if (!receipt || receipt.status !== 1) {
-      return false;
+    // Kiểm tra xem receipt có tồn tại không
+    if (!receipt) {
+      return {
+        verified: false,
+        status: "pending",
+        message: "Giao dịch đang chờ xác nhận hoặc không tồn tại",
+      };
     }
 
+    // Kiểm tra status của transaction
+    if (receipt.status === 0) {
+      // Giao dịch thất bại
+      // Cố gắng lấy thêm thông tin về lỗi
+      let errorMessage = "Giao dịch thất bại";
+
+      try {
+        // Lấy thông tin chi tiết về giao dịch
+        const tx = await provider.getTransaction(txHash);
+
+        // Gọi lại giao dịch để lấy thông tin lỗi
+        if (tx) {
+          try {
+            await provider.call(
+              {
+                to: tx.to,
+                from: tx.from,
+                data: tx.data,
+                value: tx.value,
+                gasLimit: tx.gasLimit,
+                gasPrice: tx.gasPrice,
+              },
+              receipt.blockNumber
+            );
+          } catch (callError) {
+            // Trích xuất thông báo lỗi từ revert reason
+            errorMessage =
+              callError.reason ||
+              callError.message ||
+              "Giao dịch thất bại, không thể xác định lý do";
+
+            // Tìm lỗi cụ thể từ smart contract
+            if (errorMessage.includes("execution reverted")) {
+              // Kiểm tra một số lỗi phổ biến
+              if (errorMessage.includes("not for sale")) {
+                errorMessage = "NFT không được đăng bán";
+              } else if (errorMessage.includes("insufficient funds")) {
+                errorMessage = "Không đủ ETH để mua NFT";
+              } else if (errorMessage.includes("owner")) {
+                errorMessage = "Người bán không phải là chủ sở hữu của NFT";
+              } else {
+                errorMessage =
+                  "Smart contract từ chối giao dịch: " + errorMessage;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Không thể lấy chi tiết lỗi:", err);
+      }
+
+      return {
+        verified: false,
+        status: "failed",
+        message: errorMessage,
+        receipt: receipt,
+      };
+    }
+
+    // Giao dịch thành công, giờ kiểm tra xem nó có phải là giao dịch mua NFT không
     const { marketplace } = getContracts();
 
     // Tìm event NFTSold trong logs
@@ -447,7 +676,12 @@ const verifyTransaction = async (txHash, buyer, tokenId) => {
               // Kiểm tra buyer trong event nếu cần
               const eventBuyer = parsedLog.args[2];
               if (eventBuyer.toLowerCase() === buyer.toLowerCase()) {
-                return true;
+                return {
+                  verified: true,
+                  status: "success",
+                  message: "Giao dịch mua NFT thành công",
+                  receipt: receipt,
+                };
               }
             }
           }
@@ -458,10 +692,22 @@ const verifyTransaction = async (txHash, buyer, tokenId) => {
       }
     }
 
-    return false;
+    // Giao dịch thành công nhưng không tìm thấy event NFTSold hợp lệ
+    return {
+      verified: false,
+      status: "success_no_event",
+      message: "Giao dịch thành công nhưng không tìm thấy event mua NFT",
+      receipt: receipt,
+    };
   } catch (error) {
     console.error("Error verifying transaction:", error);
-    return false;
+    return {
+      verified: false,
+      status: "error",
+      message:
+        "Lỗi khi xác minh giao dịch: " + (error.message || "Không xác định"),
+      error: error,
+    };
   }
 };
 

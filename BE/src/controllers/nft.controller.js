@@ -120,6 +120,9 @@ class NFTController {
         page,
         limit,
       });
+      if (result.success == false) {
+        return ApiResponse.badRequest(res, "Giao dịch không hợp lệ");
+      }
       return ApiResponse.success(
         res,
         result,
@@ -164,6 +167,9 @@ class NFTController {
       const buyerAddress = req.user.address;
 
       const result = await NFTService.prepareNFTPurchase(tokenId, buyerAddress);
+      if(result.success == false) {
+        return ApiResponse.badRequest(res, result.message);
+      }
       return ApiResponse.success(
         res,
         result,

@@ -10,7 +10,7 @@ class CommentWriteService extends BaseCommentService {
   /**
    * Tạo comment mới
    */
-  async createComment(postId, commentData, user) {
+  async createComment(postId, content, user) {
     try {
       // Kiểm tra bài đăng
       const post = await Post.findById(postId);
@@ -25,10 +25,8 @@ class CommentWriteService extends BaseCommentService {
       // Tạo comment mới
       const newComment = new Comment({
         postId,
-        author: user.address.toLowerCase(),
-        content: commentData.content,
-        contentURI: commentData.contentURI || null,
-        media: commentData.media || [],
+        author: user,
+        content: content,
         status: "active",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -41,16 +39,10 @@ class CommentWriteService extends BaseCommentService {
         $inc: { commentCount: 1 },
       });
 
-      // Format comment với thông tin người dùng
-      const formattedComment = await this._formatSingleCommentWithUserInfo(
-        newComment,
-        user.address
-      );
-
       return {
         success: true,
         message: "Tạo bình luận thành công",
-        data: formattedComment,
+        data: newComment,
       };
     } catch (error) {
       console.error("Error in createComment:", error);
@@ -66,7 +58,7 @@ class CommentWriteService extends BaseCommentService {
   /**
    * Trả lời một comment
    */
-  async replyToComment(commentId, replyData, user) {
+  async replyToComment(commentId, content, user) {
     try {
       // Kiểm tra comment gốc
       const parentComment = await Comment.findById(commentId);
@@ -93,10 +85,8 @@ class CommentWriteService extends BaseCommentService {
         postId: parentComment.postId,
         parentId: commentId,
         depth,
-        author: user.address.toLowerCase(),
-        content: replyData.content,
-        contentURI: replyData.contentURI || null,
-        media: replyData.media || [],
+        author: user,
+        content: content,
         status: "active",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -110,7 +100,7 @@ class CommentWriteService extends BaseCommentService {
       });
 
       // Gửi thông báo nếu đây không phải là reply cho chính mình
-      if (parentComment.author.toLowerCase() !== user.address.toLowerCase()) {
+      if (parentComment.author.toLowerCase() !== user) {
         await this._sendReplyNotification(
           parentComment.author,
           user.address,
@@ -119,16 +109,10 @@ class CommentWriteService extends BaseCommentService {
         );
       }
 
-      // Format reply với thông tin người dùng
-      const formattedReply = await this._formatSingleCommentWithUserInfo(
-        newReply,
-        user.address
-      );
-
       return {
         success: true,
         message: "Trả lời bình luận thành công",
-        data: formattedReply,
+        data: newReply,
       };
     } catch (error) {
       console.error("Error in replyToComment:", error);
@@ -157,7 +141,7 @@ class CommentWriteService extends BaseCommentService {
       }
 
       // Kiểm tra quyền chỉnh sửa
-      if (comment.author.toLowerCase() !== user.address.toLowerCase()) {
+      if (comment.author.toLowerCase() !== user) {
         return {
           success: false,
           status: 403,
@@ -167,9 +151,7 @@ class CommentWriteService extends BaseCommentService {
 
       // Cập nhật comment
       const updatedFields = {
-        content: updateData.content || comment.content,
-        contentURI: updateData.contentURI || comment.contentURI,
-        media: updateData.media || comment.media,
+        content: updateData || comment.content,
         updatedAt: new Date(),
       };
 
@@ -179,16 +161,10 @@ class CommentWriteService extends BaseCommentService {
         { new: true }
       );
 
-      // Format comment với thông tin người dùng
-      const formattedComment = await this._formatSingleCommentWithUserInfo(
-        updatedComment,
-        user.address
-      );
-
       return {
         success: true,
         message: "Cập nhật bình luận thành công",
-        data: formattedComment,
+        data: updatedComment,
       };
     } catch (error) {
       console.error("Error in updateComment:", error);
@@ -217,7 +193,7 @@ class CommentWriteService extends BaseCommentService {
       }
 
       // Kiểm tra quyền xóa
-      if (comment.author.toLowerCase() !== user.address.toLowerCase()) {
+      if (comment.author.toLowerCase() !== user) {
         return {
           success: false,
           status: 403,
@@ -286,4 +262,4 @@ class CommentWriteService extends BaseCommentService {
   }
 }
 
-module.exports = new CommentWriteService();
+module.exports = CommentWriteService;
