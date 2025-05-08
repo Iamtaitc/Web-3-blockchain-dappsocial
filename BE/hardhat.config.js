@@ -1,10 +1,10 @@
 require("@nomicfoundation/hardhat-toolbox");
-require("dotenv").config();
+const config = require("./src/configs/config.env");
 
 // Lấy biến môi trường
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const ARBITRUM_SEPOLIA_RPC_URL = process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://arbitrum-sepolia.drpc.org";
-const ARBISCAN_API_KEY = process.env.ARBISCAN_API_KEY;
+const PRIVATE_KEY = config.PRIVATE_KEY ;
+const ARBITRUM_SEPOLIA_RPC_URL = config.ARBITRUM_SEPOLIA_RPC_URL || "https://arbitrum-sepolia.drpc.org";
+const ARBISCAN_API_KEY = config.ARBISCAN_API_KEY;
 
 // Kiểm tra private key
 if (!PRIVATE_KEY) {
@@ -60,7 +60,7 @@ module.exports = {
     ]
   },
   gasReporter: {
-    enabled: process.env.REPORT_GAS !== undefined,
+    enabled: config.REPORT_GAS !== undefined,
     currency: "USD",
   }
 };

@@ -1,4 +1,5 @@
 import instance from "./instance"
+import { NFTMetadata, NFTResponse } from "./nft.api"
 
 // Interface cho dữ liệu tạo bài viết
 interface CreatePostPayload {
@@ -25,6 +26,7 @@ interface PostResponse {
 
 // Interface cho bài viết
 export interface Post {
+  nfts: any
   _id: string
   author: string
   username?: string
@@ -52,6 +54,23 @@ export interface Post {
   updatedAt: string
   isLiked?: boolean
   isSaved?: boolean
+}
+// Interface cho dữ liệu NFT
+export interface NFT {
+  tokenId: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  mediaType: string;
+  royaltyPercent: number;
+  price?: number;
+  owner: string;
+  creator: string;
+  txHash: string;
+  mintedAt: string;
+  listedAt?: string;
+  forSale: boolean;
+  postId?: string;
 }
 
 // Service API bài viết
@@ -161,7 +180,7 @@ const postApi = {
   },
 
   // Lấy bài viết theo người dùng
-  getPostsByUser: async (username: string): Promise<PostResponse> => {
+  getPostsByUser: async (username: string, pageNum: number): Promise<PostResponse> => {
     try {
       const response = await instance.get(`/post/user/${username}`)
       return response.data
@@ -245,6 +264,47 @@ const postApi = {
       return response.data
     } catch (error: any) {
       throw error.response?.data || { success: false, message: "Lỗi khi báo cáo bài viết" }
+    }
+  },
+  // Tạo NFT từ media của bài viết
+  createNFTFromPostMedia: async (
+    postId: string,
+    mediaIndex: number,
+    nftMetadata: NFTMetadata
+  ): Promise<NFTResponse> => {
+    try {
+      const response = await instance.post(
+        `/post/${postId}/media/${mediaIndex}/nft`,
+        nftMetadata
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Lỗi khi tạo NFT:", error);
+      throw error.response?.data || {
+        success: false,
+        message: "Lỗi khi tạo NFT từ media",
+      };
+    }
+  },
+
+  // Đăng bán NFT
+  listNFTFromPost: async (
+    postId: string,
+    tokenId: string,
+    price: number
+  ): Promise<NFTResponse> => {
+    try {
+      const response = await instance.post(
+        `/post/${postId}/nft/${tokenId}/list`,
+        { price }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Lỗi khi đăng bán NFT:", error);
+      throw error.response?.data || {
+        success: false,
+        message: "Lỗi khi đăng bán NFT",
+      };
     }
   },
 }

@@ -1,4 +1,5 @@
-const NFTService = require("../services/nft.services");
+//BE\src\controllers\nft.controller.js
+const NFTService = require("../services/nft/index");
 const ApiResponse = require("../utils/apiResponse.utils");
 const { validationResult } = require("express-validator");
 
@@ -12,7 +13,7 @@ class NFTController {
       forSale: req.query.forSale,
       mediaType: req.query.mediaType,
     };
-    
+
     try {
       const result = await NFTService.getAllNFTs(filters, { page, limit });
       return ApiResponse.success(res, result, "Lấy danh sách NFT thành công");
@@ -36,7 +37,11 @@ class NFTController {
   async mintNFT(req, res) {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return ApiResponse.badRequest(res, "Dữ liệu đầu vào không hợp lệ", errors.array());
+      return ApiResponse.badRequest(
+        res,
+        "Dữ liệu đầu vào không hợp lệ",
+        errors.array()
+      );
     }
 
     if (!req.file) {
@@ -44,8 +49,17 @@ class NFTController {
     }
 
     try {
-      const result = await NFTService.mintNFT(req.body, req.user.address, req.file.buffer, req.file.mimetype, req.file.originalname);
-      return ApiResponse.created(res, { message: "NFT minted successfully", nft: result });
+      const result = await NFTService.mintNFT(
+        req.body,
+        req.user.address,
+        req.file.buffer,
+        req.file.mimetype,
+        req.file.originalname
+      );
+      return ApiResponse.created(res, {
+        message: "NFT minted successfully",
+        nft: result,
+      });
     } catch (error) {
       return ApiResponse.error(res, "Lỗi khi mint NFT", error.message);
     }
@@ -53,8 +67,16 @@ class NFTController {
 
   async listNFTForSale(req, res) {
     try {
-      const result = await NFTService.listNFTForSale(req.params.tokenId, req.body.price, req.user.address);
-      return ApiResponse.success(res, result, "NFT đã được đăng bán thành công");
+      const result = await NFTService.listNFTForSale(
+        req.params.tokenId,
+        req.body.price,
+        req.user.address
+      );
+      return ApiResponse.success(
+        res,
+        result,
+        "NFT đã được đăng bán thành công"
+      );
     } catch (error) {
       return this.handleNFTError(res, error);
     }
@@ -62,7 +84,10 @@ class NFTController {
 
   async unlistNFT(req, res) {
     try {
-      const result = await NFTService.unlistNFT(req.params.tokenId, req.user.address);
+      const result = await NFTService.unlistNFT(
+        req.params.tokenId,
+        req.user.address
+      );
       return ApiResponse.success(res, result, "Đã hủy đăng bán NFT thành công");
     } catch (error) {
       return this.handleNFTError(res, error);
@@ -71,7 +96,10 @@ class NFTController {
 
   async buyNFT(req, res) {
     try {
-      const result = await NFTService.buyNFT(req.params.tokenId, req.user.address);
+      const result = await NFTService.buyNFT(
+        req.params.tokenId,
+        req.user.address
+      );
       return ApiResponse.success(res, result, "Mua NFT thành công");
     } catch (error) {
       return this.handleNFTError(res, error);
@@ -86,34 +114,109 @@ class NFTController {
       maxPrice: req.query.maxPrice,
       mediaType: req.query.mediaType,
     };
-    
+
     try {
-      const result = await NFTService.getMarketplaceNFTs(filters, { page, limit });
-      return ApiResponse.success(res, result, "Lấy danh sách NFT marketplace thành công");
+      const result = await NFTService.getMarketplaceNFTs(filters, {
+        page,
+        limit,
+      });
+      if (result.success == false) {
+        return ApiResponse.badRequest(res, "Giao dịch không hợp lệ");
+      }
+      return ApiResponse.success(
+        res,
+        result,
+        "Lấy danh sách NFT marketplace thành công"
+      );
     } catch (error) {
-      return ApiResponse.error(res, "Lỗi khi lấy danh sách NFT trên marketplace", error.message);
+      return ApiResponse.error(
+        res,
+        "Lỗi khi lấy danh sách NFT trên marketplace",
+        error.message
+      );
     }
   }
 
   async getCreatorNFTs(req, res) {
     try {
-      const result = await NFTService.getCreatorNFTs(req.params.address, { page: req.query.page, limit: req.query.limit });
-      return ApiResponse.success(res, result, "Lấy danh sách NFT của creator thành công");
+      const result = await NFTService.getCreatorNFTs(req.params.address, {
+        page: req.query.page,
+        limit: req.query.limit,
+      });
+      return ApiResponse.success(
+        res,
+        result,
+        "Lấy danh sách NFT của creator thành công"
+      );
     } catch (error) {
       return error.message === "Creator không tồn tại"
         ? ApiResponse.notFound(res, "Creator không tồn tại")
-        : ApiResponse.error(res, "Lỗi khi lấy danh sách NFT của creator", error.message);
+        : ApiResponse.error(
+            res,
+            "Lỗi khi lấy danh sách NFT của creator",
+            error.message
+          );
+    }
+  }
+
+  // Chuẩn bị thông tin để mua NFT
+
+  async prepareNFTPurchase(req, res) {
+    try {
+      const { tokenId } = req.params;
+      const buyerAddress = req.user.address;
+
+      const result = await NFTService.prepareNFTPurchase(tokenId, buyerAddress);
+      if(result.success == false) {
+        return ApiResponse.badRequest(res, result.message);
+      }
+      return ApiResponse.success(
+        res,
+        result,
+        "Thông tin mua NFT đã được chuẩn bị"
+      );
+    } catch (error) {
+      return this.handleNFTError(res, error);
+    }
+  }
+  // Xử lý kết quả giao dịch mua NFT từ frontend
+  async processNFTPurchase(req, res) {
+    try {
+      const { tokenId, txHash, buyer } = req.body;
+
+      if (!tokenId || !txHash || !buyer) {
+        return ApiResponse.badRequest(res, "Thiếu thông tin cần thiết");
+      }
+
+      const result = await NFTService.processNFTPurchase(
+        txHash,
+        tokenId,
+        buyer
+      );
+      return ApiResponse.success(
+        res,
+        result,
+        "Cập nhật thông tin mua NFT thành công"
+      );
+    } catch (error) {
+      return ApiResponse.error(
+        res,
+        "Lỗi khi cập nhật thông tin mua NFT",
+        error.message
+      );
     }
   }
 
   handleNFTError(res, error) {
     const messages = {
       "NFT không tồn tại": "NFT không tồn tại",
-      "Bạn không phải là chủ sở hữu của NFT này": "Bạn không phải là chủ sở hữu của NFT này",
+      "Bạn không phải là chủ sở hữu của NFT này":
+        "Bạn không phải là chủ sở hữu của NFT này",
       "NFT đã được đăng bán": "NFT đã được đăng bán",
       "Giá không hợp lệ": "Giá không hợp lệ",
       "NFT không được đăng bán": "NFT không được đăng bán",
-      "Bạn không thể mua NFT của chính mình": "Bạn không thể mua NFT của chính mình",
+      "Bạn không thể mua NFT của chính mình":
+        "Bạn không thể mua NFT của chính mình",
       "Số dư DX token không đủ": "Số dư DX token không đủ",
     };
     return messages[error.message]

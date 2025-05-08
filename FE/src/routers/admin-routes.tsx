@@ -1,7 +1,7 @@
 // src/routes/AdminRoutes.tsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import AdminLayout from "../Components/admin/AdminLayout";
+import AdminLayout from "../components/admin/AdminLayout";
 import Dashboard from "../pages/admin/Dashboard";
 import UserManagement from "../pages/admin/UserManagement";
 import ContentModeration from "../pages/admin/ContentModeration";

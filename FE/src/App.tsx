@@ -1,7 +1,7 @@
 // src/App.tsx
 import { Provider } from "react-redux";
 import { BrowserRouter, useLocation } from "react-router-dom";
-import Navbar from "./components/Navbar";
+import Navbar from "./Components/Navbar";
 import AppRoutes from "./routers/routes";
 import AdminRoutes from "./routers/admin-routes";
 import { ThemeProvider } from "./context/theme-context";
@@ -51,7 +51,10 @@ const AppContent = () => {
       {/* Sử dụng grid để layout chính xác hơn */}
       <div className="grid grid-cols-[200px_1fr] min-h-screen bg-white">
         {/* Navbar cố định bên trái */}
-       
+        <div className="fixed top-0 left-0 w-[200px] h-screen bg-gray-50 shadow-md z-10 overflow-y-auto">
+          <Navbar />
+        </div>
+
         {/* Nội dung chính - sử dụng left margin để tránh đè lên navbar */}
         <div className="col-start-2 col-end-3 bg-white">
           <div className="w-full px-6 py-4">

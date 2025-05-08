@@ -1,0 +1,32 @@
+/* Styles cho right panel sticky */
+.right-panel-container {
+    width: 35%;
+    position: relative;
+    height: 100%;
+  }
+  
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    transition: all 0.2s ease;
+  }
+  
+  /* Responsive styles */
+  @media (max-width: 1024px) {
+    .container {
+      flex-direction: column;
+    }
+  
+    .left-panel,
+    .right-panel-container {
+      width: 100%;
+    }
+  
+    .right-panel {
+      position: static !important;
+      width: 100% !important;
+    }
+  }
+  
