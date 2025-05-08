@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from "react";
 import { Wallet } from "lucide-react";
-import TestReduxData from "../Components/TestReduxData";
+import TestReduxData from "../components/TestReduxData";
 import LeaderboardAPI from "../services/LeaderboardAPI";
 import userApi, { UserProfile } from "../services/user.api";
 

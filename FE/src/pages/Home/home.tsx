@@ -6,22 +6,22 @@ import "../../styles/comment-section.css"
 import "../../styles/sticky-panel.css"
 import avtImage from "../../assets/default-avatar-profile-image-vector-social-media-user-icon-potrait-182347582.webp"
 import Nfttuimu from "../../assets/NFTtuimu.avif"
-import HeartButton from "../../Components/UI/HeartButton"
-import CreatePostModal from "../../Components/UI/CreatePostModal"
+import HeartButton from "../../components/UI/HeartButton"
+import CreatePostModal from "../../components/UI/CreatePostModal"
 import { Flag, PlusCircle, RefreshCw, MessageCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import InfiniteScroll from "../../Components/infinite-scroll"
-import PostSkeleton from "../../Components/post-skeleton"
+import InfiniteScroll from "../../components/infinite-scroll"
+import PostSkeleton from "../../components/post-skeleton"
 import { useSelector } from "react-redux"
 import type { RootState } from "../../store"
 import postApi, { type Post, type PostMention } from "../../services/post.api"
-import IPFSImage from "../../Components/UI/IPFSImage"
-import BookmarkButton from "../../Components/UI/BookmarkButton"
+import IPFSImage from "../../components/UI/IPFSImage"
+import BookmarkButton from "../../components/UI/BookmarkButton"
 import { toast } from "react-hot-toast"
-import { WalletLoginModal } from "../../Components/Login/wallet-login-modal"
-import CommentSection from "../../Components/Comment/CommentSection"
-import NFTButton from "../../Components/NFT/UI/NFTButton"
-import PostAvatarFallback from "../../Components/UI/post-avatar-fallback"
+import { WalletLoginModal } from "../../components/Login/wallet-login-modal"
+import CommentSection from "../../components/Comment/CommentSection"
+import NFTButton from "../../components/NFT/UI/NFTButton"
+import PostAvatarFallback from "../../components/UI/post-avatar-fallback"
 import { hasPostImages } from "../../lib/utils"
 
 const Home = () => {
@@ -179,19 +179,7 @@ const Home = () => {
     setIsLoading(true)
   }
 
-  // Xử lý khi nhấn nút đăng bài
-  const handlePostButtonClick = () => {
-    if (!isAuthenticated) {
-      toast.error("Vui lòng đăng nhập để đăng bài")
-      setWalletLoginModalOpen(true)
-    } else {
-      setCreatePostModalOpen(true)
-    }
-
-    // Tải bình luận (trong thực tế, bạn sẽ gọi API để lấy bình luận)
-    setSelectedPostComments([])
-    setCommentModalOpen(true)
-  }
+  
 
   // Xử lý khi bài viết được tạo thành công
   const handlePostCreated = () => {
@@ -320,129 +308,9 @@ const Home = () => {
     return date.toLocaleDateString("vi-VN")
   }
 
-  const handleAddComment = () => {
-    // TODO: Implement handleAddComment
-    toast.success("Đã thêm bình luận!")
-    setCommentModalOpen(false)
-  }
 
-  // Xử lý khi bài viết được tạo thành công
-  const handlePostCreated = () => {
-    toast.success("Đăng bài thành công!")
-    handleRefresh()
-  }
 
-  // Xử lý khi click vào mention
-  const handleMentionClick = (mention: PostMention) => {
-    navigate(`/user/${mention.walletAddress}`)
-  }
 
-  // Xử lý thích bài viết
-  const handleLikePost = async (postId: string, isLiked: boolean) => {
-    if (!isAuthenticated) {
-      toast.error("Vui lòng đăng nhập để thích bài viết")
-      setWalletLoginModalOpen(true)
-      return
-    }
-
-    try {
-      // Cập nhật UI ngay lập tức (optimistic update)
-      setApiPosts((posts) =>
-        posts.map((post) =>
-          post._id === postId
-            ? {
-                ...post,
-                isLiked: !post.isLiked,
-                likeCount: post.isLiked ? post.likeCount - 1 : post.likeCount + 1,
-              }
-            : post,
-        ),
-      )
-
-      // Gọi API
-      if (!isLiked) {
-        await postApi.likePost(postId)
-      } else {
-        await postApi.unlikePost(postId)
-      }
-    } catch (error) {
-      console.error("Lỗi khi thích/bỏ thích bài viết:", error)
-      toast.error("Có lỗi xảy ra. Vui lòng thử lại.")
-
-      // Khôi phục trạng thái nếu có lỗi
-      fetchPosts(page, true)
-    }
-  }
-
-  // Xử lý lưu bài viết
-  const handleSavePost = async (postId: string, isSaved: boolean) => {
-    if (!isAuthenticated) {
-      toast.error("Vui lòng đăng nhập để lưu bài viết")
-      setWalletLoginModalOpen(true)
-      return
-    }
-
-    try {
-      // Cập nhật UI ngay lập tức (optimistic update)
-      setApiPosts((posts) =>
-        posts.map((post) =>
-          post._id === postId
-            ? {
-                ...post,
-                isSaved: !post.isSaved,
-                saveCount: post.isSaved ? post.saveCount - 1 : post.saveCount + 1,
-              }
-            : post,
-        ),
-      )
-
-      // Gọi API
-      if (!isSaved) {
-        await postApi.savePost(postId)
-      } else {
-        await postApi.unsavePost(postId)
-      }
-    } catch (error) {
-      console.error("Lỗi khi lưu/bỏ lưu bài viết:", error)
-      toast.error("Có lỗi xảy ra. Vui lòng thử lại.")
-
-      // Khôi phục trạng thái nếu có lỗi
-      fetchPosts(page, true)
-    }
-  }
-
-  // Xử lý báo cáo bài viết
-  const handleReportPost = (postId: string) => {
-    if (!isAuthenticated) {
-      toast.error("Vui lòng đăng nhập để báo cáo bài viết")
-      setWalletLoginModalOpen(true)
-      return
-    }
-
-    // Hiển thị xác nhận báo cáo
-    if (confirm("Bạn có chắc chắn muốn báo cáo bài viết này không?")) {
-      // Trong thực tế, bạn sẽ gọi API để báo cáo bài viết
-      toast.success("Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét bài viết này.")
-    }
-  }
-
-  // Định dạng thời gian
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffSecs = Math.floor(diffMs / 1000)
-    const diffMins = Math.floor(diffSecs / 60)
-    const diffHours = Math.floor(diffMins / 60)
-    const diffDays = Math.floor(diffHours / 24)
-
-    if (diffSecs < 60) return "Vừa xong"
-    if (diffMins < 60) return `${diffMins} phút trước`
-    if (diffHours < 24) return `${diffHours} giờ trước`
-    if (diffDays < 7) return `${diffDays} ngày trước`
-
-    return date.toLocaleDateString("vi-VN")
-  }
 
   // Xử lý khi click vào icon comment
   const handleCommentClick = (postId: string) => {

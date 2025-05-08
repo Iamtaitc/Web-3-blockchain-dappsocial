@@ -1,7 +1,7 @@
 // src/App.tsx
 import { Provider } from "react-redux";
 import { BrowserRouter, useLocation } from "react-router-dom";
-import Navbar from "./Components/Navbar";
+import Navbar from "./components/Navbar";
 import AppRoutes from "./routers/routes";
 import AdminRoutes from "./routers/admin-routes";
 import { ThemeProvider } from "./context/theme-context";
