@@ -1,5 +1,5 @@
-const Notification = require('../models/Notification.mongoose');
-const User = require('../models/User.mongoose');
+const Notification = require("../models/Notification.mongoose");
+const User = require("../models/User.mongoose");
 
 /**
  * Tạo thông báo mới
@@ -8,15 +8,16 @@ const User = require('../models/User.mongoose');
  */
 const createNotification = async (notificationData) => {
   try {
-    const { recipient, type, sender, content, targetType, targetId } = notificationData;
-    
+    const { recipient, type, sender, content, targetType, targetId } =
+      notificationData;
+
     // Kiểm tra recipient có tồn tại không
     const user = await User.findOne({ walletAddress: recipient.toLowerCase() });
     if (!user) {
-      console.error('Recipient not found:', recipient);
+      console.error("Recipient not found:", recipient);
       return null;
     }
-    
+
     // Tạo thông báo mới
     const notification = new Notification({
       recipient: recipient.toLowerCase(),
@@ -26,13 +27,13 @@ const createNotification = async (notificationData) => {
       targetType,
       targetId,
       read: false,
-      createdAt: new Date()
+      createdAt: new Date(),
     });
-    
+
     await notification.save();
     return notification;
   } catch (error) {
-    console.error('Error creating notification:', error);
+    console.error("Error creating notification:", error);
     return null;
   }
 };
@@ -47,43 +48,43 @@ const getUserNotifications = async (walletAddress, options = {}) => {
   try {
     const { page = 1, limit = 20, unreadOnly = false } = options;
     const skip = (page - 1) * limit;
-    
+
     // Xây dựng query
-    const query = { 
-      recipient: walletAddress.toLowerCase() 
+    const query = {
+      recipient: walletAddress.toLowerCase(),
     };
-    
+
     if (unreadOnly) {
       query.read = false;
     }
-    
+
     // Lấy thông báo
     const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
-    
+
     // Đếm tổng số thông báo
     const total = await Notification.countDocuments(query);
-    
+
     // Đếm số thông báo chưa đọc
     const unreadCount = await Notification.countDocuments({
       recipient: walletAddress.toLowerCase(),
-      read: false
+      read: false,
     });
-    
+
     return {
       notifications,
       pagination: {
         total,
         page: parseInt(page),
         limit: parseInt(limit),
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / limit),
       },
-      unreadCount
+      unreadCount,
     };
   } catch (error) {
-    console.error('Error getting user notifications:', error);
+    console.error("Error getting user notifications:", error);
     throw error;
   }
 };
@@ -97,16 +98,16 @@ const getUserNotifications = async (walletAddress, options = {}) => {
 const markNotificationAsRead = async (notificationId, walletAddress) => {
   try {
     const result = await Notification.updateOne(
-      { 
+      {
         _id: notificationId,
-        recipient: walletAddress.toLowerCase()
+        recipient: walletAddress.toLowerCase(),
       },
       { $set: { read: true } }
     );
-    
+
     return result.modifiedCount > 0;
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    console.error("Error marking notification as read:", error);
     return false;
   }
 };
@@ -119,16 +120,16 @@ const markNotificationAsRead = async (notificationId, walletAddress) => {
 const markAllNotificationsAsRead = async (walletAddress) => {
   try {
     const result = await Notification.updateMany(
-      { 
+      {
         recipient: walletAddress.toLowerCase(),
-        read: false
+        read: false,
       },
       { $set: { read: true } }
     );
-    
+
     return result.modifiedCount;
   } catch (error) {
-    console.error('Error marking all notifications as read:', error);
+    console.error("Error marking all notifications as read:", error);
     return 0;
   }
 };
@@ -137,5 +138,5 @@ module.exports = {
   createNotification,
   getUserNotifications,
   markNotificationAsRead,
-  markAllNotificationsAsRead
+  markAllNotificationsAsRead,
 };

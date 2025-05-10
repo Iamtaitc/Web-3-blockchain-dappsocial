@@ -1,5 +1,3 @@
-// services/secureBlockchainService.js
-
 const { ethers } = require('ethers');
 const keyManager = require('./keyManager.services');
 const blockchainService = require('./blockchain.service');

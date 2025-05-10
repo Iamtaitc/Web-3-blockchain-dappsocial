@@ -1,0 +1,122 @@
+/* Make sure the classes are more specific to override default styles */
+body.dark {
+    background-color: #000;
+    color: #fff;
+  }
+  
+  body.light {
+    background: linear-gradient(to bottom, #ffffff, #f3f4f6);
+    color: #1f2937;
+  }
+  
+  /* Dark Theme Styles */
+  .farm-dark {
+    background-color: #000;
+    color: #fff;
+  }
+  
+  .farm-dark .card {
+    background-color: #1f2937;
+    border-color: #374151;
+  }
+  
+  .farm-dark .button-primary {
+    background-color: #22c55e;
+    color: #000;
+  }
+  
+  .farm-dark .button-secondary {
+    background-color: #374151;
+    color: #fff;
+  }
+  
+  .farm-dark .text-primary {
+    color: #fff;
+  }
+  
+  .farm-dark .text-secondary {
+    color: #9ca3af;
+  }
+  
+  .farm-dark .border-color {
+    border-color: #374151;
+  }
+  
+  /* Light Theme Styles */
+  .farm-light {
+    background: linear-gradient(to bottom, #ffffff, #f3f4f6);
+    color: #1f2937;
+  }
+  
+  .farm-light .card {
+    background-color: #ffffff;
+    border-color: #e5e7eb;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  .farm-light .button-primary {
+    background: linear-gradient(to right, #10b981, #059669);
+    color: #ffffff;
+  }
+  
+  .farm-light .button-secondary {
+    background-color: #f3f4f6;
+    color: #1f2937;
+  }
+  
+  .farm-light .text-primary {
+    color: #1f2937;
+  }
+  
+  .farm-light .text-secondary {
+    color: #6b7280;
+  }
+  
+  .farm-light .border-color {
+    border-color: #e5e7eb;
+  }
+  
+  /* Grid Background */
+  .grid-bg-dark {
+    background-image: linear-gradient(rgba(22, 27, 34, 0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 27, 34, 0.5) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  .grid-bg-light {
+    background-image: linear-gradient(rgba(220, 220, 220, 0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(220, 220, 220, 0.5) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  /* Animations */
+  @keyframes float {
+    0% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-50px);
+      opacity: 0;
+    }
+  }
+  
+  .animate-float {
+    animation: float 1s forwards;
+  }
+  
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  

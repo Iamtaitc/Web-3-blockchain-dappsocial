@@ -33,6 +33,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 level;
         uint256 expiration;
         uint256 startTime;
+        bool isActive;      // Thêm trường isActive
     }
     
     // Mapping
@@ -40,6 +41,8 @@ contract Subscription is Ownable, ReentrancyGuard {
     
     // Events
     event SubscriptionPurchased(address indexed user, uint256 level, uint256 months, uint256 expiration);
+    // Thêm event SubscriptionActivated
+    event SubscriptionActivated(address indexed user, uint256 level, uint256 months, uint256 expirationTimestamp);
     
     constructor(address _dxToken, address _feeRecipient) Ownable(msg.sender) {
         dxToken = DXToken(_dxToken);
@@ -76,7 +79,8 @@ contract Subscription is Ownable, ReentrancyGuard {
         subscriptions[msg.sender] = SubscriptionInfo({
             level: _level,
             expiration: expiration,
-            startTime: block.timestamp
+            startTime: block.timestamp,
+            isActive: true      // Thêm trường isActive
         });
         
         emit SubscriptionPurchased(msg.sender, _level, _months, expiration);
@@ -113,5 +117,28 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setFeeRecipient(address _feeRecipient) external onlyOwner {
         require(_feeRecipient != address(0), "Invalid address");
         feeRecipient = _feeRecipient;
+    }
+    
+    function activateSubscription(
+        address user, 
+        uint256 level, 
+        uint256 months
+    ) external onlyOwner {
+        // Kiểm tra tính hợp lệ
+        require(level == LEVEL_STANDARD || level == LEVEL_PLUS || 
+                level == LEVEL_PRO || level == LEVEL_ELITE, "Invalid subscription level");
+        require(months >= 1 && months <= 12, "Invalid subscription duration");
+        
+        // Tính thời gian hết hạn (giây)
+        uint256 expirationTimestamp = block.timestamp + (months * 30 days);
+        
+        subscriptions[user] = SubscriptionInfo({
+            level: level,
+            expiration: expirationTimestamp,
+            startTime: block.timestamp,
+            isActive: true
+        });
+        
+        emit SubscriptionActivated(user, level, months, expirationTimestamp);
     }
 }

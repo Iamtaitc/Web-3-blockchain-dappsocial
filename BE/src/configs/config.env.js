@@ -1,4 +1,6 @@
-require('dotenv').config();
+const dotenv = require('dotenv');
+const path = require('path');
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // Xử lý biến môi trường mặc định
 const getEnv = (key, defaultValue) => {
@@ -16,21 +18,20 @@ const config = {
   MONGODB_URI_TEST: getEnv('MONGODB_URI_TEST', 'mongodb://localhost:27017/deso_social_test'),
   
   // JWT Auth Config
-  JWT_SECRET: getEnv('JWT_SECRET',),
-  JWT_REFRESH_SECRET: getEnv('JWT_REFRESH_SECRET',),
+  JWT_SECRET: getEnv('JWT_SECRET', ''),
+  JWT_REFRESH_SECRET: getEnv('JWT_REFRESH_SECRET', ''),
   JWT_EXPIRY: getEnv('JWT_EXPIRY', '2h'),
   JWT_REFRESH_EXPIRY: getEnv('JWT_REFRESH_EXPIRY', '7d'),
   
-  // IPFS Config
-  IPFS_HOST: getEnv('IPFS_HOST', 'ipfs.infura.io'),
-  IPFS_PORT: parseInt(getEnv('IPFS_PORT', '5001')),
-  IPFS_PROTOCOL: getEnv('IPFS_PROTOCOL', 'https'),
-  IPFS_GATEWAY: getEnv('IPFS_GATEWAY', 'https://ipfs.io/ipfs/'),
-  INFURA_IPFS_PROJECT_ID: getEnv('INFURA_IPFS_PROJECT_ID', ''),
-  INFURA_IPFS_PROJECT_SECRET: getEnv('INFURA_IPFS_PROJECT_SECRET', ''),
-  INFURA_IPFS_AUTH: process.env.INFURA_IPFS_PROJECT_ID ? 
-    `Basic ${Buffer.from(`${process.env.INFURA_IPFS_PROJECT_ID}:${process.env.INFURA_IPFS_PROJECT_SECRET}`).toString('base64')}` : '',
-  
+// IPFS Config
+IPFS_HOST: getEnv('IPFS_HOST', '127.0.0.1'), // Localhost
+IPFS_PORT: parseInt(getEnv('IPFS_PORT', '5001')), // API port
+IPFS_PROTOCOL: getEnv('IPFS_PROTOCOL', 'http'), // IPFS daemon chạy HTTP
+IPFS_GATEWAY: getEnv('IPFS_GATEWAY', 'http://127.0.0.1:9090/ipfs/'), // Gateway local
+INFURA_IPFS_PROJECT_ID: '', // Không cần khi dùng local
+INFURA_IPFS_PROJECT_SECRET: '', 
+INFURA_IPFS_AUTH: '', // Không cần auth khi dùng local
+
   // Blockchain Config
   RPC_URL: getEnv('RPC_URL', 'https://sepolia-rollup.arbitrum.io/rpc'),
   CHAIN_ID: parseInt(getEnv('CHAIN_ID', '421614')), // Arbitrum Sepolia
@@ -83,7 +84,9 @@ const config = {
   ENCRYPTION_KEY: getEnv('ENCRYPTION_KEY', ''),
   
   // Admin Config
-  ADMIN_ADDRESSES: getEnv('ADMIN_ADDRESSES', '').split(','),
+  ADMIN_ADDRESSES: process.env.ADMIN_ADDRESSES 
+    ? process.env.ADMIN_ADDRESSES.split(',').map(address => address.trim().toLowerCase())
+    : [],
   
   // AWS S3 Config (nếu sử dụng)
   AWS_ACCESS_KEY_ID: getEnv('AWS_ACCESS_KEY_ID', ''),

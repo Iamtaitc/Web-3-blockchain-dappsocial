@@ -1,6 +1,6 @@
 // services/cacheService.js
 
-const NodeCache = require('node-cache');
+const NodeCache = require("node-cache");
 const blockchainCache = new NodeCache({ stdTTL: 60, checkperiod: 120 }); // TTL: 60 giây
 
 /**
@@ -15,13 +15,13 @@ async function getOrFetchData(key, fetchFunction, ttl = 60) {
   if (cachedData !== undefined) {
     return cachedData;
   }
-  
+
   // Nếu không có trong cache, lấy từ blockchain
   const data = await fetchFunction();
-  
+
   // Lưu vào cache
   blockchainCache.set(key, data, ttl);
-  
+
   return data;
 }
 
@@ -38,5 +38,5 @@ function invalidateAllCache() {
 module.exports = {
   getOrFetchData,
   invalidateCache,
-  invalidateAllCache
+  invalidateAllCache,
 };

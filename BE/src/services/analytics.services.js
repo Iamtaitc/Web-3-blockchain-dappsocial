@@ -1,7 +1,7 @@
-const Post = require('../models/Post.mongoose');
-const NFTCache = require('../models/NFTCache.mongoose');
-const User = require('../models/User.mongoose');
-const Comment = require('../models/Comment.mongoose');
+const Post = require("../models/Post.mongoose");
+const NFTCache = require("../models/NFTCache.mongoose");
+const User = require("../models/User.mongoose");
+const Comment = require("../models/Comment.mongoose");
 
 /**
  * Tính toán điểm trending cho bài đăng
@@ -12,35 +12,32 @@ const calculatePostTrendingScore = async (postId) => {
   try {
     const post = await Post.findById(postId);
     if (!post) return;
-    
+
     const now = new Date();
     const createdAt = post.createdAt || now;
-    
+
     // Tính số giờ từ lúc tạo
     const hoursSinceCreation = Math.max(
       (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60),
       0
     );
-    
+
     // Tính điểm trending
     const likeWeight = post.likeCount * 3;
     const commentWeight = post.commentCount * 2;
     const saveWeight = post.saveCount;
     const viewWeight = (post.viewCount || 0) / 10;
-    
-    const score = 
-      (likeWeight + commentWeight + saveWeight + viewWeight) / 
+
+    const score =
+      (likeWeight + commentWeight + saveWeight + viewWeight) /
       Math.pow(hoursSinceCreation + 2, 1.5);
-    
+
     // Cập nhật điểm trending
-    await Post.updateOne(
-      { _id: postId },
-      { $set: { trendScore: score } }
-    );
-    
+    await Post.updateOne({ _id: postId }, { $set: { trendScore: score } });
+
     return score;
   } catch (error) {
-    console.error('Error calculating post trending score:', error);
+    console.error("Error calculating post trending score:", error);
   }
 };
 
@@ -52,34 +49,31 @@ const calculateNFTTrendingScore = async (tokenId) => {
   try {
     const nft = await NFTCache.findOne({ tokenId });
     if (!nft) return;
-    
+
     const now = new Date();
     const mintedAt = nft.mintedAt || now;
-    
+
     // Tính số giờ từ lúc mint
     const hoursSinceCreation = Math.max(
       (now.getTime() - mintedAt.getTime()) / (1000 * 60 * 60),
       0
     );
-    
+
     // Tính điểm trending
     const viewWeight = (nft.viewCount || 0) / 5;
     const likeWeight = nft.likeCount * 2;
     const forSaleBonus = nft.forSale ? 10 : 0;
-    
-    const score = 
-      (viewWeight + likeWeight + forSaleBonus) / 
+
+    const score =
+      (viewWeight + likeWeight + forSaleBonus) /
       Math.pow(hoursSinceCreation + 2, 1.3);
-    
+
     // Cập nhật điểm trending
-    await NFTCache.updateOne(
-      { tokenId },
-      { $set: { trendScore: score } }
-    );
-    
+    await NFTCache.updateOne({ tokenId }, { $set: { trendScore: score } });
+
     return score;
   } catch (error) {
-    console.error('Error calculating NFT trending score:', error);
+    console.error("Error calculating NFT trending score:", error);
   }
 };
 
@@ -87,33 +81,33 @@ const calculateNFTTrendingScore = async (tokenId) => {
  * Cập nhật tất cả điểm trending (chạy định kỳ)
  */
 const updateAllTrendingScores = async () => {
-  console.log('Updating all trending scores...');
-  
+  console.log("Updating all trending scores...");
+
   try {
     // Lấy tất cả posts từ 7 ngày trước
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 7);
-    
+
     const posts = await Post.find({
       createdAt: { $gte: cutoffDate },
-      status: 'active'
-    }).select('_id');
-    
+      status: "active",
+    }).select("_id");
+
     // Cập nhật từng post
     for (const post of posts) {
       await calculatePostTrendingScore(post._id);
     }
-    
+
     // Cập nhật NFTs
-    const nfts = await NFTCache.find().select('tokenId');
-    
+    const nfts = await NFTCache.find().select("tokenId");
+
     for (const nft of nfts) {
       await calculateNFTTrendingScore(nft.tokenId);
     }
-    
-    console.log('Trending scores update completed');
+
+    console.log("Trending scores update completed");
   } catch (error) {
-    console.error('Error updating trending scores:', error);
+    console.error("Error updating trending scores:", error);
   }
 };
 
@@ -124,43 +118,43 @@ const updateAllTrendingScores = async () => {
 const calculateUserStats = async (walletAddress) => {
   try {
     const address = walletAddress.toLowerCase();
-    
+
     // Đếm số bài đăng
     const postCount = await Post.countDocuments({
       author: address,
-      status: 'active'
+      status: "active",
     });
-    
+
     // Đếm số NFT đã mint
     const nftCount = await NFTCache.countDocuments({
-      creator: address
+      creator: address,
     });
-    
+
     // Đếm số comments
     const commentCount = await Comment.countDocuments({
       author: address,
-      status: 'active'
+      status: "active",
     });
-    
+
     // Cập nhật thống kê
     await User.updateOne(
       { walletAddress: address },
       {
         $set: {
-          'socialStats.postCount': postCount,
-          'socialStats.nftCount': nftCount,
-          'socialStats.commentCount': commentCount
-        }
+          "socialStats.postCount": postCount,
+          "socialStats.nftCount": nftCount,
+          "socialStats.commentCount": commentCount,
+        },
       }
     );
-    
+
     return {
       postCount,
       nftCount,
-      commentCount
+      commentCount,
     };
   } catch (error) {
-    console.error('Error calculating user stats:', error);
+    console.error("Error calculating user stats:", error);
   }
 };
 
@@ -168,5 +162,5 @@ module.exports = {
   calculatePostTrendingScore,
   calculateNFTTrendingScore,
   updateAllTrendingScores,
-  calculateUserStats
+  calculateUserStats,
 };

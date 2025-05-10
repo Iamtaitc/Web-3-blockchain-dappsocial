@@ -1,69 +1,53 @@
 const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const compression = require("compression");
-const fileUpload = require("express-fileupload");
-const path = require("path");
-const { globalLimit } = require("./middleware/rateLimit");
-const ConnectDB = require("./configs/configs.mongoose");
-const config = require("./configs/config.env");
-// Create Express app
 const app = express();
+const morgan = require("morgan");
+const { default: helmet } = require("helmet");
+const compression = require("compression");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const bodyParser = require("body-parser");
+const initializeJwtSecrets  = require("./utils/initializeJwtSecrets");
+const { swaggerUi, swaggerDocs } = require('./docs/swagger');
+// const logger = require('./utils/logger');
+require("dotenv").config();
 
-// Middleware
+const connectDB = require("./configs/configs.mongoose");
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan("dev"));
 app.use(helmet());
-app.use(cors(config.CORS_OPTIONS));
 app.use(compression());
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(cookieParser());
+app.use(bodyParser.json());
 app.use(
-  fileUpload({
-    limits: { fileSize: config.MAX_FILE_SIZE },
-    useTempFiles: true,
-    tempFileDir: "/tmp/",
-    abortOnLimit: true,
+  cors({
+    origin: true,
+    credentials: true,
+    optionsSuccessStatus: 200,
   })
 );
-app.use(globalLimit);
 
+initializeJwtSecrets();
+// Doc API
+app.use('/api-docs', swaggerUi.serve);
+app.get('/api-docs', swaggerUi.setup(swaggerDocs));
+connectDB();
+// // Sử dụng HTTP logger middleware
+// app.use(logger.httpLoggerMiddleware);
+
+// // Cài đặt routes admin cho logs
+// logger.setupAdminRoutes(app);
 // Routes
-app.use("/api", require("./routers"));
+app.use("", require("./routers"));
 
-// Serve static files
-app.use("/static", express.static(path.join(__dirname, "public")));
-
-// Root route
-app.get("/", (req, res) => {
+app.use((error, req, res, next) => {
+  res.status(error.statusCode || 500);
+  console.log(error.message);
   res.json({
-    name: "DeSo Social API",
-    version: "1.0.0",
-    status: "active",
+    error: {
+      message: error.message,
+    },
   });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error("Global error handler:", err);
-
-  res.status(err.status || 500).json({
-    error: err.message || "Internal Server Error",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-  });
-});
-
-// Connect to MongoDB
-ConnectDB();
-
-
-// Handle uncaught exceptions
-process.on("uncaughtException", (err) => {
-  console.error("Uncaught Exception:", err);
-  process.exit(1);
-});
-
-// Handle unhandled promise rejections
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
 module.exports = app;
