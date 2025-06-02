@@ -233,7 +233,8 @@ const Navbar = () => {
         token: authState.token,
         refreshToken: authState.refreshToken,
         user: authState.user,
-      })
+      });
+      window.location.reload();
     }, 100)
   }
 
@@ -247,6 +248,7 @@ const Navbar = () => {
       if (currentPath === "/add-nft" || currentPath === "/profile") {
         navigate("/")
       }
+      window.location.reload();
     } catch (err) {
       console.error("Error disconnecting:", err)
     }
@@ -299,14 +301,14 @@ const Navbar = () => {
           />
           <NavItem to="/farm" icon={<Leaf size={18} />} label="Farm" isActive={currentPath === "/farm"} />
           <NavItem
-            to="/add-nft"
+            to="/marketplace"
             icon={<PlusCircle size={18} />}
-            label="Add NFT"
-            isActive={currentPath === "/add-nft" || currentPath.startsWith("/add-nft/")}
+            label="NFT"
+            isActive={currentPath === "/marketplace" || currentPath.startsWith("/marketplace/")}
           />
           <NavItem to="/premium" icon={<Crown size={18} />} label="Premium" isActive={currentPath === "/premium"} />
           <NavItem to="/quest" icon={<Target size={18} />} label="Quest" isActive={currentPath === "/quest"} />
-          <NavItem to="/wallet" icon={<Wallet size={18} />} label="Wallet" isActive={currentPath === "/wallet"} />
+          {/* <NavItem to="/wallet" icon={<Wallet size={18} />} label="Wallet" isActive={currentPath === "/wallet"} /> */}
           <NavItem
             to="/notifications"
             icon={<Bell size={18} />}

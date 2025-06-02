@@ -49,7 +49,7 @@ const AppRoutes = () => {
       <Route path="/SnakeGame" element={<SnakeGame />} />
       <Route path="/DropGame" element={<DropGame />} />
       <Route path="/Setting" element={<Settings />} />
-      {/* <Route path="/notifications" element={<Notification />} /> */}
+      <Route path="/notifications" element={<Notification />} />
     </Routes>
   );
 };

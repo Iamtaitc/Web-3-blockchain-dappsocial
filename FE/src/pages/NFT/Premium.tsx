@@ -1,9 +1,8 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { useSelector, useDispatch } from "react-redux" // Thêm useDispatch
+import { useSelector, useDispatch } from "react-redux"
 import { Loader2, CheckCircle, Info, Wallet, Clock, Shield, Zap, Diamond, Star } from "lucide-react"
 import { ethers } from "ethers"
 
@@ -29,15 +28,30 @@ import SubscriptionBadge from "../../components/subscription/subscription-badge"
 import TransactionError from "../../components/subscription/transaction-error"
 import CurrentSubscription from "../../components/subscription/current-subscription"
 
-import SubscriptionService from "../../services/subscriptionApi"
-import { checkNetwork } from "../../services/blockchain-services"
-import { fetchUserProfile } from "../../store/slices/userSlice" // Import action fetchUserProfile
+import SubscriptionService from "../../services/subscriptionAPI"
+
+import { useBlockchain } from "../../hooks/useBlockchain"
+import { fetchUserProfile } from "../../store/slices/userSlice"
+import { useLoginModal } from "../../components/Login/login-modal-provider" // Thêm import này
 
 export default function Premium() {
   const navigate = useNavigate()
-  const dispatch = useDispatch() // Thêm dispatch
+  const dispatch = useDispatch()
   const { isAuthenticated, walletAddress, token, user } = useSelector((state) => state.auth)
-  const { currentProfile, loading: profileLoading } = useSelector((state) => state.user)
+  const { currentProfile, loading: profileLading } = useSelector((state) => state.user)
+  const { openLoginModal } = useLoginModal() // Thêm useLoginModal để mở modal
+
+  // Sử dụng hook blockchain
+  const {
+    getProvider,
+    getSigner,
+    verifyTransaction,
+    sendPayment,
+    checkNetwork,
+    loading: blockchainLoading,
+    error: blockchainError,
+    setError: setBlockchainError,
+  } = useBlockchain();
 
   // Lấy level subscription từ currentProfile nếu có
   const userSubscriptionLevel = currentProfile?.subscription?.level || 1
@@ -116,10 +130,17 @@ export default function Premium() {
 
   // Thêm useEffect để fetch profile khi component mount
   useEffect(() => {
-    if (!isAuthenticated || !walletAddress) {
-      navigate("/login")
-      return
-    }
+  if (!isAuthenticated || !walletAddress) {
+    openLoginModal({
+      requireSignature: true,
+      actionMessage: "Vui lòng kết nối và xác thực ví để truy cập trang Premium.",
+      onSuccess: () => {
+        // Sau khi đăng nhập thành công, fetch profile
+        dispatch(fetchUserProfile(walletAddress));
+      },
+    });
+    return;
+  }
 
     // Fetch profile khi component mount
     const fetchProfile = async () => {
@@ -134,7 +155,7 @@ export default function Premium() {
     }
 
     fetchProfile()
-  }, [isAuthenticated, walletAddress, navigate, dispatch])
+  }, [isAuthenticated, walletAddress, navigate, dispatch, openLoginModal])
 
   // useEffect để kiểm tra và hiển thị gói hiện tại sau khi fetch profile
   useEffect(() => {
@@ -143,85 +164,111 @@ export default function Premium() {
     }
   }, [userSubscriptionLevel])
 
+  // Hàm tạo yêu cầu subscription
   const createSubscriptionRequest = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      setPaymentStep(1)
+      setLoading(true);
+      setError(null);
+      setPaymentStep(1);
 
       if (!token) {
-        setError("Bạn cần đăng nhập để mua gói Premium")
-        return
+        setError("Bạn cần đăng nhập để mua gói Premium");
+        openLoginModal({
+          requireSignature: true,
+          actionMessage: "Vui lòng kết nối và xác thực ví để mua gói Premium.",
+          onSuccess: () => {
+            // Thử lại sau khi đăng nhập thành công
+            createSubscriptionRequest();
+          },
+        });
+        return;
       }
 
-      const response = await SubscriptionService.createSubscriptionRequest(selectedPlan, months)
+      const response = await SubscriptionService.createSubscriptionRequest({
+        level: selectedPlan,
+        months: months,
+      });
 
       if (!response.success) {
-        throw new Error(response.message || "Không thể tạo yêu cầu đăng ký")
+        throw new Error(response.message || "Không thể tạo yêu cầu đăng ký");
       }
 
-      // Kiểm tra địa chỉ nhận thanh toán
       if (!response.data || !response.data.recipientAddress) {
-        throw new Error("API không trả về địa chỉ nhận thanh toán")
+        throw new Error("API không trả về địa chỉ nhận thanh toán");
       }
 
       if (!ethers.isAddress(response.data.recipientAddress)) {
-        throw new Error("Địa chỉ nhận thanh toán không hợp lệ")
+        throw new Error("Địa chỉ nhận thanh toán không hợp lệ");
       }
 
-      setPaymentData(response.data)
-      setPaymentStep(2)
-    } catch (error) {
-      console.error("Lỗi khi tạo yêu cầu đăng ký:", error)
-      setError(error)
-    } finally {
-      setLoading(false)
-    }
-  }
+      // Override network thành arbitrum-sepolia nếu cần
+      const updatedPaymentData = {
+        ...response.data,
+        network: "arbitrum-sepolia",
+      };
 
+      setPaymentData(updatedPaymentData);
+      setPaymentStep(2);
+    } catch (error) {
+      console.error("Lỗi khi tạo yêu cầu đăng ký:", error);
+      setError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Hàm xử lý thanh toán
   const processPayment = async () => {
-    if (!paymentData) return
+    if (!paymentData) return;
 
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
       if (!paymentData.recipientAddress) {
-        throw new Error("Không có địa chỉ nhận thanh toán")
+        throw new Error("Không có địa chỉ nhận thanh toán");
       }
 
-      const networkCheck = await checkNetwork(paymentData.network)
+      // Kiểm tra mạng bằng hook
+      const networkCheck = await checkNetwork(paymentData.network);
       if (!networkCheck.success) {
-        console.warn(networkCheck.message)
+        setError(networkCheck.message);
+        return;
       }
 
-      const paymentResult = await SubscriptionService.processPayment(
+      // Gửi giao dịch thanh toán bằng hook
+      const paymentResult = await sendPayment(
         paymentData.recipientAddress,
-        paymentData.totalPrice.toString(),
-        paymentData.network,
-      )
+        paymentData.totalPrice.toString()
+      );
 
-      setPaymentStep(3)
+      if (!paymentResult.success) {
+        throw new Error(paymentResult.message || "Thanh toán thất bại");
+      }
 
-      // Kiểm tra trạng thái giao dịch
-      let txStatus = await SubscriptionService.checkTransactionStatus(paymentResult.transactionHash)
-      let attempts = 0
-      const maxAttempts = 30
+      setPaymentStep(3);
+
+      let txStatus = await verifyTransaction(paymentResult.hash);
+      let attempts = 0;
+      const maxAttempts = 30;
 
       while (!txStatus.success && attempts < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, 5000))
-        txStatus = await SubscriptionService.checkTransactionStatus(paymentResult.transactionHash)
-        attempts++
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        txStatus = await verifyTransaction(paymentResult.hash);
+        attempts++;
       }
 
       if (!txStatus.success) {
-        throw new Error("Giao dịch không được xác nhận sau nhiều lần thử")
+        throw new Error("Giao dịch không được xác nhận sau nhiều lần thử");
       }
 
-      const confirmData = await SubscriptionService.confirmPayment(paymentData.paymentId, paymentResult.transactionHash)
+      const confirmData = await SubscriptionService.confirmPayment(
+        paymentData.paymentId,
+        paymentResult.hash
+      );
 
       if (!confirmData.success) {
-        throw new Error(confirmData.message || "Không thể xác nhận thanh toán")
+        throw new Error(confirmData.message || "Không thể xác nhận thanh toán");
       }
 
       const subscriptionData = {
@@ -229,23 +276,21 @@ export default function Premium() {
         name: confirmData.data.subscriptionName,
         benefits: confirmData.data.subscriptionBenefits,
         expiration: confirmData.data.expiration,
-      }
+      };
 
-      // Lưu vào localStorage
-      localStorage.setItem("subscription", JSON.stringify(subscriptionData))
+      localStorage.setItem("subscription", JSON.stringify(subscriptionData));
 
-      // Fetch lại profile để cập nhật thông tin subscription trong Redux
-      await dispatch(fetchUserProfile(walletAddress))
+      await dispatch(fetchUserProfile(walletAddress));
 
-      setSuccess(true)
-      setPaymentStep(4)
+      setSuccess(true);
+      setPaymentStep(4);
     } catch (error) {
-      console.error("Lỗi khi xử lý thanh toán:", error)
-      setError(error)
+      console.error("Lỗi khi xử lý thanh toán:", error);
+      setError(error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const calculateTotalPrice = () => {
     const plan = subscriptionPlans[selectedPlan]
@@ -487,7 +532,7 @@ export default function Premium() {
                               : selectedPlan === 2
                                 ? "bg-purple-600 hover:bg-purple-700"
                                 : selectedPlan === 5
-                                  ? "bg-amber-600 hover:bg-amber-700"
+                                  ? "bg-orange-400 hover:bg-orange-600"
                                   : "bg-rose-600 hover:bg-rose-700"
                           }`}
                           onClick={createSubscriptionRequest}

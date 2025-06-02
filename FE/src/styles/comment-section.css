@@ -342,6 +342,47 @@
   color: #ef4444;
 }
 
+/* Hierarchical Reply Styles (New Section) */
+.replies {
+  margin-top: 0.5rem;
+}
+
+/* Ensure consistent avatar size for nested replies */
+.level-0 .comment-avatar .avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.level-1 .comment-avatar .avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.level-2 .comment-avatar .avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.level-3 .comment-avatar .avatar {
+  width: 28px;
+  height: 28px;
+}
+
+/* Add a subtle line to indicate hierarchy (optional) */
+.comment {
+  position: relative;
+}
+
+.comment:not(.level-0)::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #e5e7eb;
+}
+
 /* Loading and Empty States */
 .loading {
   text-align: center;

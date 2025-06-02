@@ -61,8 +61,8 @@ const subscriptionSchema = new mongoose.Schema(
     network: {
       type: String,
       required: true,
-      enum: ["mainnet", "sepolia"],
-      default: "sepolia",
+      enum: ["mainnet", "sepolia","arbitrum-sepolia"],
+      default: "arbitrum-sepolia",
     },
     paymentStatus: {
       type: String,

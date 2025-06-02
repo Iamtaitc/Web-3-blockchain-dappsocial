@@ -120,6 +120,7 @@ export function WalletLoginModal({
     if (onSuccess) {
       onSuccess()
     }
+    window.location.reload();
   }
 
   // Lấy tên ví từ ID

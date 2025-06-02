@@ -1,21 +1,21 @@
 "use client"
 
-import { Avatar, AvatarFallback, AvatarImage } from "../profile/ui/avatar"
-import { Button } from "../profile/ui/button"
-import { Edit, Share2, UserPlus, UserMinus } from "lucide-react"
-import { formatDate } from "../../lib/utils"
-import VIPAura from "./vip-effects/vip-aura"
-import VIPBadgeAnimation from "./vip-effects/vip-badge-animation"
-import SubscriptionBadge from "./subscription-badge"
-import type { UserProfile } from "../../services/user.api"
+import { Avatar, AvatarImage, AvatarFallback } from "../profile/ui/avatar";
+import { Button } from "../profile/ui/button";
+import { Edit, Share2, UserPlus, UserMinus } from "lucide-react";
+import { formatDate } from "../../lib/utils";
+import VIPAura from "./vip-effects/vip-aura";
+import VIPBadgeAnimation from "./vip-effects/vip-badge-animation";
+import SubscriptionBadge from "./subscription-badge";
+import type { UserProfile } from "../../services/user.api";
 
 interface ProfileHeaderProps {
-  profile: UserProfile
-  isCurrentUser: boolean
-  isFollowing: boolean
-  onFollow: () => void
-  onUnfollow: () => void
-  onEdit: () => void
+  profile: UserProfile;
+  isCurrentUser: boolean;
+  isFollowing: boolean;
+  onFollow: () => void;
+  onUnfollow: () => void;
+  onEdit: () => void;
 }
 
 export default function ProfileHeader({
@@ -38,7 +38,6 @@ export default function ProfileHeader({
           />
         )}
 
-        {/* VIP Effects */}
         {profile.subscription.level >= 5 && (
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
         )}
@@ -69,12 +68,10 @@ export default function ProfileHeader({
           <VIPAura level={profile.subscription.level}>
             <Avatar className="h-32 w-32 border-4 border-white">
               <AvatarImage
-                src={profile.avatarURI || "/placeholder.svg?height=128&width=128"}
+                src={profile.avatarURI || undefined} // Không dùng placeholder tĩnh
                 alt={profile.username || ""}
               />
-              <AvatarFallback className="text-3xl">
-                {profile.username?.substring(0, 2).toUpperCase() || "UN"}
-              </AvatarFallback>
+              <AvatarFallback username={profile.username || profile.walletAddress || "User"} />
             </Avatar>
           </VIPAura>
 
@@ -92,7 +89,6 @@ export default function ProfileHeader({
             </div>
           )}
 
-          {/* VIP Badge Animation */}
           <VIPBadgeAnimation level={profile.subscription.level} />
         </div>
 
@@ -133,7 +129,6 @@ export default function ProfileHeader({
           </div>
         </div>
 
-        {/* Bio */}
         {profile.bio && (
           <div className="mt-6">
             <p>{profile.bio}</p>
@@ -141,5 +136,5 @@ export default function ProfileHeader({
         )}
       </div>
     </>
-  )
+  );
 }

@@ -72,31 +72,31 @@ export function AuthenticationSection({
       if (loginResponse.success && loginResponse.data) {
         console.log("Đăng nhập thành công, cập nhật Redux store");
 
-        // 6. Lấy số dư DX từ blockchain
-        const dxContractAddress = "0xA1EB19259AFa280999361Cb26033B74595eCd8a"; // Địa chỉ hợp đồng từ Arbiscan
-        console.log("dxContractABI:", dxContractABI); // Kiểm tra ABI
-        const dxContract = new ethers.Contract(dxContractAddress, dxContractABI, ethersProvider);
-
-        let dxBalance = "0";
+       // 6. Lấy số dư ETH từ blockchain
+        let ethBalance = "0";
         try {
-          dxBalance = await dxContract.balanceOf(account);
-          console.log("Số dư DX (raw):", dxBalance.toString());
-          console.log("Số dư DX (formatted):", ethers.formatUnits(dxBalance, 18)); // 18 decimals
+          const balance = await ethersProvider.getBalance(account);
+          console.log("Số dư ETH (raw):", balance.toString());
+          ethBalance = ethers.formatEther(balance); // Chuyển từ wei sang ETH
+          console.log("Số dư ETH (formatted):", ethBalance);
         } catch (balanceError) {
-          console.error("Lỗi khi lấy số dư DX:", balanceError.message);
-          dxBalance = "0";
+          console.error("Lỗi khi lấy số dư ETH:", balanceError.message);
+          ethBalance = "0";
         }
-
-        // Cập nhật auth data với số dư
+      console.log("ETH",ethBalance);
+      // debugger
+        // Cập nhật auth data với số dư ETH
         const authData = {
           token: loginResponse.data.token,
           refreshToken: loginResponse.data.refreshToken,
           user: loginResponse.data.user,
           balance: {
-            dx: dxBalance.toString(), // Sử dụng giá trị thô để tránh lỗi format
+            eth: ethBalance, // Lưu số dư ETH
           },
         };
-
+localStorage.setItem("balance", JSON.stringify(authData.balance));
+dispatch(setAuthData(authData));
+//  debugger
         localStorage.setItem("token", authData.token);
         localStorage.setItem("refreshToken", authData.refreshToken);
         localStorage.setItem("user", JSON.stringify(authData.user));

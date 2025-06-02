@@ -1,3 +1,4 @@
+// hooks/useAuthCheck.ts
 "use client"
 
 import { useEffect, useState } from "react"
@@ -25,6 +26,9 @@ export const useAuthCheck = () => {
                 token,
                 refreshToken,
                 user: JSON.parse(user),
+                balance: {
+                  dx: ""
+                }
               }),
             )
             console.log("Đã khôi phục trạng thái đăng nhập từ localStorage")
@@ -40,5 +44,5 @@ export const useAuthCheck = () => {
     checkAuth()
   }, [dispatch, isAuthenticated])
 
-  return { isChecking }
+  return { isChecking, isAuthenticated } // Thêm isAuthenticated vào return
 }

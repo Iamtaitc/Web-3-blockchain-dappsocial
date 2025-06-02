@@ -22,23 +22,24 @@ interface AuthState {
   walletType: string | null;
   provider: any;
   error: string | null;
-  balance: { dx: string } | null; // Thêm trường balance
+  balance: { eth: string } | null;
 }
-// Khởi tạo giá trị mặc định cho balance nếu chưa tồn tại
+
 // Hàm khởi tạo giá trị mặc định cho balance
 const initializeBalance = () => {
   const balance = localStorage.getItem("balance");
   if (!balance || balance === "undefined") {
-    localStorage.setItem("balance", JSON.stringify({ dx: "0" }));
-    return { dx: "0" };
+    localStorage.setItem("balance", JSON.stringify({ eth: "0" }));
+    return { eth: "0" };
   }
   try {
     return JSON.parse(balance);
   } catch (e) {
-    localStorage.setItem("balance", JSON.stringify({ dx: "0" }));
-    return { dx: "0" };
+    localStorage.setItem("balance", JSON.stringify({ eth: "0" }));
+    return { eth: "0" };
   }
 };
+
 // State ban đầu
 const initialState: AuthState = {
   isAuthenticated: localStorage.getItem("token") ? true : false,
@@ -52,7 +53,6 @@ const initialState: AuthState = {
   error: null,
   balance: initializeBalance(),
 };
-
 
 // Async thunk để kết nối ví
 export const connectWallet = createAsyncThunk(
@@ -112,31 +112,19 @@ export const logoutUser = createAsyncThunk("auth/logoutUser", async (_, { getSta
     if (refreshToken) {
       const response = await authAPI.logout(refreshToken);
 
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
-      localStorage.removeItem("walletAddress");
-      localStorage.removeItem("walletType");
-      localStorage.removeItem("balance");
+      // Xóa localStorage
+      localStorage.clear();
 
       return response.data;
     }
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    localStorage.removeItem("walletAddress");
-    localStorage.removeItem("walletType");
-    localStorage.removeItem("balance");
+    // Nếu không có refreshToken, vẫn xóa localStorage
+    localStorage.clear();
 
     return { message: "Đã đăng xuất" };
   } catch (error: any) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    localStorage.removeItem("walletAddress");
-    localStorage.removeItem("walletType");
-    localStorage.removeItem("balance");
+    // Xóa localStorage ngay cả khi API logout thất bại
+    localStorage.clear();
 
     return rejectWithValue(error.response?.data?.error || "Lỗi đăng xuất");
   }
@@ -172,19 +160,19 @@ const authSlice = createSlice({
       });
     },
 
-    setAuthData: (state, action: PayloadAction<{ token: string; refreshToken: string; user: User; balance: { dx: string } }>) => {
+    setAuthData: (state, action: PayloadAction<{ token: string; refreshToken: string; user: User; balance: { eth: string } }>) => {
       console.log("setAuthData được gọi với payload:", action.payload);
 
       state.isAuthenticated = true;
       state.token = action.payload.token;
       state.refreshToken = action.payload.refreshToken;
       state.user = action.payload.user;
-      state.balance = action.payload.balance;
+      state.balance = action.payload.balance || { eth: "0" }; // Đảm bảo không bị undefined
 
       localStorage.setItem("token", action.payload.token);
       localStorage.setItem("refreshToken", action.payload.refreshToken);
       localStorage.setItem("user", JSON.stringify(action.payload.user));
-      localStorage.setItem("balance", JSON.stringify(action.payload.balance));
+      localStorage.setItem("balance", JSON.stringify(state.balance));
 
       console.log("Redux state sau khi cập nhật trong setAuthData:", {
         isAuthenticated: state.isAuthenticated,
@@ -204,13 +192,9 @@ const authSlice = createSlice({
       state.walletType = null;
       state.provider = null;
       state.balance = null;
+      state.error = null;
 
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
-      localStorage.removeItem("walletAddress");
-      localStorage.removeItem("walletType");
-      localStorage.removeItem("balance");
+      localStorage.clear(); // Xóa toàn bộ localStorage
 
       console.log("Đã đăng xuất, Redux state đã được reset");
     },
@@ -264,8 +248,14 @@ const authSlice = createSlice({
         state.token = null;
         state.refreshToken = null;
         state.user = null;
+        state.walletAddress = null;
+        state.walletType = null;
+        state.provider = null;
         state.balance = null;
+        state.error = null;
         state.isLoading = false;
+
+        localStorage.clear(); // Xóa localStorage
       })
       .addCase(logoutUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -275,7 +265,12 @@ const authSlice = createSlice({
         state.token = null;
         state.refreshToken = null;
         state.user = null;
+        state.walletAddress = null;
+        state.walletType = null;
+        state.provider = null;
         state.balance = null;
+
+        localStorage.clear(); // Xóa localStorage ngay cả khi API logout thất bại
       });
   },
 });

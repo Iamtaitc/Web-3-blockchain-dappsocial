@@ -1,122 +1,132 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useRef, useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../profile/ui/dialog"
-import { Button } from "../profile/ui/button"
-import { Input } from "../profile/ui/input"
-import { Label } from "../profile/ui/label"
-import { Textarea } from "../profile/ui/textarea"
-import { Avatar, AvatarFallback, AvatarImage } from "../profile/ui/avatar"
-import type { UserProfile } from "../../services/user.api"
-import { Camera, X } from "lucide-react"
-import { toast } from "../profile/ui/use-toast"
-
+import type React from "react";
+import { useRef, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../profile/ui/dialog";
+import { Button } from "../profile/ui/button";
+import { Input } from "../profile/ui/input";
+import { Label } from "../profile/ui/label";
+import { Textarea } from "../profile/ui/textarea";
+import { Avatar, AvatarImage, AvatarFallback } from "../profile/ui/avatar";
+import type { UserProfile } from "../../services/user.api";
+import { Camera, X } from "lucide-react";
+import { toast } from "../profile/ui/use-toast";
 
 interface EditProfileModalProps {
-  isOpen: boolean
-  onClose: () => void
-  profile: UserProfile
-  onSubmit: (formData: FormData) => Promise<void>
+  isOpen: boolean;
+  onClose: () => void;
+  profile: UserProfile;
+  onSubmit: (formData: FormData) => Promise<void>;
 }
 
 export default function EditProfileModal({ isOpen, onClose, profile, onSubmit }: EditProfileModalProps) {
-  const [username, setUsername] = useState(profile.username || "")
-  const [bio, setBio] = useState(profile.bio || "")
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.avatarURI)
-  const [coverPreview, setCoverPreview] = useState<string | null>(profile.coverURI)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [username, setUsername] = useState(profile.username || "");
+  const [bio, setBio] = useState(profile.bio || "");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.avatarURI || null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(profile.coverURI || null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const avatarInputRef = useRef<HTMLInputElement>(null)
-  const coverInputRef = useRef<HTMLInputElement>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
         toast({
           title: "Lỗi",
           description: "Kích thước ảnh không được vượt quá 5MB",
           variant: "destructive",
-        })
-        return
+        });
+        return;
       }
 
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatarPreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
         toast({
           title: "Lỗi",
           description: "Kích thước ảnh bìa không được vượt quá 10MB",
           variant: "destructive",
-        })
-        return
+        });
+        return;
       }
 
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onloadend = () => {
-        setCoverPreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+        setCoverPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const clearAvatarPreview = () => {
-    setAvatarPreview(null)
+    setAvatarPreview(null);
     if (avatarInputRef.current) {
-      avatarInputRef.current.value = ""
+      avatarInputRef.current.value = "";
     }
-  }
+  };
 
   const clearCoverPreview = () => {
-    setCoverPreview(null)
+    setCoverPreview(null);
     if (coverInputRef.current) {
-      coverInputRef.current.value = ""
+      coverInputRef.current.value = "";
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!username.trim()) {
       toast({
         title: "Lỗi",
         description: "Tên hiển thị không được để trống",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
-      const form = e.currentTarget
-      const formData = new FormData(form)
-      await onSubmit(formData)
+      const form = e.currentTarget;
+      const formData = new FormData(form);
+      await onSubmit(formData);
       toast({
         title: "Thành công",
         description: "Thông tin cá nhân đã được cập nhật",
-      })
+      });
     } catch (error) {
-      console.error("Error updating profile:", error)
+      console.error("Error updating profile:", error);
       toast({
         title: "Lỗi",
         description: "Không thể cập nhật thông tin. Vui lòng thử lại sau.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
+
+  // Hàm lấy chữ cái đầu cho AvatarFallback
+  const getInitials = (name: string) => {
+    if (!name) return "UN"; // Fallback mặc định nếu không có tên
+    const words = name.trim().split(" ");
+    const initials = words
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase();
+    return initials.slice(0, 2);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -129,64 +139,80 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSubmit }:
           {/* Cover Image Preview */}
           <div className="relative h-40 w-full bg-gradient-to-r from-blue-500 to-purple-500">
             {coverPreview && (
-              <img
-                src={coverPreview || "/placeholder.svg"}
-                alt="Cover preview"
-                className="h-full w-full object-cover"
-              />
+              <img src={coverPreview} alt="Cover preview" className="h-full w-full object-cover" />
             )}
             <div className="absolute bottom-4 right-4 flex gap-2">
               <Button
                 type="button"
-                size="icon"
+                size="default" // Tăng kích thước nút
                 variant="secondary"
                 className="rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30"
                 onClick={() => coverInputRef.current?.click()}
               >
-                <Camera className="h-4 w-4" />
+                <Camera className="h-5 w-5" /> {/* Tăng kích thước icon */}
               </Button>
               {coverPreview && (
                 <Button
                   type="button"
-                  size="icon"
+                  size="default" // Tăng kích thước nút
                   variant="destructive"
                   className="rounded-full"
                   onClick={clearCoverPreview}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-5 w-5" /> {/* Tăng kích thước icon */}
                 </Button>
               )}
             </div>
+            <input
+              ref={coverInputRef}
+              id="cover"
+              name="cover"
+              type="file"
+              accept="image/*"
+              onChange={handleCoverChange}
+              className="hidden"
+            />
           </div>
 
           {/* Avatar Preview */}
           <div className="px-6 -mt-12">
             <div className="relative inline-block">
               <Avatar className="h-24 w-24 border-4 border-white shadow-lg">
-                <AvatarImage src={avatarPreview || "/placeholder.svg?height=96&width=96"} />
-                <AvatarFallback className="text-2xl">{username.substring(0, 2).toUpperCase() || "UN"}</AvatarFallback>
+                <AvatarImage src={avatarPreview || undefined} alt={username || "User avatar"} />
+                <AvatarFallback className="text-2xl">
+                  {getInitials(username || profile.username || "User")}
+                </AvatarFallback>
               </Avatar>
               <Button
                 type="button"
-                size="icon"
+                size="default" // Tăng kích thước nút
                 variant="secondary"
-                className="absolute bottom-0 right-0 rounded-full h-8 w-8"
+                className="absolute bottom-0 right-0 rounded-full h-10 w-10" // Đảm bảo kích thước rõ ràng
                 onClick={() => avatarInputRef.current?.click()}
               >
-                <Camera className="h-4 w-4" />
+                <Camera className="h-5 w-5" /> {/* Tăng kích thước icon */}
               </Button>
               {avatarPreview && (
                 <Button
                   type="button"
-                  size="icon"
+                  size="default" // Tăng kích thước nút
                   variant="destructive"
-                  className="absolute top-0 right-0 rounded-full h-6 w-6"
+                  className="absolute top-0 right-0 rounded-full h-10 w-10" // Đảm bảo kích thước rõ ràng
                   onClick={clearAvatarPreview}
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-5 w-5" /> {/* Tăng kích thước icon */}
                 </Button>
               )}
             </div>
+            <input
+              ref={avatarInputRef}
+              id="avatar"
+              name="avatar"
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              className="hidden"
+            />
           </div>
 
           <div className="px-6 space-y-4">
@@ -219,41 +245,27 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSubmit }:
                 className="resize-none"
               />
             </div>
-
-            {/* Hidden file inputs */}
-            <input
-              ref={avatarInputRef}
-              id="avatar"
-              name="avatar"
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              className="hidden"
-            />
-
-            <input
-              ref={coverInputRef}
-              id="cover"
-              name="cover"
-              type="file"
-              accept="image/*"
-              onChange={handleCoverChange}
-              className="hidden"
-            />
           </div>
 
           <DialogFooter className="px-6 py-4 bg-gray-50">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg" // Tăng kích thước nút Hủy
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
               Hủy
             </Button>
             <Button
               type="submit"
+              size="lg" // Tăng kích thước nút Lưu thay đổi
               disabled={isSubmitting}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
             >
               {isSubmitting ? (
                 <>
-                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  <span className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span> {/* Tăng kích thước spinner */}
                   Đang lưu...
                 </>
               ) : (
@@ -264,5 +276,5 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSubmit }:
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -101,16 +101,12 @@ const NFTMarketplace: React.FC = () => {
   // Áp dụng filter
   if (activeFilter !== "all") {
     if (activeFilter === "trending") {
-      // Giả lập filter theo xu hướng
       marketNFTs = [...marketNFTs].sort(() => Math.random() - 0.5)
     } else if (activeFilter === "newest") {
-      // Giả lập filter theo mới nhất
       marketNFTs = [...marketNFTs].sort(() => Math.random() - 0.5)
     } else if (activeFilter === "rare") {
-      // Giả lập filter theo hiếm
       marketNFTs = marketNFTs.filter((nft) => nft.metadata?.rare || Math.random() > 0.7)
     } else if (activeFilter === "price") {
-      // Sắp xếp theo giá từ thấp đến cao
       marketNFTs = [...marketNFTs].sort((a, b) => Number.parseFloat(a.price) - Number.parseFloat(b.price))
     }
   }
@@ -127,7 +123,8 @@ const NFTMarketplace: React.FC = () => {
       {activeTab === "marketplace" && (
         <>
           <MarketplaceStats />
-          <FeaturedNFT onNavigateToBuy={handleNavigateToBuy} />
+          {/* Truyền marketplaceNFTs vào FeaturedNFT */}
+          <FeaturedNFT onNavigateToBuy={handleNavigateToBuy} marketplaceNFTs={marketplaceNFTs} />
           <MarketplaceFilters onFilterChange={handleFilterChange} activeFilter={activeFilter} onSearch={handleSearch} />
         </>
       )}

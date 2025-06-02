@@ -42,8 +42,9 @@ const NFTBuyPage: React.FC = () => {
     if (tokenId) {
       dispatch(fetchNFTById(tokenId));
     }
+      console.log("Selected NFT:", selectedNFT);
   }, [dispatch, tokenId]);
-
+  
   const handleBuyNFT = async () => {
     if (!tokenId || !walletAddress || !selectedNFT || !selectedNFT.forSale) {
       toast.error(
@@ -68,11 +69,12 @@ const NFTBuyPage: React.FC = () => {
     }
   };
 
-  const formatPrice = (price: string | number | undefined) => {
-    if (!price) return "0";
-    const numericPrice = typeof price === "string" ? Number.parseFloat(price) : price;
-    return new Intl.NumberFormat("vi-VN").format(numericPrice);
-  };
+       const formatPrice = (price: string | number | undefined) => {
+       if (!price || price === "0" || price === "0.0000") return "0";
+       const numericPrice = typeof price === "string" ? Number.parseFloat(price) : price;
+       if (isNaN(numericPrice) || numericPrice <= 0) return "0";
+       return new Intl.NumberFormat("vi-VN").format(numericPrice);
+     };
 
   if (loading || !selectedNFT) {
     return (

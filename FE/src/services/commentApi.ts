@@ -1,3 +1,5 @@
+"use client"
+
 import instance from "./instance"
 
 // Interface cho các tham số tùy chọn khi lấy bình luận
@@ -86,23 +88,13 @@ const commentApi = {
   },
 
   // Tạo bình luận mới cho bài đăng
-  createComment: async (postId: string, content: string, mediaFiles?: File[]): Promise<Comment> => {
+  createComment: async (postId: string, content: string): Promise<Comment> => {
     try {
-      const formData = new FormData()
-      formData.append("content", content)
-
-      if (mediaFiles && mediaFiles.length > 0) {
-        mediaFiles.forEach((file) => {
-          formData.append("mediaFiles", file)
-        })
-      }
-
-      const response = await instance.post(`/post/${postId}/comment`, formData, {
+      const response = await instance.post(`/post/${postId}/comment`, { content }, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          "Content-Type": "application/json",
         },
       })
-
       return response.data.data
     } catch (error) {
       console.error("Lỗi khi tạo bình luận:", error)
@@ -111,23 +103,13 @@ const commentApi = {
   },
 
   // Trả lời một bình luận
-  replyToComment: async (commentId: string, content: string, mediaFiles?: File[]): Promise<Comment> => {
+  replyToComment: async (commentId: string, content: string): Promise<Comment> => {
     try {
-      const formData = new FormData()
-      formData.append("content", content)
-
-      if (mediaFiles && mediaFiles.length > 0) {
-        mediaFiles.forEach((file) => {
-          formData.append("mediaFiles", file)
-        })
-      }
-
-      const response = await instance.post(`/comments/${commentId}/reply`, formData, {
+      const response = await instance.post(`/comments/${commentId}/reply`, { content }, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          "Content-Type": "application/json",
         },
       })
-
       return response.data.data
     } catch (error) {
       console.error("Lỗi khi trả lời bình luận:", error)

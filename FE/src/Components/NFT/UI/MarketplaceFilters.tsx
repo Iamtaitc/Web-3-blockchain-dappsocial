@@ -20,7 +20,7 @@ const MarketplaceFilters: React.FC<MarketplaceFiltersProps> = ({ onFilterChange,
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+            className="block w-full pl-10 pr-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none text-sm transition-colors duration-200"
             placeholder="Tìm kiếm NFT..."
             onChange={(e) => onSearch(e.target.value)}
           />

@@ -231,7 +231,7 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto p-4">
-      {/* Mock Level Selector - Chỉ hiển thị cho người dùng đang đăng nhập */}
+      {/* Mock Level Selector - Chỉ hiển thị cho người dùng đang đăng nhập
       {isCurrentUser && (
         <div className="bg-white p-4 rounded-lg shadow mb-4">
           <h3 className="text-lg font-semibold mb-2">Test các level VIP</h3>
@@ -248,7 +248,7 @@ export default function ProfilePage() {
             ))}
           </div>
         </div>
-      )}
+      )} */}
 
       <ProfileHeader
         profile={updatedProfile}

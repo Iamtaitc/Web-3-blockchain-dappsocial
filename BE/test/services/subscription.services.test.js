@@ -106,7 +106,7 @@ describe("SubscriptionService", () => {
           totalPrice: 0.0002 * 3, // level 2 price * 3 months
           currency: "ETH",
           recipient: "0xMockAdminAddress",
-          network: "sepolia",
+          network: "arbitrum-sepolia",
           level,
           months,
           transactionHash: "0xMockTransactionHash",

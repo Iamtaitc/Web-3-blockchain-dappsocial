@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import CreateNFTModal from "../CreateNFTModal"
 import { toast } from "react-hot-toast"
@@ -11,50 +9,56 @@ interface NFTButtonProps {
   postId: string
   hasMedia: boolean
   onNFTCreated?: () => void
-  nfts?: any[] // Thêm prop nfts để kiểm tra trạng thái NFT
-  authorId?: string // ID của người tạo bài đăng
+  nfts?: any[] // Mảng NFT của bài viết
+  authorId?: string // ID của người tạo bài đăng (địa chỉ ví)
 }
 
 const NFTButton = ({ postId, hasMedia, onNFTCreated, nfts = [], authorId }: NFTButtonProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [nftStatus, setNftStatus] = useState<"none" | "created" | "forSale" | "ownedByUser" | "otherUser">("none")
+  const [nftStatus, setNftStatus] = useState<"none" | "created" | "forSale" | "ownedByUser" | "otherUser" | "noButton">("none")
 
   const isAuthenticated = useSelector((state: RootState) => !!state.auth.token)
   const currentUser = useSelector((state: RootState) => state.auth.user)
   const navigate = useNavigate()
 
-  // Kiểm tra trạng thái NFT khi component mount hoặc khi nfts thay đổi
+  // Kiểm tra trạng thái NFT khi component mount hoặc khi nfts, currentUser thay đổi
   useEffect(() => {
-    checkNftStatus()
-  }, [nfts, currentUser])
-
-  // Hàm kiểm tra trạng thái NFT
-  const checkNftStatus = () => {
+    // Kiểm tra xem người dùng hiện tại có phải là tác giả của bài viết không
+    const isAuthor = currentUser?.walletAddress === authorId
+    
+    // Nếu không có NFT nào
     if (!nfts || nfts.length === 0) {
-      setNftStatus("none")
+      // Nếu là tác giả của bài viết, hiển thị nút "TẠO NFT"
+      if (isAuthor) {
+        setNftStatus("none")
+      } else {
+        // Nếu không phải tác giả và chưa có NFT, không hiển thị nút
+        setNftStatus("noButton")
+      }
       return
     }
 
     // Kiểm tra xem có NFT nào đang được bán không
     const forSaleNft = nfts.find((nft) => nft.forSale)
-
+    
     // Kiểm tra xem người dùng hiện tại có phải là chủ sở hữu của NFT không
     const isOwner = currentUser && nfts.some((nft) => nft.owner === currentUser.walletAddress)
 
-    // Kiểm tra xem người dùng hiện tại có phải là người tạo bài đăng không
-    const isAuthor = currentUser && authorId === currentUser.walletAddress
-
     if (isOwner) {
+      // Nếu người dùng hiện tại là chủ sở hữu của NFT
       setNftStatus("ownedByUser")
     } else if (forSaleNft) {
+      // Nếu có NFT đang được bán và người dùng không phải là chủ sở hữu
       setNftStatus("forSale")
     } else if (isAuthor) {
+      // Nếu người dùng là tác giả nhưng NFT chưa đăng bán
       setNftStatus("created")
     } else {
+      // Trường hợp khác (NFT thuộc về người khác, không bán)
       setNftStatus("otherUser")
     }
-  }
+  }, [nfts, currentUser?.walletAddress, authorId]) // Chỉ theo dõi các giá trị cần thiết
 
   const handleOpenModal = () => {
     if (!isAuthenticated) {
@@ -71,6 +75,9 @@ const NFTButton = ({ postId, hasMedia, onNFTCreated, nfts = [], authorId }: NFTB
   }
 
   const handleNFTCreated = () => {
+    // Đặt lại trạng thái loading
+    setIsLoading(false)
+    
     // Gọi callback từ props nếu có
     if (onNFTCreated) {
       onNFTCreated()
@@ -86,7 +93,8 @@ const NFTButton = ({ postId, hasMedia, onNFTCreated, nfts = [], authorId }: NFTB
       return
     }
 
-    // Chuyển hướng đến trang chi tiết NFT để mua
+    // Đặt trạng thái loading và chuyển hướng đến trang chi tiết NFT để mua
+    setIsLoading(true)
     navigate(`/nft-detail/${postId}`)
   }
 
@@ -94,7 +102,7 @@ const NFTButton = ({ postId, hasMedia, onNFTCreated, nfts = [], authorId }: NFTB
   const renderButton = () => {
     switch (nftStatus) {
       case "none":
-        // Chưa có NFT nào được tạo
+        // Chưa có NFT nào được tạo và người dùng là tác giả
         return (
           <button
             onClick={handleOpenModal}
@@ -118,7 +126,7 @@ const NFTButton = ({ postId, hasMedia, onNFTCreated, nfts = [], authorId }: NFTB
         )
 
       case "forSale":
-        // NFT đang được đăng bán
+        // NFT đang được đăng bán và người dùng không phải chủ sở hữu
         return (
           <button
             onClick={handleBuyNFT}
@@ -144,6 +152,10 @@ const NFTButton = ({ postId, hasMedia, onNFTCreated, nfts = [], authorId }: NFTB
             KHÔNG CÓ NFT BÁN
           </button>
         )
+      
+      case "noButton":
+        // Không hiển thị nút gì cả khi không phải tác giả và chưa có NFT
+        return null
 
       default:
         return null

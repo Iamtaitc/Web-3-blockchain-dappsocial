@@ -14,7 +14,7 @@ class SubscriptionService {
     this.validLevels = Object.keys(this.priceMap).map(Number);
     this.maxMonths = 12;
     this.minMonths = 1;
-    this.network = "sepolia";
+    this.network = "arbitrum-sepolia";
     this.currency = "ETH";
     // Thêm thông tin mô tả quyền lợi cho mỗi cấp độ subscription
     this.subscriptionBenefits = {

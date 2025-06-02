@@ -7,7 +7,9 @@ import AdminRoutes from "./routers/admin-routes";
 import { ThemeProvider } from "./context/theme-context";
 import { store } from "./store";
 import { useAuthCheck } from "./hooks/useAuthCheck";
-import { Toaster } from "react-hot-toast"
+import { Toaster } from "react-hot-toast";
+import { LoginModalProvider, useLoginModal } from "./components/Login/login-modal-provider";
+import { useEffect } from "react";
 
 // Layout wrapper component cho user routes (có Navbar)
 const MainLayout = ({ children }) => {
@@ -33,7 +35,18 @@ const AppRouter = () => {
 
 // Component chính
 const AppContent = () => {
-  const { isChecking } = useAuthCheck();
+  const { isChecking, isAuthenticated } = useAuthCheck(); // Lấy cả isAuthenticated
+  const { openLoginModal } = useLoginModal(); // Sử dụng useLoginModal để mở modal
+
+  // Mở modal nếu chưa đăng nhập và đã hoàn thành kiểm tra
+  useEffect(() => {
+    if (!isChecking && !isAuthenticated) {
+      openLoginModal({
+        requireSignature: true,
+        actionMessage: "Vui lòng kết nối và xác thực ví để tiếp tục.",
+      });
+    }
+  }, [isChecking, isAuthenticated, openLoginModal]);
 
   if (isChecking) {
     return (
@@ -46,42 +59,28 @@ const AppContent = () => {
     );
   }
 
-  return (
-    <ThemeProvider>
-      {/* Sử dụng grid để layout chính xác hơn */}
-      <div className="grid grid-cols-[200px_1fr] min-h-screen bg-white">
-        {/* Navbar cố định bên trái */}
-        <div className="fixed top-0 left-0 w-[200px] h-screen bg-gray-50 shadow-md z-10 overflow-y-auto">
-          <Navbar />
-        </div>
-
-        {/* Nội dung chính - sử dụng left margin để tránh đè lên navbar */}
-        <div className="col-start-2 col-end-3 bg-white">
-          <div className="w-full px-6 py-4">
-            <AppRoutes />
-          </div>
-        </div>
-      </div>
-    </ThemeProvider>
-  );
+ return null;
 };
 
 const App = () => {
   return (
     <Provider store={store}>
       <BrowserRouter>
-      <AppRouter />
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 3000,
-            style: {
-              background: "#363636",
-              color: "#fff",
-              borderRadius: "8px",
-            },
-          }}
-        />
+        <LoginModalProvider> {/* Bao bọc toàn bộ ứng dụng */}
+          <AppRouter />
+          <AppContent /> {/* Đảm bảo AppContent được render bên trong LoginModalProvider */}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: "#363636",
+                color: "#fff",
+                borderRadius: "8px",
+              },
+            }}
+          />
+        </LoginModalProvider>
       </BrowserRouter>
     </Provider>
   );

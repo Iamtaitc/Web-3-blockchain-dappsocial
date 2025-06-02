@@ -9,13 +9,13 @@ import NFTButton from "../NFT/UI/NFTButton";
 import CommentSection from "../Comment/CommentSection";
 import IPFSImage from "../UI/IPFSImage";
 import { toast } from "react-hot-toast";
-import avtImage from "../../assets/default-avatar-profile-image-vector-social-media-user-icon-potrait-182347582.webp";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../store";
 import postApi, { type Post, type PostMention } from "../../services/post.api";
 import { useNavigate } from "react-router-dom";
 import InfiniteScroll from "../infinite-scroll";
 import { WalletLoginModal } from "../Login/wallet-login-modal";
+import { Avatar, AvatarImage, AvatarFallback } from "../profile/ui/avatar"; // Thêm để dùng Avatar
 
 interface UserPostsProps {
   address: string;
@@ -33,48 +33,116 @@ export default function UserPosts({ address }: UserPostsProps) {
 
   const isAuthenticated = useSelector((state: RootState) => !!state.auth.token);
 
-  const fetchUserPosts = useCallback(async (pageNum = 1, replace = true) => {
-    try {
-      if (replace) {
-        setIsLoading(true);
-      }
-
-      const response = await postApi.getPostsByUser(address, pageNum);
-      console.log("API Response:", response);
-
-      if (!response || typeof response !== "object") {
-        throw new Error("Invalid API response");
-      }
-
-      const { success, data } = response;
-
-      if (success && data) {
-        let newPosts: Post[] = Array.isArray(data) ? data : [data];
-        newPosts = newPosts.filter(
-          (post): post is Post => post && typeof post === "object" && "_id" in post
-        );
-
-        if (replace) {
-          setPosts(newPosts);
-        } else {
-          setPosts((prev) => [...prev, ...newPosts]);
-        }
-
-        setHasMorePosts(newPosts.length >= 10);
-      } else {
-        if (replace) {
-          setPosts([]);
-        }
-        setHasMorePosts(false);
-      }
-    } catch (error) {
-      console.error("Error fetching posts:", error);
-      toast.error("Failed to load posts. Please try again later.");
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+ const fetchUserPosts = useCallback(async (pageNum = 1, replace = true) => {
+  try {
+    if (replace) {
+      setIsLoading(true);
     }
-  }, [address]);
+
+    const response = await postApi.getPostsByUser(address, pageNum);
+    console.log("API Response:", response); // Debug chi tiết
+
+    if (!response || typeof response !== "object") {
+      throw new Error("Invalid API response");
+    }
+
+    const { success, data } = response;
+
+    if (success && data) {
+      let newPosts: Post[] = [];
+      // Xử lý trường hợp data là mảng
+      if (Array.isArray(data) && data.length > 0) {
+        newPosts = data.map((item) => {
+          // Kiểm tra và ánh xạ từng phần tử
+          if (item && typeof item === "object" && "_id" in item && "author" in item) {
+            return {
+              _id: item._id,
+              author: item.author,
+              authorDetails: {
+                username: item.authorDetails?.username || "Unknown User",
+                walletAddress: item.author,
+                avatarURI: item.authorDetails?.avatarURI || null,
+              },
+              content: item.content || "No content available",
+              media: item.media || [],
+              tags: item.tags || [],
+              mentions: item.mentions || [],
+              likeCount: item.likeCount || 0,
+              commentCount: item.commentCount || 0,
+              saveCount: item.saveCount || 0,
+              viewCount: item.viewCount || 0,
+              status: item.status || "active",
+              createdAt: item.createdAt || new Date().toISOString(),
+              updatedAt: item.updatedAt || new Date().toISOString(),
+              isLiked: item.isLiked || false,
+              isSaved: item.isSaved || false,
+              nfts: item.nfts || [],
+            };
+          }
+          return null; // Bỏ qua phần tử không hợp lệ
+        }).filter((post): post is Post => post !== null); // Loại bỏ các phần tử null
+      } else if (data.posts && Array.isArray(data.posts) && data.posts.length > 0) {
+        newPosts = data.posts.map((item) => {
+          if (item && typeof item === "object" && "_id" in item && "author" in item) {
+            return {
+              _id: item._id,
+              author: item.author,
+              authorDetails: {
+                username: item.authorDetails?.username || "Unknown User",
+                walletAddress: item.author,
+                avatarURI: item.authorDetails?.avatarURI || null,
+              },
+              content: item.content || "No content available",
+              media: item.media || [],
+              tags: item.tags || [],
+              mentions: item.mentions || [],
+              likeCount: item.likeCount || 0,
+              commentCount: item.commentCount || 0,
+              saveCount: item.saveCount || 0,
+              viewCount: item.viewCount || 0,
+              status: item.status || "active",
+              createdAt: item.createdAt || new Date().toISOString(),
+              updatedAt: item.updatedAt || new Date().toISOString(),
+              isLiked: item.isLiked || false,
+              isSaved: item.isSaved || false,
+              nfts: item.nfts || [],
+            };
+          }
+          return null;
+        }).filter((post): post is Post => post !== null);
+      } else {
+        console.warn("Unexpected data format or empty data:", data);
+      }
+
+      console.log("Filtered Posts:", newPosts); // Debug dữ liệu sau khi ánh xạ
+
+      if (replace) {
+        setPosts(newPosts);
+      } else {
+        setPosts((prev) => {
+          const uniquePosts = newPosts.filter(
+            (newPost) => !prev.some((p) => p._id === newPost._id)
+          );
+          return [...prev, ...uniquePosts];
+        });
+      }
+
+      setHasMorePosts(newPosts.length >= 10); // Giả sử mỗi trang có tối đa 10 bài
+    } else {
+      if (replace) {
+        setPosts([]);
+      }
+      setHasMorePosts(false);
+      console.warn("No posts found or API success is false:", response);
+    }
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    toast.error("Failed to load posts. Please try again later.");
+  } finally {
+    setIsLoading(false);
+    setIsRefreshing(false);
+  }
+}, [address]);
 
   useEffect(() => {
     setPage(1);
@@ -204,6 +272,17 @@ export default function UserPosts({ address }: UserPostsProps) {
     setActiveCommentPostId(activeCommentPostId === postId ? null : postId);
   };
 
+  // Hàm lấy chữ cái đầu cho AvatarFallback
+  const getInitials = (name: string) => {
+    if (!name) return "UN"; // Fallback mặc định nếu không có tên
+    const words = name.trim().split(" ");
+    const initials = words
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase();
+    return initials.slice(0, 2);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end mb-2">
@@ -212,7 +291,7 @@ export default function UserPosts({ address }: UserPostsProps) {
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           disabled={isRefreshing}
         >
-          <RefreshCw size={14} className={`${isRefreshing ? "animate-spin" : ""}`} />
+          <RefreshCw size={16} className={`${isRefreshing ? "animate-spin" : ""}`} /> {/* Tăng kích thước icon */}
           <span>Refresh</span>
         </button>
       </div>
@@ -245,15 +324,15 @@ export default function UserPosts({ address }: UserPostsProps) {
             <Card key={post._id} className="post overflow-hidden">
               <CardHeader className="pb-2">
                 <div className="flex items-start">
-                  <img
-                    src={
-                      post.authorDetails?.avatarURI ||
-                      avtImage ||
-                      "/placeholder.svg?height=42&width=42"
-                    }
-                    alt="avatar"
-                    className="w-10 h-10 rounded-full mr-3 object-cover"
-                  />
+                  <Avatar className="w-10 h-10 mr-3">
+                    <AvatarImage
+                      src={post.authorDetails?.avatarURI || undefined}
+                      alt={post.authorDetails?.username || "User avatar"}
+                    />
+                    <AvatarFallback>
+                      {getInitials(post.authorDetails?.username || "User")}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex-1">
                     <h3 className="font-medium text-sm">
                       {post.authorDetails?.username || "Unknown User"}
@@ -322,9 +401,7 @@ export default function UserPosts({ address }: UserPostsProps) {
                     {post.media.map((media, index) => (
                       <div
                         key={index}
-                        className={`${
-                          post.media.length > 2 ? "max-h-48" : "max-h-96"
-                        } overflow-hidden rounded-lg`}
+                        className={`${post.media.length > 2 ? "max-h-48" : "max-h-96"} overflow-hidden rounded-lg`}
                       >
                         <IPFSImage
                           hash={media.uri}
@@ -391,7 +468,6 @@ export default function UserPosts({ address }: UserPostsProps) {
               </CardContent>
             </Card>
           ))}
-
           <InfiniteScroll onLoadMore={loadMorePosts} hasMoreData={hasMorePosts} />
         </>
       )}

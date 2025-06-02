@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ethers } from 'ethers';
 import nftApi from './nft.api';
 import { toast } from 'react-hot-toast';
@@ -8,143 +9,323 @@ interface TransactionResult {
   error?: string;
 }
 
+interface PurchasePreparation {
+  tokenId: string;
+  seller: string;
+  price: string;
+  contractAddress: string;
+  buyFunctionSignature: string;
+  nftInfo: {
+    name: string;
+    imageUrl: string | null;
+    description: string | null;
+  };
+}
+
+const MARKETPLACE_ABI = [
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "buyNFT",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "listings",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "tokenId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "seller",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "price",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "active",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct Marketplace.Listing",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
 const useWalletTransaction = () => {
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [currentTxHash, setCurrentTxHash] = useState<string | null>(null);
+
+  const checkWalletConnection = async (): Promise<boolean> => {
+    try {
+      if (typeof window.ethereum === 'undefined') {
+        toast.error('Vui lòng cài đặt MetaMask để thực hiện giao dịch');
+        return false;
+      }
+
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      if (!accounts || accounts.length === 0) {
+        toast.error('Vui lòng kết nối ví MetaMask');
+        return false;
+      }
+
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      const requiredChainId = '0x66eee'; // Arbitrum Sepolia
+
+      if (chainId !== requiredChainId) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: requiredChainId }],
+          });
+        } catch (switchError: any) {
+          if (switchError.code === 4902) {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: requiredChainId,
+                  chainName: 'Arbitrum Sepolia',
+                  nativeCurrency: {
+                    name: 'ETH',
+                    symbol: 'ETH',
+                    decimals: 18
+                  },
+                  rpcUrls: ['https://sepolia-rollup.arbitrum.io/rpc'],
+                  blockExplorerUrls: ['https://sepolia.arbiscan.io']
+                }]
+              });
+            } catch (addError) {
+              toast.error('Không thể thêm mạng Arbitrum Sepolia');
+              return false;
+            }
+          } else {
+            toast.error('Vui lòng chuyển sang mạng Arbitrum Sepolia');
+            return false;
+          }
+        }
+      }
+
+      return true;
+    } catch (error: any) {
+      console.error('Lỗi khi kiểm tra kết nối ví:', error);
+      if (error.code === 4001) {
+        toast.error('Bạn đã từ chối kết nối ví');
+      } else if (error.code === -32002) {
+        toast.error('Vui lòng kiểm tra MetaMask');
+      } else {
+        toast.error(error.message || 'Không thể kết nối đến ví');
+      }
+      return false;
+    }
+  };
+
+  const checkNFTListing = async (
+    contract: ethers.Contract,
+    tokenId: string
+  ): Promise<boolean> => {
+    try {
+      const listing = await contract.listings(tokenId);
+      return listing && listing.active;
+    } catch (error) {
+      console.error('Lỗi khi kiểm tra listing:', error);
+      return false;
+    }
+  };
+
+  const preparePurchase = async (tokenId: string): Promise<PurchasePreparation | null> => {
+    try {
+      const response = await nftApi.buyNFT(tokenId);
+      
+      if (!response.success || !response.data || !response.data.data) {
+        throw new Error(response.message || 'Không thể chuẩn bị thông tin mua NFT');
+      }
+      
+      return response.data.data as PurchasePreparation;
+    } catch (error: any) {
+      console.error('Lỗi khi chuẩn bị thông tin mua NFT:', error);
+      toast.error(error.message || 'Không thể chuẩn bị thông tin giao dịch');
+      return null;
+    }
+  };
+
   const executePurchase = async (
-    tokenId: string,
-    walletAddress: string,
+    tokenId: string, 
+    buyerAddress: string,
     token: string
   ): Promise<TransactionResult> => {
+    setIsProcessing(true);
+    setCurrentTxHash(null);
+
     try {
-      if (!window.ethereum) {
-        throw new Error('Vui lòng cài đặt MetaMask!');
+      const isConnected = await checkWalletConnection();
+      if (!isConnected) {
+        return { success: false, error: 'Kết nối ví thất bại' };
+      }
+
+      const purchaseInfo = await preparePurchase(tokenId);
+      if (!purchaseInfo) {
+        return { success: false, error: 'Không thể lấy thông tin giao dịch' };
+      }
+
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const connectedAddress = accounts[0].toLowerCase();
+      
+      if (connectedAddress !== buyerAddress.toLowerCase()) {
+        return { 
+          success: false, 
+          error: 'Địa chỉ ví không khớp với tài khoản' 
+        };
       }
 
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
 
-      const network = await provider.getNetwork();
-      console.log('Mạng hiện tại:', network.name, network.chainId);
-
-      console.log('Gọi API buyNFT với tokenId:', tokenId);
-      const prepareResponse = await nftApi.buyNFT(tokenId);
-      console.log('Response từ buyNFT:', prepareResponse);
-
-      if (!prepareResponse.success || !prepareResponse.data) {
-        throw new Error(prepareResponse.message || 'Không thể chuẩn bị giao dịch');
+      // Kiểm tra số dư
+      const balance = await provider.getBalance(connectedAddress);
+      const price = ethers.parseEther(purchaseInfo.price);
+      const estimatedGas = ethers.parseEther("0.01"); // Dự tính phí gas
+      
+      if (balance < (price + estimatedGas)) {
+        return {
+          success: false,
+          error: 'Số dư ETH không đủ để thực hiện giao dịch'
+        };
       }
 
-      const { contractAddress, price } = prepareResponse.data.data;
-      if (!contractAddress || !price) {
-        throw new Error(`Thông tin giao dịch không hợp lệ: contractAddress=${contractAddress}, price=${price}`);
-      }
-
-      if (!ethers.isAddress(contractAddress)) {
-        throw new Error(`Địa chỉ contract không hợp lệ: ${contractAddress}`);
-      }
-
-      const code = await provider.getCode(contractAddress);
-      if (code === '0x') {
-        throw new Error(`Không tìm thấy smart contract tại địa chỉ: ${contractAddress}`);
-      }
-
-      const marketplaceContract = new ethers.Contract(
-        contractAddress,
-        [
-          {
-            "inputs": [{"internalType": "uint256", "name": "_tokenId", "type": "uint256"}],
-            "name": "buyNFT",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-          },
-          {
-            "inputs": [],
-            "name": "dxToken",
-            "outputs": [{"internalType": "contract DXToken", "name": "", "type": "address"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "name": "listings",
-            "outputs": [
-              {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
-              {"internalType": "address", "name": "seller", "type": "address"},
-              {"internalType": "uint256", "name": "price", "type": "uint256"},
-              {"internalType": "bool", "name": "active", "type": "bool"}
-            ],
-            "stateMutability": "view",
-            "type": "function"
-          }
-        ],
+      const contract = new ethers.Contract(
+        purchaseInfo.contractAddress,
+        MARKETPLACE_ABI,
         signer
       );
 
-      const priceInWei = ethers.parseEther(price.toString());
-
-      // Kiểm tra trạng thái listing
-      const listing = await marketplaceContract.listings(tokenId);
-      console.log('Thông tin listing:', listing);
-      if (!listing.active) {
-        throw new Error('NFT không được đăng bán');
+      // Kiểm tra NFT còn được bán không
+      const isListed = await checkNFTListing(contract, tokenId);
+      if (!isListed) {
+        return {
+          success: false,
+          error: 'NFT này không còn được bán'
+        };
       }
 
-      // Phê duyệt token DX
-      const dxTokenAddress = await marketplaceContract.dxToken();
-      const dxTokenContract = new ethers.Contract(
-        dxTokenAddress,
-        [
-          {
-            "constant": false,
-            "inputs": [
-              {"name": "spender", "type": "address"},
-              {"name": "amount", "type": "uint256"}
-            ],
-            "name": "approve",
-            "outputs": [{"name": "", "type": "bool"}],
-            "type": "function"
-          }
-        ],
-        signer
+      toast.loading('Đang xử lý giao dịch...', { id: 'transaction' });
+
+      // Thực hiện giao dịch với gas limit cao hơn cho Arbitrum
+      const tx = await contract.buyNFT(
+        ethers.getBigInt(tokenId), // Chuyển tokenId sang BigInt
+        { 
+          value: price,
+          gasLimit: 1000000
+        }
       );
-      const approvalTx = await dxTokenContract.approve(contractAddress, priceInWei);
-      await approvalTx.wait();
-      console.log('Phê duyệt token DX thành công');
 
-      // Mô phỏng giao dịch
-      await marketplaceContract.callStatic.buyNFT(tokenId);
-      console.log('Mô phỏng giao dịch thành công');
+      setCurrentTxHash(tx.hash);
+      toast.loading('Đang chờ xác nhận...', { id: 'transaction' });
 
-      // Thực hiện giao dịch
-      const gasEstimate = await marketplaceContract.estimateGas.buyNFT(tokenId);
-      console.log('Gas ước lượng:', gasEstimate.toString());
+      // Chờ nhiều block xác nhận hơn
+      const receipt = await tx.wait(3);
 
-      const transaction = await marketplaceContract.buyNFT(tokenId, {
-        gasLimit: gasEstimate.mul(2),
-      });
-
-      toast.loading('Đang xử lý giao dịch...');
-      const txHash = transaction.hash;
-
-      const receipt = await transaction.wait();
-      if (receipt.status !== 1) {
-        throw new Error('Giao dịch không thành công');
+      if (receipt.status === 0) {
+        throw new Error('Giao dịch thất bại trên blockchain');
       }
 
-      const confirmResponse = await nftApi.purchaseComplete(tokenId, txHash, walletAddress);
-      if (!confirmResponse.success) {
-        throw new Error(confirmResponse.message || 'Không thể xác nhận giao dịch');
+      toast.dismiss('transaction');
+      toast.success('Giao dịch thành công!');
+
+      // Cập nhật backend
+      const updateResult = await nftApi.purchaseComplete(
+        tokenId,
+        tx.hash,
+        buyerAddress
+      );
+
+      if (!updateResult.success) {
+        throw new Error('Không thể cập nhật thông tin trên hệ thống');
       }
 
-      return { success: true, txHash };
+      return {
+        success: true,
+        txHash: tx.hash
+      };
     } catch (error: any) {
       console.error('Lỗi khi thực hiện giao dịch:', error);
-      toast.error(error.message || 'Đã xảy ra lỗi khi thực hiện giao dịch');
-      return { success: false, error: error.message || 'Lỗi giao dịch' };
+      
+      let errorMessage = 'Đã xảy ra lỗi khi thực hiện giao dịch';
+      
+      if (error.code) {
+        switch (error.code) {
+          case 4001:
+            errorMessage = 'Giao dịch đã bị từ chối';
+            break;
+          case -32603:
+            errorMessage = 'Lỗi nội bộ MetaMask';
+            break;
+          case 'INSUFFICIENT_FUNDS':
+            errorMessage = 'Số dư ETH không đủ';
+            break;
+          case 'UNPREDICTABLE_GAS_LIMIT':
+            errorMessage = 'Không thể ước tính phí gas';
+            break;
+          case 'ACTION_REJECTED':
+            errorMessage = 'Bạn đã từ chối ký giao dịch';
+            break;
+          case 'CALL_EXCEPTION':
+            errorMessage = 'Smart contract từ chối giao dịch, vui lòng kiểm tra lại điều kiện mua';
+            break;
+        }
+      }
+      
+      toast.dismiss('transaction');
+      toast.error(errorMessage);
+      
+      return {
+        success: false,
+        error: errorMessage
+      };
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  return { executePurchase };
+  return {
+    executePurchase,
+    isProcessing,
+    currentTxHash
+  };
 };
 
+declare global {
+  interface Window {
+    ethereum: any;
+  }
+}
+
 export default useWalletTransaction;
+

@@ -180,12 +180,13 @@ const postApi = {
   },
 
   // Lấy bài viết theo người dùng
-  getPostsByUser: async (username: string, pageNum: number): Promise<PostResponse> => {
+ getPostsByUser: async (address: string, pageNum: number): Promise<PostResponse> => {
     try {
-      const response = await instance.get(`/post/user/${username}`)
-      return response.data
+      const response = await instance.get(`/post/user/${address}?page=${pageNum}`);
+      return response.data;
     } catch (error: any) {
-      throw error.response?.data || { success: false, message: "Lỗi khi tải bài viết của người dùng" }
+      console.error("Error fetching posts by user:", error);
+      throw error.response?.data || { success: false, message: "Lỗi khi tải bài viết của người dùng" };
     }
   },
 
